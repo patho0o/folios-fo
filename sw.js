@@ -1,6 +1,6 @@
 // Guarda la app en el teléfono para que abra sin señal.
 // Al publicar una versión nueva, cambia el número de CACHE (igual que APP_VERSION en index.html).
-const CACHE = 'folios-fo-v0.3.2';
+const CACHE = 'folios-fo-v0.3.3';
 const MAPAS = 'folios-fo-mapas';          // pedazos de mapa ya vistos, para verlos sin señal
 const MAX_MAPAS = 3000;                    // ~30-50 MB como máximo
 const ARCHIVOS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
