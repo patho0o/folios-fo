@@ -43,7 +43,7 @@ textarea{min-height:80px;resize:vertical}
 .chip.add{border-style:dashed;color:var(--azul)}
 .hint{font-size:13px;color:var(--gris);margin-top:4px}
 .hint.ok{color:var(--ok)}.hint.warn{color:var(--warn)}.hint.err{color:var(--err)}
-.fh{display:flex;gap:8px}.fh input[type=date]{flex:1.3}.fh input[type=time]{flex:1}
+.fh{display:flex;gap:8px}.fh input[type=date]{flex:1.3}.fh input[type=time]{flex:1}.fh input{min-width:0}
 .item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #eef1f3}
 .item:last-child{border-bottom:0}
 .item .nom{font-size:14px;flex:1;min-width:0}
@@ -165,7 +165,7 @@ header h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 <script>
 /* ===== Configuración ===== */
 const API_URL = 'https://script.google.com/macros/s/AKfycby_e_HA5Szkra7cKYe159eZNLoVl9m8k1ZedPrlgWN4Ah8PUjM_jhn_BFGv5FWLiNE/exec';            // URL de la implementación de Apps Script (termina en /exec). Vacío = modo demo.
-const APP_VERSION = '0.13.1';
+const APP_VERSION = '0.13.2';
 const HORAS_EDICION = 48;      // horas que un técnico puede corregir su folio
 const CENTRO_MAPA = [20.66, -105.24];   // donde abre el mapa si aún no hay coordenadas
 const DIAS_HISTORIAL = 30;     // los folios ya enviados se borran del teléfono después de estos días (siguen en Sheets)
@@ -393,6 +393,7 @@ function router(){
   if(h === '#inv/movs') return pantallaMovs();
   if(h === '#inv/minimos') return pantallaMinimos();
   if(h === '#inv/nuevo') return pantallaMov(null);
+  if(h === '#inv/traspaso') return pantallaTraspaso();
   if(h.startsWith('#inv/conteo/')) return pantallaConteo(decodeURIComponent(h.slice(12)));
   if(h.startsWith('#inv/mov/')) return pantallaMov(h.slice(9));
   if(h === '#proyectos') return pantallaProyectos();
@@ -1805,7 +1806,7 @@ const MAT_CLAVE = MATERIALES.map(([h, n, u, g]) => ({k: invClave_(h), h, n, u, g
 const fmtQ = n => String(Math.round((Number(n) || 0) * 100) / 100);
 let INV = LS.get('inv', {movs:[], minimos:{alm:{}, cua:{}}, consumos:[], t:''});
 const guardarInv = () => { LS.set('inv', INV); pintarPendientes(); };
-const invPorSubir = () => veTodo() ? INV.movs.filter(m => m.subida !== m.actualizado).length + (INV.minPend ? 1 : 0) : 0;
+const invPorSubir = () => !USER || USER.rol === 'EXTERNO' ? 0 : INV.movs.filter(m => m.subida !== m.actualizado && (veTodo() || m.de === USER.cuadrilla)).length + (veTodo() && INV.minPend ? 1 : 0);
 const ordenU = (a, b) => (a !== ALMACEN) - (b !== ALMACEN) || a.localeCompare(b, 'es', {numeric:true});
 function ubicaciones(){
   const s = new Set([ALMACEN]);
@@ -1856,9 +1857,9 @@ async function sincInv(){
   if(sincInvEnCurso) return sincInvEnCurso;
   sincInvEnCurso = (async () => {
     try{
+      for(const m of INV.movs.filter(m => m.subida !== m.actualizado && (veTodo() || m.de === USER.cuadrilla))){
+        try{ const v = m.actualizado, {subida, error, ...mov} = m; await apiInv('guardarMov', {mov}); m.subida = v; m.error = ''; }catch(e){ m.error = String(e.message || e); } }
       if(veTodo()){
-        for(const m of INV.movs.filter(m => m.subida !== m.actualizado)){
-          try{ const v = m.actualizado, {subida, error, ...mov} = m; await apiInv('guardarMov', {mov}); m.subida = v; m.error = ''; }catch(e){ m.error = String(e.message || e); } }
         if(INV.minPend){ try{ await apiInv('guardarMinimos', {minimos: INV.minimos}); INV.minPend = false; }catch(e){} }
       }
       const j = await apiInv('inventario', {});
@@ -1903,7 +1904,7 @@ function filaMov(m){
   const ruta = m.tipo === 'CONTEO' ? nombreU(m.a) : [m.de && nombreU(m.de), m.a && nombreU(m.a)].filter(Boolean).join(' → ');
   return `<div class="item" data-mov="${esc(m.id)}" style="cursor:pointer;${m.anulado ? 'opacity:.5' : ''}"><span class="nom"><b>${TIPOS_MOV[m.tipo] || m.tipo}</b> · ${esc(ruta)}
     <small>${esc(resumenItems(m.items) || 'sin material')}</small><small>${esc(fmtFecha(local(m.fecha)).slice(0, 16))} · ${esc(m.usuario || '')}${m.reserva ? ' · reserva ' + esc(m.reserva) : ''}</small></span>
-    ${m.anulado ? '<span class="estado error">anulado</span>' : m.subida !== m.actualizado ? '<span class="estado pendiente">por enviar</span>'
+    ${m.anulado ? '<span class="estado error">anulado</span>' : m.subida !== m.actualizado ? `<span class="estado ${m.error ? 'error' : 'pendiente'}">${m.error ? 'error' : 'por enviar'}</span>`
       : (m.tipo === 'ENTREGA' || m.tipo === 'TRASPASO') ? `<span class="estado ${m.conf ? 'enviado' : 'pendiente'}">${m.conf ? 'recibido' : 'sin confirmar'}</span>` : ''}</div>`;
 }
 
@@ -2065,7 +2066,8 @@ function pantallaMiMaterial(sinBajar){
   $('#app').innerHTML = `${pend.map(m => `<div class="card"><h2>${m.tipo === 'ENTREGA' ? 'Entrega del almacén' : 'Traspaso de ' + esc(nombreU(m.de))}</h2>
        <div>${esc(resumenItems(m.items))}</div><div class="hint">${esc(fmtFecha(local(m.fecha)).slice(0, 16))} · ${esc(m.usuario || '')}</div>
        <button class="btn verde" data-conf="${esc(m.id)}">Confirmar que lo recibí</button><div class="hint">Todavía no cuenta en tu material. Si no coincide, no confirmes y avisa al supervisor.</div></div>`).join('')}
-    <div class="card"><h2>${esc(nombreU(cua))}</h2><div class="hint ${st.sinConteo ? 'warn' : ''}" style="margin:0 0 6px">${st.sinConteo ? 'Aún no se ha hecho el conteo de tu cuadrilla.' : 'Según el conteo del ' + esc(fmtFecha(local(st.conteo)).slice(0, 10)) + ' y tus folios.'}</div>${tablaStock(cua)}</div>
+    <div class="card"><h2>${esc(nombreU(cua))}</h2><div class="hint ${st.sinConteo ? 'warn' : ''}" style="margin:0 0 6px">${st.sinConteo ? 'Aún no se ha hecho el conteo de tu cuadrilla.' : 'Según el conteo del ' + esc(fmtFecha(local(st.conteo)).slice(0, 10)) + ' y tus folios.'}</div>${tablaStock(cua)}${avisoPorConfirmar(cua)}
+      <button class="btn ghost" onclick="ir('#inv/traspaso')">Pasar material a otra cuadrilla</button><div class="hint">Si algo no coincide con lo que traes, avisa al supervisor: él lo corrige.</div></div>
     ${ult.length ? `<div class="card"><h2>Últimos movimientos</h2>${ult.map(filaMov).join('')}</div>` : ''}`;
   document.querySelectorAll('[data-conf]').forEach(b => b.onclick = async () => {
     if(!demo() && !navigator.onLine) return toast('Necesitas señal para confirmar.');
@@ -2075,6 +2077,35 @@ function pantallaMiMaterial(sinBajar){
     catch(e){ toast(e.message); b.disabled = false; b.textContent = 'Confirmar que lo recibí'; }
   });
   if(!sinBajar && invViejo()) sincInv().then(() => { if(location.hash === '#inventario' && !MODALES.length) pantallaMiMaterial(true); });
+}
+
+/* --- Traspaso hecho por la cuadrilla: de su material a otra cuadrilla (la otra confirma al recibir) --- */
+function pantallaTraspaso(){
+  const cua = USER && USER.cuadrilla; if(!cua || veTodo()) return reemplazar('#inventario');
+  $('#titulo').textContent = 'Pasar material';
+  const st = stockDe(cua), otras = ubicaciones().filter(u => u !== ALMACEN && u !== cua);
+  const con = MAT_CLAVE.filter(m => (st.stock[m.k] || 0) > 0);
+  $('#app').innerHTML = `<div id="ft"><div class="card"><label>Para la cuadrilla <span class="req">*</span></label><select id="tA">${opciones(otras, '')}</select>
+      <label>Nota</label><input id="tNota" placeholder="Opcional: para qué folio o por qué">
+      <div class="hint">Sale de tu material al guardar. A la otra cuadrilla le cuenta cuando confirme que lo recibió.</div></div>
+    <div class="card" id="tMat">${con.length ? con.map(m => `<div class="item"><span class="nom">${esc(m.n)}<small>tienes ${fmtQ(st.stock[m.k])} ${m.u === 'm' ? 'm' : 'pza'}</small></span>
+      <div class="step m"><button type="button" data-paso="${m.u === 'm' ? -10 : -1}">−</button><input inputmode="decimal" data-inv="${esc(m.k)}" placeholder="0"><button type="button" data-paso="${m.u === 'm' ? 10 : 1}">+</button></div></div>`).join('')
+      : '<div class="vacio">No tienes material registrado para pasar.</div>'}</div><div id="tErr" class="hint err"></div></div>`;
+  activarInv($('#tMat'), () => { $('#tErr').textContent = ''; });
+  $('#bar').classList.remove('hidden');
+  $('#bar').innerHTML = `<button class="btn ghost" id="tCanc" style="flex:.5">Cancelar</button><button class="btn verde" id="tOk">Guardar traspaso</button>`;
+  $('#tCanc').onclick = () => volver('#inventario');
+  $('#tOk').onclick = async () => {
+    const a = $('#tA').value, items = leerInv($('#tMat')), err = $('#tErr');
+    const faltan = [!a && 'para qué cuadrilla', !Object.keys(items).length && 'material'].filter(Boolean);
+    if(faltan.length){ err.textContent = 'Falta: ' + faltan.join(', '); return; }
+    const de_mas = MAT_CLAVE.filter(m => items[m.k] > (st.stock[m.k] || 0));
+    if(de_mas.length){ err.textContent = 'No puedes pasar más de lo que tienes: ' + de_mas.map(m => `${m.n} (tienes ${fmtQ(st.stock[m.k] || 0)})`).join(', '); return; }
+    if(!(await preguntar(`¿Pasar a ${nombreU(a)}: ${resumenItems(items)}?`, 'Sí, pasar', 'Revisar'))) return;
+    const ts = new Date().toISOString();
+    INV.movs.push({id: uuid(), tipo: 'TRASPASO', de: cua, a, items, fecha: ts, nota: $('#tNota').value.trim(), reserva: '', usuario: USER.nombre, actualizado: ts});
+    guardarInv(); sincInv(); toast(demo() || navigator.onLine ? 'Traspaso guardado' : 'Traspaso guardado. Se envía con señal.'); volver('#inventario');
+  };
 }
 
 /* ===== Mini mapa (sin librerías) ===== */
