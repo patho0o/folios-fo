@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f5c8c">
+<meta name="theme-color" content="#ffffff">
 <title>Folios FO</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
@@ -106,10 +106,58 @@ details.gr .cnt{margin-left:auto;font-weight:400;font-size:13px;color:var(--gris
 .mattr{position:absolute;right:4px;bottom:2px;font-size:10px;color:#555;background:rgba(255,255,255,.7);padding:1px 4px;z-index:2}
 .minfo{padding:10px 12px;font-size:14px;border-top:1px solid var(--borde)}
 video.qr{width:100%;border-radius:12px;background:#000;max-height:60vh;object-fit:cover}
+
+/* ===== Estilo 0.11: más claro y con menos recuadros ===== */
+:root{--azul:#1f5f99;--azul2:#eef3f8;--txt:#1c2127;--gris:#6f7882;--borde:#e3e7ec;--fondo:#f5f6f8;--ok:#1e8449;--warn:#a85d00;--err:#b8382b;--sombra:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.04)}
+header{background:#fff;color:var(--txt);border-bottom:1px solid var(--borde);padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top))}
+header h1{font-size:17px;font-weight:650}
+header button{background:var(--fondo);color:var(--txt);border:1px solid var(--borde);border-radius:999px;padding:6px 12px;font-size:13px}
+.card{border:0;box-shadow:var(--sombra);border-radius:14px;padding:14px 16px}
+.card h2{font-size:15px;color:var(--txt);font-weight:650}
+details.card>summary{color:var(--txt);font-size:15px;font-weight:650}
+details.card>summary::after{content:"⌄";font-size:16px}
+details.card[open]>summary::after{content:"⌃"}
+label{font-size:12.5px;margin:12px 0 5px}
+input,select,textarea{background:#fafbfc;border:1px solid var(--borde);border-radius:10px;padding:11px 12px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--azul);background:#fff;box-shadow:0 0 0 3px rgba(31,95,153,.12)}
+.btn{border-radius:12px;font-weight:600;padding:13px}
+.btn.sec{background:#fff;color:var(--txt);border:1px solid var(--borde)}
+.btn.ghost{background:transparent;color:var(--azul);border:1px solid var(--borde)}
+.btn.verde{background:var(--ok)}
+.chip{background:#fff;border-color:var(--borde);padding:7px 12px}
+.chip.on{background:var(--azul2);color:var(--azul);border-color:var(--azul);font-weight:600}
+.step button{background:#fff;color:var(--txt);font-size:20px}
+.item{border-bottom-color:#f0f2f4}
+.big{font-size:26px;font-weight:700}
+.kpis .card{padding:12px}
+.sug{background:#f1f7f2}
+pre.wa{background:#f6f8f6}
+.bar{border-top:1px solid var(--borde);box-shadow:0 -2px 8px rgba(16,24,40,.04)}
+.modal .mtop{background:#fff;color:var(--txt);border-bottom:1px solid var(--borde)}
+.modal .mtop button{background:var(--fondo);color:var(--txt);border:1px solid var(--borde);border-radius:999px;padding:6px 14px;font-size:14px}
+.estado{font-weight:600}
+/* inicio */
+.hola{margin:4px 2px 14px}.hola b{display:block;font-size:22px;font-weight:700}.hola span{font-size:13px;color:var(--gris)}
+.accion{display:flex;align-items:center;gap:12px;width:100%;border:0;border-radius:16px;background:var(--azul);color:#fff;padding:18px 18px;font-size:18px;font-weight:650;cursor:pointer;margin-bottom:12px;text-align:left}
+.accion .ic{font-size:22px;width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center}
+.accion small{display:block;font-size:12.5px;font-weight:400;opacity:.85}
+.menu{background:#fff;border-radius:14px;box-shadow:var(--sombra);overflow:hidden;margin-bottom:12px}
+.mi{display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid #f0f2f4;cursor:pointer;color:var(--txt);text-decoration:none}
+.mi:last-child{border-bottom:0}
+.mi .ic{width:36px;height:36px;border-radius:10px;background:var(--fondo);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+.mi .tx{flex:1;min-width:0}.mi .tx b{display:block;font-size:15px;font-weight:600}.mi .tx small{display:block;font-size:12.5px;color:var(--gris);margin-top:1px}
+.mi .ch{color:#b3bac2;font-size:20px}
+.mi .num{background:var(--azul2);color:var(--azul);border-radius:999px;font-size:12px;font-weight:700;padding:2px 9px}
+.mi.off{opacity:.55;cursor:default}
+.seccion{font-size:12px;font-weight:650;color:var(--gris);text-transform:uppercase;letter-spacing:.05em;margin:18px 4px 8px}
+.pie{font-size:12px;color:var(--gris);text-align:center;margin:18px 0 4px}
+#btnAtras{width:36px;height:36px;padding:0;border-radius:50%;font-size:24px;line-height:1;flex:none;display:flex;align-items:center;justify-content:center;padding-bottom:3px}
+.tira{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 10px;scrollbar-width:none}.tira::-webkit-scrollbar{display:none}.tira .chip{flex:none}
+header h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 </style>
 </head>
 <body>
-<header><h1 id="titulo">Folios FO</h1><button id="btnSync" class="hidden">⟳ <span id="pend">0</span></button><button id="btnSalir" class="hidden">Salir</button></header>
+<header><button id="btnAtras" class="hidden" aria-label="Regresar">‹</button><h1 id="titulo">Folios FO</h1><button id="btnSync" class="hidden">⟳ <span id="pend">0</span></button><button id="btnSalir" class="hidden">Salir</button></header>
 <div id="bDemo" class="banner demo hidden">Modo demostración: los folios se guardan solo en este teléfono.</div>
 <div id="bOff" class="banner off hidden">Sin conexión. Puedes seguir capturando; se envía al volver la señal.</div>
 <main id="app"></main>
@@ -117,7 +165,7 @@ video.qr{width:100%;border-radius:12px;background:#000;max-height:60vh;object-fi
 <script>
 /* ===== Configuración ===== */
 const API_URL = 'https://script.google.com/macros/s/AKfycby_e_HA5Szkra7cKYe159eZNLoVl9m8k1ZedPrlgWN4Ah8PUjM_jhn_BFGv5FWLiNE/exec';            // URL de la implementación de Apps Script (termina en /exec). Vacío = modo demo.
-const APP_VERSION = '0.10.0';
+const APP_VERSION = '0.13.1';
 const HORAS_EDICION = 48;      // horas que un técnico puede corregir su folio
 const CENTRO_MAPA = [20.66, -105.24];   // donde abre el mapa si aún no hay coordenadas
 const DIAS_HISTORIAL = 30;     // los folios ya enviados se borran del teléfono después de estos días (siguen en Sheets)
@@ -285,6 +333,8 @@ async function sincronizar(manual, conErrores = true){
   // los que fallaron se reintentan al abrir la app, al volver la señal o con ⟳; el automático de cada minuto solo manda los nuevos
   if(demo()){ if(manual) toast('Modo demo: no hay servidor configurado'); return; }
   if(MIS_DOCS.some(x => !x.subido && !x.rechazado)) subirDocs();
+  if(USER.rol === 'ADMIN' && proyPorSubir()) subirProy();
+  if(invPorSubir()) sincInv();
   const pend = FOLIOS.filter(f => f.estado === 'pendiente' || (conErrores && f.estado === 'error'));
   if(!navigator.onLine || sincronizando || !pend.length){ if(manual && !pend.length && !docsPorEnviar()) toast('Todo está enviado'); return; }
   sincronizando = true;
@@ -310,7 +360,7 @@ async function sincronizar(manual, conErrores = true){
 }
 function pintarPendientes(){
   let n = USER ? FOLIOS.filter(f => f.estado !== 'enviado' && esMio(f)).length : 0;
-  try{ n += USER ? docsPorEnviar() : 0; }catch(e){}
+  try{ n += USER ? docsPorEnviar() : 0; if(USER && USER.rol === 'ADMIN') n += proyPorSubir(); if(USER) n += invPorSubir(); }catch(e){}
   $('#pend').textContent = n;
   $('#btnSync').style.background = n ? 'rgba(255,190,60,.45)' : '';
   $('#bOff').classList.toggle('hidden', navigator.onLine);
@@ -319,16 +369,36 @@ addEventListener('online', ()=>{ pintarPendientes(); sincronizar(); });
 addEventListener('offline', pintarPendientes);
 setInterval(()=>sincronizar(false, false), 60000);
 
+// Botón ‹ del encabezado: regresa a la pantalla anterior (o a la que le corresponde si se abrió directo)
+function padreDe(h){
+  return h.startsWith('#inv/') ? '#inventario' : h.startsWith('#inc/') || h.startsWith('#proyecto/') ? '#proyectos' : h.startsWith('#doc2n') ? '#docs'
+    : h.startsWith('#masiva/') ? '#masivas' : h.startsWith('#ver/') || h.startsWith('#editar/') ? '#folios' : USER && USER.rol === 'EXTERNO' ? '#docs' : '#';
+}
+$('#btnAtras').onclick = () => volver(padreDe(location.hash));
+
 /* ===== Pantallas ===== */
 function router(){
   $('#bDemo').classList.toggle('hidden', !demo());
   $('#bar').classList.add('hidden'); $('#bar').innerHTML='';
   const logged = !!USER;
   $('#btnSync').classList.toggle('hidden', !logged); $('#btnSalir').classList.toggle('hidden', !logged);
+  $('#btnAtras').classList.add('hidden');
   if(!logged) return pantallaLogin();
   const h = location.hash;
+  const esInicio = h === '' || h === '#' || (USER.rol === 'EXTERNO' && h === '#docs');
+  $('#btnAtras').classList.toggle('hidden', esInicio);
   if(USER.rol === 'EXTERNO' && !/^#doc/.test(h)) return reemplazar('#docs');      // póliza / externos: solo documentación
   if(h.startsWith('#docs')) return pantallaDocs();
+  if(h === '#inventario') return pantallaInventario();
+  if(h === '#inv/movs') return pantallaMovs();
+  if(h === '#inv/minimos') return pantallaMinimos();
+  if(h === '#inv/nuevo') return pantallaMov(null);
+  if(h.startsWith('#inv/conteo/')) return pantallaConteo(decodeURIComponent(h.slice(12)));
+  if(h.startsWith('#inv/mov/')) return pantallaMov(h.slice(9));
+  if(h === '#proyectos') return pantallaProyectos();
+  if(h.startsWith('#proyecto/')) return pantallaProyecto(h.slice(10));
+  if(h.startsWith('#inc/nueva/')) return pantallaIncNueva(h.slice(11));
+  if(h.startsWith('#inc/')) return pantallaInc(h.slice(5));
   if(h.startsWith('#doc2n')) return pantallaDoc2n(decodeURIComponent(h.slice(7)) || null);
   if(h.startsWith('#nuevo')) return pantallaFolio(null);
   if(h.startsWith('#editar/')) return pantallaFolio(h.slice(8));
@@ -401,20 +471,41 @@ function pantallaLogin(){
 }
 
 function pantallaInicio(){
-  $('#titulo').textContent = USER.nombre.split(' ').slice(0,2).join(' ');
+  $('#titulo').textContent = 'Folios FO';
   const hoy = hoyISO(), mios = FOLIOS.filter(esMio), pend = mios.filter(f=>f.estado!=='enviado').length;
   const deHoy = mios.filter(f=>local(f.creado).slice(0,10)===hoy).length, borr = LS.get(CLAVE_BORRADOR(), null);
-  $('#app').innerHTML = `
-   ${borr?`<div class="card"><h2>Tienes un folio sin terminar</h2><div class="hint">Folio ${esc(borr.d['FOLIO/OS']||'sin número')}, guardado en el teléfono.</div><button class="btn" onclick="ir('#nuevo')">Continuar</button><button class="btn ghost" id="bDesc">Descartar</button></div>`:''}
-   <button class="btn" style="padding:20px;font-size:18px" onclick="ir('#nuevo')">+ Nuevo folio</button>
-   <div class="kpis" style="margin:12px 0"><div class="card" style="cursor:pointer" onclick="ir('#folios/hoy')"><div class="big">${deHoy}</div><div class="hint">Folios hoy ›</div></div>
-     <div class="card" style="cursor:pointer" onclick="ir('#folios/pendientes')"><div class="big" style="color:${pend?'var(--warn)':'var(--ok)'}">${pend}</div><div class="hint">Por enviar ›</div></div></div>
-   <button class="btn sec" onclick="ir('#folios')">${veTodo()?'Folios de todos':USER.cuadrilla?'Folios de mi cuadrilla':'Mis folios'}</button>
-   ${USER.rol==='ADMIN'?`<button class="btn sec" onclick="ir('#masivas')">🚨 Seguimiento de masivas${(()=>{ const n = MASIVAS.filter(m => m.estado !== 'CERRADA').length; return n ? ' · ' + n + ' abierta(s)' : ''; })()}</button>`:''}
-   <button class="btn sec" onclick="ir('#docs')">📍 Documentación de 2N${(n => n ? ' · ' + n + ' por enviar' : '')(docsPorEnviar())}</button>
-   ${veTodo()?`<button class="btn sec" onclick="ir('#reporte')">📊 Reporte semanal de material</button>`:''}
-   ${USER.rol==='ADMIN'?`<button class="btn sec" onclick="ir('#usuarios')">👥 Usuarios</button>`:''}
-   <div class="card" style="margin-top:12px"><div class="hint">${esc(USER.rol)}${USER.cuadrilla?' · '+esc(USER.cuadrilla):''} · versión ${APP_VERSION}</div></div>`;
+  const rol = USER.rol, nd = docsPorEnviar(), abiertas = MASIVAS.filter(m => m.estado !== 'CERRADA');
+  const mi = (h, ic, t, sub, extra = '') => `<a class="mi" onclick="ir('${h}')"><span class="ic">${ic}</span><span class="tx"><b>${t}</b>${sub ? `<small>${sub}</small>` : ''}</span>${extra}<span class="ch">›</span></a>`;
+  const num = n => n ? `<span class="num">${n}</span>` : '';
+  const kpis = `<div class="kpis" style="margin-bottom:12px"><div class="card" style="cursor:pointer" onclick="ir('#folios/hoy')"><div class="big">${deHoy}</div><div class="hint">Folios hoy ›</div></div>
+     <div class="card" style="cursor:pointer" onclick="ir('#folios/pendientes')"><div class="big" style="color:${pend?'var(--warn)':'var(--ok)'}">${pend}</div><div class="hint">Por enviar ›</div></div></div>`;
+  const borrador = borr ? `<div class="card"><h2>Tienes un folio sin terminar</h2><div class="hint">Folio ${esc(borr.d['FOLIO/OS']||'sin número')}, guardado en el teléfono.</div>
+     <div class="row"><button class="btn ghost" id="bDesc">Descartar</button><button class="btn" onclick="ir('#nuevo')">Continuar</button></div></div>` : '';
+  const folios = mi('#folios', '📄', veTodo() ? 'Folios de todos' : USER.cuadrilla ? 'Folios de mi cuadrilla' : 'Mis folios', 'Últimos 30 días');
+  const docs = mi('#docs', '📍', 'Documentación de 2N', 'QR, puertos y brazo de cada 2N', num(nd));
+  const reporte = mi('#reporte', '📊', 'Reporte semanal de material', 'Formato GTB, de lunes a domingo');
+  const nAl = veTodo() ? alertasInv().length : 0, nConf = USER.cuadrilla ? porConfirmar(USER.cuadrilla).length : 0;
+  const inventario = veTodo() ? mi('#inventario', '📦', 'Inventario', nAl ? `<span style="color:var(--err)">${nAl} material(es) bajo mínimo</span>` : 'Stock de almacén y cuadrillas', num(nAl))
+    : mi('#inventario', '📦', 'Material de mi cuadrilla', nConf ? `<span style="color:var(--warn)">Tienes ${nConf} entrega(s) por confirmar</span>` : 'Lo que tienes y lo que has recibido', num(nConf));
+  let cuerpo;
+  if(rol === 'ADMIN'){
+    cuerpo = `<div class="menu">${mi('#masivas', '🚨', 'Seguimiento de masivas', abiertas.length ? abiertas.slice(0,3).map(m => esc(m.folio + ' · ' + (m.cluster||''))).join('<br>') : 'Sin masivas abiertas', num(abiertas.length))}
+        ${mi('#proyectos', '🏗️', 'Proyectos y validación', (n => n ? n + ' incidencia(s) abierta(s)' : 'Recorridos, incidencias y material')(PROY.incidencias.filter(i => i.estado === 'ABIERTA').length),
+            num(PROY.proyectos.filter(x => x.estado !== 'VALIDADO').length))}
+        ${docs}</div>
+      <div class="seccion">Operación</div><div class="menu">${inventario}${folios}${reporte}${mi('#nuevo', '＋', 'Nuevo folio', 'Capturar un folio')}</div>
+      <div class="seccion">Administración</div><div class="menu">${mi('#usuarios', '👥', 'Usuarios', 'Altas, PIN y cuadrillas')}</div>`;
+  } else if(rol === 'SUPERVISOR'){
+    cuerpo = `<div class="menu">${inventario}${reporte}</div>
+      ${kpis}<div class="menu">${folios}${docs}${mi('#nuevo', '＋', 'Nuevo folio', 'Capturar un folio')}</div>`;
+  } else {
+    cuerpo = `${borrador}<button class="accion" onclick="ir('#nuevo')"><span class="ic">＋</span><span>Nuevo folio<small>Captura y manda el script</small></span></button>
+      ${kpis}<div class="menu">${folios}${USER.cuadrilla ? inventario : ''}${docs}</div>`;
+  }
+  $('#app').innerHTML = `<div class="hola"><b>Hola, ${esc(USER.nombre.split(' ')[0].charAt(0) + USER.nombre.split(' ')[0].slice(1).toLowerCase())}</b>
+     <span>${esc({ADMIN:'Administrador', SUPERVISOR:'Supervisor', TECNICO:'Técnico', AUXILIAR:'Auxiliar'}[rol] || rol)}${USER.cuadrilla ? ' · ' + esc(USER.cuadrilla) : ''}</span></div>
+   ${rol === 'TECNICO' || rol === 'AUXILIAR' ? '' : borrador}${cuerpo}
+   <div class="pie">Versión ${APP_VERSION}</div>`;
   const bd = $('#bDesc'); if(bd) bd.onclick = async () => { if(await preguntar('¿Descartar el folio sin terminar?','Descartar')){ LS.del(CLAVE_BORRADOR()); router(); } };
 }
 
@@ -480,16 +571,54 @@ function leerAsignacion(txt){
   if(cl){ r.cluster = cl[0]; r.ciudad = cl[1].ciudad; r.estado = cl[1].estado; }
   return r;
 }
+
+/* --- Materiales de la masiva: los más comunes a la vista, el resto en "Más materiales", y "Otros" a mano.
+   Mensaje 2 = materiales a utilizar; mensaje 3 = material utilizado (se toma del 2 hasta que se cambie). --- */
+const MAT_COMUNES = ['CIERRE 2N', 'CIERRE TIPO MEXFO', 'CIERRE TIPO MINI MEXFO', 'FO 24H', 'FO 96'];   // primero, en este orden
+function textoMat(x){
+  if(!x) return '';
+  const v = x.v || {}, l = [...MAT_COMUNES.map(h => MATERIALES.find(y => y[0] === h)).filter(Boolean), ...MATERIALES.filter(([h]) => !MAT_COMUNES.includes(h))].filter(([h]) => parseFloat(v[h]) > 0).map(([h, n, u]) => `${parseFloat(v[h])}${u === 'm' ? ' m' : ''} ${MAY(n)}`);
+  if(x.otros && x.otros.trim()) l.push(MAY(x.otros.trim()));
+  return l.join(', ');
+}
+function editorMat(n, m){
+  const x = (n === 3 ? (m.mat3 || m.mat2) : m.mat2) || {v:{}, otros:''}, v = x.v || {};
+  const fila = ([h, nom, u]) => `<div class="item ${parseFloat(v[h]) > 0 ? 'con' : ''}"><span class="nom">${esc(nom)}<small>${u === 'm' ? 'metros' : 'piezas'}</small></span>
+    <div class="step ${u === 'm' ? 'm' : ''}"><button type="button" data-paso="${u === 'm' ? -10 : -1}">−</button><input inputmode="decimal" data-mat="${esc(h)}" value="${esc(v[h] || '')}" placeholder="0"><button type="button" data-paso="${u === 'm' ? 10 : 1}">+</button></div></div>`;
+  const com = MAT_COMUNES.map(h => MATERIALES.find(x => x[0] === h)).filter(Boolean), resto = MATERIALES.filter(([h]) => !MAT_COMUNES.includes(h));
+  const abiertos = resto.some(([h]) => parseFloat(v[h]) > 0);
+  return `<div class="matm" data-matn="${n}">${com.map(fila).join('')}
+    <details ${abiertos ? 'open' : ''}><summary class="hint" style="padding:8px 0;cursor:pointer">＋ Más materiales</summary>${resto.map(fila).join('')}</details>
+    <input data-otros placeholder="Otros (ej. 1 MANGA TERMORETRACTIL)" value="${esc(x.otros || (n === 2 && !m.mat2 ? m.materiales || '' : ''))}" autocapitalize="characters" style="margin-top:6px"></div>`;
+}
+function activarMat(m, cambio){
+  document.querySelectorAll('.matm').forEach(box => {
+    const n = +box.dataset.matn;
+    const leer = () => {
+      const v = {}; box.querySelectorAll('[data-mat]').forEach(i => { const q = parseFloat(i.value); if(q > 0) v[i.dataset.mat] = String(q); i.closest('.item').classList.toggle('con', q > 0); });
+      const x = {v, otros: box.querySelector('[data-otros]').value.trim()};
+      if(n === 2){ m.mat2 = x;
+        if(!m.mat3){ const b3 = document.querySelector('.matm[data-matn="3"]');   // el 3 sigue al 2 mientras no se cambie
+          if(b3){ b3.querySelectorAll('[data-mat]').forEach(i => { i.value = v[i.dataset.mat] || ''; i.closest('.item').classList.toggle('con', !!v[i.dataset.mat]); }); b3.querySelector('[data-otros]').value = x.otros; } } }
+      else { m.mat3 = x; const h = $('#mMat3H'); if(h) h.textContent = ''; }
+      cambio();
+    };
+    box.addEventListener('input', e => { if(e.target.matches('[data-mat],[data-otros]')){ e.stopPropagation(); leer(); } });
+    box.addEventListener('click', e => { const b = e.target.closest('[data-paso]'); if(!b) return;
+      const i = b.parentElement.querySelector('input'); i.value = Math.max(0, (parseFloat(i.value) || 0) + +b.dataset.paso) || ''; leer(); });
+  });
+}
 // La masiva vista como folio, para reutilizar los textos de los 3 mensajes
 function masivaComoFolio(m){
+  const t2 = textoMat(m.mat2) || m.materiales || '', t3 = textoMat(m.mat3 || m.mat2) || m.materialUsado || t2;
   return {'FOLIO/OS': m.folio, 'PUNTO DE MEDICION': m.punto, 'COORD PUNTO DE MEDICION': m.coordPunto, 'PROVEEDOR': m.proveedor || 'GTB',
     'TECNICO QUE ATIENDE': (m.tecnicos||[]).join(' , '), 'CAUSA DE DAÑO': m.causa, 'ACCION CORRECTIVA': m.accion, 'ETR': m.etr, 'CALIBRE FO': m.calibre,
-    'COORDENADAS': m.coordDanio || m.coordPunto, 'MATERIALES A UTILIZAR': m.materiales, 'MAS DE UN CIERRE': m.varios ? 'SI' : '', 'QR SEGUNDO NIVEL': m.qr,
+    'COORDENADAS': m.coordDanio || m.coordPunto, 'MATERIALES A UTILIZAR': t2, 'MAS DE UN CIERRE': m.varios ? 'SI' : '', 'QR SEGUNDO NIVEL': m.qr,
     'CIUDAD': m.ciudad, 'ESTADO': m.estado, 'CLUSTER': m.cluster, 'OLT': m.olt, 'CLIENTES AFECTADOS': m.clientesTP, 'CLIENTES ENLACE': m.clientesEnlace,
     'CLIENTES TFE': m.clientesTFE, 'FALLA REPORTADA': 'AFECTACIÓN MASIVA', 'FECHA Y HORA DE ASIGNACIÓN': m.asignacion, 'FECHA Y HORA DE LLEGADA': m.llegada,
     'HORA 1ER MEDICION': m.medicion, 'UBICACIÓN DEL DAÑO': m.ubicacion, 'DESCIPCIÓN DE ACTIVIDADES': m.descripcion, 'POTENCIA INICIAL': m.potIni,
     'POTENCIA FINAL': m.potFin, 'HORA FINAL': m.horaFinal, 'SUPERVISOR DISTRITO': CFG.supervisorDefault || (CFG.listas.SUPERVISOR||[''])[0],
-    'TIPO DE MANTENIMIENTO': m.tipo || 'CORRECTIVO', 'MATERIAL UTILIZADO TEXTO': m.materialUsado, 'PAUSA INICIO': m.pausaIni, 'PAUSA FIN': m.pausaFin, 'MOTIVO DE PAUSA': m.motivoPausa};
+    'TIPO DE MANTENIMIENTO': m.tipo || 'CORRECTIVO', 'MATERIAL UTILIZADO TEXTO': t3, 'PAUSA INICIO': m.pausaIni, 'PAUSA FIN': m.pausaFin, 'MOTIVO DE PAUSA': m.motivoPausa};
 }
 async function subirMasiva(m){
   if(demo() || !navigator.onLine) return;
@@ -536,7 +665,7 @@ function nuevaMasiva(){
     const r = leerAsignacion(o.querySelector('#mTxt').value);
     if(!r.folio) return toast('No encontré el número de folio en el mensaje');
     const ya = MASIVAS.find(x => x.folio === r.folio && x.estado !== 'CERRADA');
-    const m = ya || {id: uuid(), estado: 'ABIERTA', enviados: {}, tecnicos: [], calibre: '', tipo: 'CORRECTIVO', proveedor: 'GTB', ...r, mensajeOriginal: o.querySelector('#mTxt').value};
+    const m = ya || {id: uuid(), estado: 'ABIERTA', enviados: {}, tecnicos: [], calibre: '', tipo: 'CORRECTIVO', proveedor: 'GTB', potIni: 'Low', potFin: 'Activos', ...r, mensajeOriginal: o.querySelector('#mTxt').value};
     if(!ya){ m.actualizado = new Date().toISOString(); MASIVAS.push(m); guardarMasivas(); subirMasiva(m); }
     cerrar(); setTimeout(() => ir('#masiva/' + m.id), 50);
   };
@@ -544,6 +673,7 @@ function nuevaMasiva(){
 function pantallaMasiva(id){
   const m = MASIVAS.find(x => x.id === id); if(!m || USER.rol !== 'ADMIN'){ reemplazar('#masivas'); return; }
   $('#titulo').textContent = 'Masiva ' + (m.folio || '');
+  if(m.potIni === undefined){ m.potIni = 'Low'; m.potFin = 'Activos'; }     // lo normal; se cambia si fue distinto
   const L = CFG.listas, olts = [...new Set(Object.values(CFG.clusters||{}).flatMap(c => c.olts||[]))];
   const tecs = (CFG.usuarios||[]).filter(u => u.rol === 'TECNICO' && u.activo !== false).map(u => u.nombre);
   const op = (lista, val, vacio = 'Selecciona') => `<option value="">${vacio}</option>` + lista.map(x => `<option value="${esc(x)}" ${x===val?'selected':''}>${esc(x)}</option>`).join('');
@@ -567,18 +697,18 @@ function pantallaMasiva(id){
    </details>
    <div class="card"><h2>Técnicos</h2><div class="chips" id="mTec">${tecs.map(t => `<button type="button" class="chip ${(m.tecnicos||[]).includes(t)?'on':''}">${esc(t)}</button>`).join('')}</div>
      <button type="button" class="btn ghost" id="mTraer">⟵ Traer datos del folio del técnico</button><div class="hint" id="mTraerH"></div></div>
-   ${etapa(1, '1. Llegada', `<div class="row"><div><label>Punto de medición</label><select data-m="punto">${op(PUNTOS, m.punto)}</select></div><div>${fh('llegada','Llegada')}</div></div>${coord('coordPunto','Coordenadas del punto de medición')}`)}
+   ${etapa(1, '1. Llegada', `<label>Punto de medición</label><select data-m="punto">${op(PUNTOS, m.punto)}</select>${fh('llegada','Llegada')}${coord('coordPunto','Coordenadas del punto de medición')}`)}
    ${etapa(2, '2. Daño encontrado', `<label>Causa del daño</label><select data-m="causa">${op((L.CAUSA||[]).filter(c => !SOLO_OPERACION.includes(canonCausa(c))), m.causa)}</select>
      ${txt('accion','Acción correctiva','SE ACOMODA Y SE REEMPALMA')}
      <div class="row"><div><label>ETR</label><select data-m="etr">${op(ETRS, m.etr)}</select></div><div><label>Capacidad de FO</label><select data-m="calibre">${op(CALIBRES, m.calibre)}</select></div></div>
-     ${coord('coordDanio','Coordenadas del daño')}${txt('materiales','Materiales a utilizar','1 MANGA TERMORETRACTIL')}
+     ${coord('coordDanio','Coordenadas del daño')}<label>Materiales a utilizar</label>${editorMat(2, m)}
      <label style="display:flex;align-items:center;gap:10px;color:var(--txt);font-size:15px;margin-top:12px"><input type="checkbox" id="mVarios" style="width:22px;height:22px" ${m.varios?'checked':''}> Más de un cierre afectado</label>
      <div id="mQrBox" class="${m.varios?'hidden':''}">${txt('qr','Número QR','TP000000')}</div>`)}
-   ${etapa(3, '3. Cierre', `${fh('medicion','Hora de la 1ª medición')}${txt('ubicacion','Ubicación del daño (dirección)')}
+   ${etapa(3, '3. Cierre', `<label>Ubicación del daño (dirección)</label><div class="row"><input data-m="ubicacion" value="${esc(m.ubicacion||'')}" placeholder="se llena sola con las coordenadas del daño"><button type="button" class="btn sm sec" id="mDir" style="flex:0 0 auto" aria-label="Buscar dirección">📍</button></div><div class="hint" id="mDirH"></div>
      <label>Descripción de actividades</label><textarea data-m="descripcion">${esc(m.descripcion||'')}</textarea>
      <div class="row"><div><label>Potencia inicial</label><input data-m="potIni" list="dlPotM" value="${esc(m.potIni||'')}"></div><div><label>Potencia final</label><input data-m="potFin" list="dlPotM" value="${esc(m.potFin||'')}"></div></div>
      <datalist id="dlPotM">${(L.POTENCIA||[]).map(x => `<option value="${esc(x)}">`).join('')}</datalist>
-     ${fh('horaFinal','Hora final de reparación')}${txt('materialUsado','Material utilizado')}
+     ${fh('horaFinal','Hora final de reparación')}<label>Material utilizado</label><div class="hint" id="mMat3H">${m.mat3 ? '' : 'Tomado de los materiales del mensaje 2. Cámbialo solo si se usó otra cosa.'}</div>${editorMat(3, m)}
      <div class="row"><div><label>Pausa: inicio</label><input type="time" data-m="pausaIni" value="${esc(m.pausaIni||'')}"></div><div><label>Pausa: fin</label><input type="time" data-m="pausaFin" value="${esc(m.pausaFin||'')}"></div></div>
      ${txt('motivoPausa','Motivo de pausa')}`)}
    </div>`;
@@ -589,6 +719,21 @@ function pantallaMasiva(id){
   const cambio = () => { m.actualizado = new Date().toISOString(); guardarMasivas(); clearTimeout(reloj); reloj = setTimeout(() => subirMasiva(m), 4000); };
   const fo = $('#fm');
   fo.addEventListener('input', e => { const k = e.target.dataset.m; if(k){ m[k] = e.target.value; cambio(); } });
+  activarMat(m, cambio);
+  // dirección del daño: se busca sola con las coordenadas (Google, desde el servidor)
+  const dir = async (forzar) => { const h = $('#mDirH'), c = parseCoords(m.coordDanio || '');
+    if(!c){ if(forzar){ h.className = 'hint warn'; h.textContent = 'Primero pon las coordenadas del daño.'; } return; }
+    if(m.ubicacion && !forzar) return;
+    if(demo()){ h.className = 'hint'; h.textContent = 'En la demo no se busca la dirección.'; return; }
+    if(!navigator.onLine){ h.className = 'hint warn'; h.textContent = 'Sin señal: la dirección se puede buscar después con 📍.'; return; }
+    h.className = 'hint'; h.textContent = 'Buscando dirección…';
+    try{ const j = await api('direccion', {coords: m.coordDanio}); if(!$('#mDirH')) return;
+      if(j.direccion){ m.ubicacion = j.direccion; document.querySelector('[data-m="ubicacion"]').value = j.direccion; h.textContent = ''; cambio(); }
+      else h.textContent = 'No se encontró la dirección; escríbela.'; }
+    catch(e){ if($('#mDirH')) $('#mDirH').textContent = e.message; } };
+  $('#mDir').onclick = () => dir(true);
+  fo.addEventListener('change', e => { if(e.target.dataset.m === 'coordDanio') setTimeout(() => dir(false), 0); });
+  dir(false);
   fo.addEventListener('change', e => { const k = e.target.dataset.m; if(k){ m[k] = e.target.value; cambio(); }
     const box = e.target.closest('[data-mfh]'); if(box){ const [d, t] = box.querySelectorAll('input'); if(t.value && !d.value) d.value = hoyISO(); m[box.dataset.mfh] = d.value ? d.value + 'T' + t.value : ''; cambio(); } });
   $('#mOlt').addEventListener('change', () => { const cl = Object.entries(CFG.clusters||{}).find(([, c]) => (c.olts||[]).includes(m.olt));
@@ -598,7 +743,8 @@ function pantallaMasiva(id){
   document.querySelectorAll('#mTec .chip').forEach(b => b.onclick = () => { b.classList.toggle('on'); m.tecnicos = [...document.querySelectorAll('#mTec .chip.on')].map(x => x.textContent); cambio(); });
   $('#mVarios').onchange = e => { m.varios = e.target.checked; $('#mQrBox').classList.toggle('hidden', m.varios); cambio(); };
   document.querySelectorAll('[data-mapa]').forEach(b => b.onclick = () => abrirMapa(m[b.dataset.mapa] || m.coordPunto || '', (la, lo) => {
-    m[b.dataset.mapa] = `${la.toFixed(6)}, ${lo.toFixed(6)}`; document.querySelector(`[data-m="${b.dataset.mapa}"]`).value = m[b.dataset.mapa]; cambio(); }));
+    m[b.dataset.mapa] = `${la.toFixed(6)}, ${lo.toFixed(6)}`; document.querySelector(`[data-m="${b.dataset.mapa}"]`).value = m[b.dataset.mapa]; cambio();
+    if(b.dataset.mapa === 'coordDanio') dir(false); }));
   document.querySelectorAll('[data-msg]').forEach(b => b.onclick = () => {
     const n = +b.dataset.msg, t = scriptMasiva(n, masivaComoFolio(m));
     mostrarTexto(['', 'Mensaje 1: llegada', 'Mensaje 2: daño', 'Mensaje 3: cierre'][n], t);
@@ -615,7 +761,8 @@ function pantallaMasiva(id){
     poner('coordDanio', d['COORDENADAS']); poner('causa', (CFG.listas.CAUSA||[]).find(c => canonCausa(c) === canonCausa(d['CAUSA DE DAÑO'])) || '');
     poner('llegada', d['FECHA Y HORA DE LLEGADA']); poner('horaFinal', d['HORA FINAL']); poner('ubicacion', d['UBICACIÓN DEL DAÑO']);
     poner('descripcion', d['DESCIPCIÓN DE ACTIVIDADES']); poner('potIni', d['POTENCIA INICIAL']); poner('potFin', d['POTENCIA FINAL']);
-    poner('qr', d['QR SEGUNDO NIVEL']); poner('materialUsado', listaMaterial(d)); poner('tipo', d['TIPO DE MANTENIMIENTO']);
+    poner('qr', d['QR SEGUNDO NIVEL']); poner('tipo', d['TIPO DE MANTENIMIENTO']);
+    if(!m.mat3){ const usados = {}; MATERIALES.forEach(([h]) => { if(parseFloat(d[h]) > 0) usados[h] = String(parseFloat(d[h])); }); if(Object.keys(usados).length) m.mat3 = {v:usados, otros:''}; }
     if(!(m.tecnicos||[]).length && d['TECNICO QUE ATIENDE']) m.tecnicos = String(d['TECNICO QUE ATIENDE']).split(',').map(x => x.trim()).filter(Boolean);
     cambio(); pantallaMasiva(m.id); toast('Datos tomados del folio del técnico (solo los campos vacíos)');
   };
@@ -1264,6 +1411,672 @@ function entregarArchivo(blob, nombre, o){        // muestra el archivo listo de
   o.addEventListener('cerrar', () => setTimeout(() => URL.revokeObjectURL(url), 5000));
 }
 
+/* ===== Proyectos y validación (solo administrador) =====
+   Cada proyecto: datos, estado, su KMZ (de Documentación), material liberado / reportado / validado y constancias (acta del proveedor).
+   En el recorrido se levantan incidencias con foto sellada (fecha y coordenadas) que se guarda en Drive; se comparten por
+   WhatsApp y se exporta un KMZ solo con las correcciones pendientes, con sus fotos, para el proveedor. */
+const TIPOS_INC = ['FIBRA HOLGADA', 'FALTA DE FLEJE O REMATE', 'FALTA DE ACERO', 'GAZA EN LOOP O SIN DISPOSITIVO', 'OTRA'];
+const ESTADOS_PROY = ['EN CONSTRUCCIÓN', 'EN RECORRIDO', 'CON INCIDENCIAS', 'VALIDADO'];
+const ESTADOS_INC = {ABIERTA:'Abierta', CORREGIDA:'Corregida', CERRADA:'Cerrada'};
+const COLOR_INC = {ABIERTA:'#d93025', CORREGIDA:'#e0a400', CERRADA:'#1f8a4c'};
+const CLASE_INC = {ABIERTA:'error', CORREGIDA:'pendiente', CERRADA:'enviado'};
+let PROY = LS.get('proy', {proyectos:[], incidencias:[], t:''});
+const guardarProy = () => { LS.set('proy', PROY); pintarPendientes(); };
+const incDe = pid => PROY.incidencias.filter(i => i.proyecto === pid);
+const proyPorSubir = () => PROY.proyectos.filter(p => p.subida !== p.actualizado).length + PROY.incidencias.filter(i => i.subida !== i.actualizado).length;
+const mapsUrl = (la, lo) => `https://maps.google.com/?q=${(+la).toFixed(6)},${(+lo).toFixed(6)}`;
+
+// Fotos sin enviar: se guardan en el teléfono (IndexedDB aguanta fotos; localStorage no)
+const IDB = (() => {
+  let db = null;
+  const abrir = () => db ? Promise.resolve(db) : new Promise((ok, mal) => { const r = indexedDB.open('folios-fo', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('fotos'); r.onsuccess = () => ok(db = r.result); r.onerror = () => mal(r.error); });
+  const tx = (modo, f) => abrir().then(d => new Promise((ok, mal) => { const t = d.transaction('fotos', modo), r = f(t.objectStore('fotos'));
+    t.oncomplete = () => ok(r && r.result); t.onerror = () => mal(t.error); }));
+  return {poner: (k, v) => tx('readwrite', s => s.put(v, k)), traer: k => tx('readonly', s => s.get(k)), quitar: k => tx('readwrite', s => s.delete(k))};
+})();
+const blobAb64 = b => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(String(fr.result).split(',')[1]); fr.readAsDataURL(b); });
+
+// Servidor de mentiras para la demo
+async function apiProy(accion, datos){
+  if(!demo()) return api(accion, datos);
+  const s = LS.get('demoProy', {proyectos:{}, incidencias:{}, fotos:{}}), r = (() => {
+    if(accion === 'proyectos') return {proyectos: Object.values(s.proyectos), incidencias: Object.values(s.incidencias)};
+    if(accion === 'guardarProyecto'){ const p = datos.proyecto, y = s.proyectos[p.id]; if(!y || String(y.actualizado) <= String(p.actualizado)) s.proyectos[p.id] = p; return {}; }
+    if(accion === 'guardarIncidencia'){ const i = {...datos.incidencia};
+      if(datos.foto && !i.foto){ const id = 'f' + Math.random().toString(36).slice(2, 8); s.fotos[id] = datos.foto; i.foto = {id, url:'#'}; }
+      if(datos.fotoCorr && !i.fotoCorr){ const id = 'f' + Math.random().toString(36).slice(2, 8); s.fotos[id] = datos.fotoCorr; i.fotoCorr = {id, url:'#'}; }
+      const y = s.incidencias[i.id]; if(!y || String(y.actualizado) <= String(i.actualizado)) s.incidencias[i.id] = i; return {incidencia: s.incidencias[i.id]}; }
+    if(accion === 'fotosInc') return {fotos: (datos.ids || []).map(id => ({id, b64: s.fotos[id] || ''}))};
+    if(accion === 'adjuntarActa') return {acta: {id:'a' + Date.now(), nombre: datos.nombre, url:'#', fecha: new Date().toISOString()}};
+    throw new Error('Acción desconocida');
+  })();
+  try{ LS.set('demoProy', s); }catch(e){}
+  return {ok:true, ...r};
+}
+let subiendoProy = false;
+async function subirProy(){
+  if(subiendoProy || !USER || USER.rol !== 'ADMIN' || (!demo() && !navigator.onLine)) return;
+  subiendoProy = true; let cambio = false;
+  try{
+    for(const p of PROY.proyectos.filter(p => p.subida !== p.actualizado)){
+      try{ const v = p.actualizado; await apiProy('guardarProyecto', {proyecto: p}); p.subida = v; cambio = true; }catch(e){ console.log('proyecto', e); }
+    }
+    for(const i of PROY.incidencias.filter(i => i.subida !== i.actualizado)){
+      try{
+        const v = i.actualizado, datos = {incidencia: {...i, _fotoPend: undefined, _corrPend: undefined}};
+        if(i._fotoPend){ const b = await IDB.traer(i._fotoPend); if(b) datos.foto = await blobAb64(b); }
+        if(i._corrPend){ const b = await IDB.traer(i._corrPend); if(b) datos.fotoCorr = await blobAb64(b); }
+        const j = await apiProy('guardarIncidencia', datos);
+        if(j.incidencia){ if(j.incidencia.foto){ i.foto = j.incidencia.foto; delete i._fotoPend; } if(j.incidencia.fotoCorr){ i.fotoCorr = j.incidencia.fotoCorr; delete i._corrPend; } }
+        i.subida = v; cambio = true;      // la foto se queda en el teléfono para compartirla; ya está también en Drive
+      }catch(e){ console.log('incidencia', e); }
+    }
+  } finally { subiendoProy = false; }
+  if(cambio){ guardarProy(); if(/^#(proyecto|inc)/.test(location.hash) && !MODALES.length) router(); }
+}
+async function bajarProy(){
+  if(!USER || USER.rol !== 'ADMIN' || (!demo() && !navigator.onLine)) return;
+  try{
+    const j = await apiProy('proyectos', {});
+    const unir = (lista, nuevos) => nuevos.forEach(r => { const k = lista.findIndex(x => x.id === r.id);
+      if(k < 0) lista.push({...r, subida: r.actualizado});
+      else if(String(r.actualizado) > String(lista[k].actualizado)) lista[k] = {...lista[k], ...r, subida: r.actualizado}; });
+    unir(PROY.proyectos, j.proyectos); unir(PROY.incidencias, j.incidencias); PROY.t = new Date().toISOString(); guardarProy();
+    await subirProy();
+  }catch(e){ console.log('proyectos', e); }
+}
+
+/* --- Lista de proyectos --- */
+function pantallaProyectos(sinBajar){
+  if(USER.rol !== 'ADMIN') return reemplazar('#');
+  $('#titulo').textContent = 'Proyectos';
+  const lista = [...PROY.proyectos].sort((a, b) => (a.estado === 'VALIDADO') - (b.estado === 'VALIDADO') || String(b.actualizado).localeCompare(String(a.actualizado)));
+  $('#app').innerHTML = `<button class="accion" id="pNuevo"><span class="ic">＋</span><span>Nuevo proyecto<small>Para validar construcción, material e incidencias</small></span></button>
+    ${lista.length ? `<div class="menu">${lista.map(p => { const ab = incDe(p.id).filter(i => i.estado === 'ABIERTA').length;
+      return `<a class="mi" data-p="${esc(p.id)}"><span class="ic">🏗️</span><span class="tx"><b>${esc(p.nombre)}</b><small>${esc([p.cluster, p.proveedor].filter(Boolean).join(' · '))}${ab ? ` · <span style="color:var(--err)">${ab} incidencia(s) abierta(s)</span>` : ''}</small></span>
+        <span class="estado ${p.estado === 'VALIDADO' ? 'enviado' : p.estado === 'CON INCIDENCIAS' ? 'error' : 'pendiente'}">${esc(MAY(p.estado).charAt(0) + p.estado.slice(1).toLowerCase())}</span></a>`; }).join('')}</div>`
+      : '<div class="card"><div class="vacio">Aún no hay proyectos. Crea uno para empezar el recorrido de validación.</div></div>'}`;
+  $('#pNuevo').onclick = () => editarProyecto(null);
+  document.querySelectorAll('[data-p]').forEach(a => a.onclick = () => ir('#proyecto/' + a.dataset.p));
+  if(!sinBajar && (!PROY.t || Date.now() - new Date(PROY.t) > 60000)) bajarProy().then(() => { if(location.hash === '#proyectos' && !MODALES.length) pantallaProyectos(true); });
+}
+function editarProyecto(p){
+  const nuevo = !p; p = p || {id: uuid(), nombre:'', cluster:'', proveedor:'', cuadrillas:'', inicio: hoyISO(), capa:'', notas:'', estado:'EN CONSTRUCCIÓN', mat:{lib:{}, rep:{}, val:{}}, actas:[]};
+  const provs = [...new Set([...(CFG.listas.PROVEEDOR || []), ...PROY.proyectos.map(x => x.proveedor)].filter(Boolean))];
+  const {o, cerrar} = ventana(nuevo ? 'Nuevo proyecto' : 'Datos del proyecto', `<div class="mbody">
+    <label>Nombre del proyecto <span class="req">*</span></label><input id="pNom" value="${esc(p.nombre)}" placeholder="Ej. AMPLIACIÓN MARINA 4" autocapitalize="characters">
+    <div class="row"><div><label>Cluster</label><select id="pCl">${opciones(Object.keys(CFG.clusters || {}), p.cluster)}</select></div><div><label>Inicio</label><input type="date" id="pIni" value="${esc(p.inicio || '')}"></div></div>
+    <label>Proveedor que construye</label><input id="pProv" list="dlProv" value="${esc(p.proveedor)}" autocapitalize="characters"><datalist id="dlProv">${provs.map(x => `<option value="${esc(x)}">`).join('')}</datalist>
+    <label>Cuadrillas que han participado</label><input id="pCua" value="${esc(p.cuadrillas)}" placeholder="Opcional" autocapitalize="characters">
+    <label>KMZ del proyecto</label><select id="pCapa">${opciones(DOCS.capas.map(c => c.nombre), (DOCS.capas.find(c => c.id === p.capa) || {}).nombre, 'Sin KMZ')}</select>
+    <div class="hint">Los KMZ se cargan en Documentación de 2N; sus rutas se ven en el mapa de incidencias.</div>
+    <label>Notas</label><textarea id="pNot" rows="2">${esc(p.notas || '')}</textarea><div id="pErr" class="hint err"></div></div>`,
+    `<button class="btn" id="pOk">${nuevo ? 'Crear proyecto' : 'Guardar'}</button>`);
+  o.querySelector('#pNom').addEventListener('input', e => { const k = e.target.selectionStart; e.target.value = e.target.value.toUpperCase(); e.target.setSelectionRange(k, k); });
+  o.querySelector('#pOk').onclick = () => {
+    const nom = MAY(o.querySelector('#pNom').value).trim();
+    if(!nom){ o.querySelector('#pErr').textContent = 'Escribe el nombre.'; return; }
+    Object.assign(p, {nombre: nom, cluster: o.querySelector('#pCl').value, inicio: o.querySelector('#pIni').value, proveedor: MAY(o.querySelector('#pProv').value).trim(),
+      cuadrillas: MAY(o.querySelector('#pCua').value).trim(), notas: o.querySelector('#pNot').value.trim(),
+      capa: (DOCS.capas.find(c => c.nombre === o.querySelector('#pCapa').value) || {}).id || '', actualizado: new Date().toISOString()});
+    if(nuevo){ p.creado = p.actualizado; PROY.proyectos.push(p); }
+    guardarProy(); subirProy(); cerrar();
+    setTimeout(() => nuevo ? ir('#proyecto/' + p.id) : router(), 60);
+  };
+}
+
+/* --- Un proyecto --- */
+function pantallaProyecto(id){
+  const p = PROY.proyectos.find(x => x.id === id); if(!p || USER.rol !== 'ADMIN') return reemplazar('#proyectos');
+  $('#titulo').textContent = p.nombre;
+  p.mat = p.mat || {lib:{}, rep:{}, val:{}}; p.actas = p.actas || [];
+  const todas = incDe(p.id), filtro = sessionStorage.getItem('fo.filtroInc') || 'ABIERTA';
+  const cuenta = e => todas.filter(i => i.estado === e).length;
+  const vis = todas.filter(i => filtro === 'TODAS' || i.estado === filtro).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+  const tab = sessionStorage.getItem('fo.tabMat') || 'lib';
+  $('#app').innerHTML = `
+   <div class="card"><div class="hint" style="margin:0 0 8px">${esc([p.cluster, p.proveedor, p.inicio ? 'desde ' + fmtFecha(p.inicio).slice(0, 10) : ''].filter(Boolean).join(' · '))}</div>
+     <div class="chips" id="pEst">${ESTADOS_PROY.map(e => `<button type="button" class="chip ${p.estado === e ? 'on' : ''}" data-e="${e}">${e.charAt(0) + e.slice(1).toLowerCase()}</button>`).join('')}</div>
+     <button class="btn ghost sm" id="pEdit" style="margin-top:10px">Editar datos</button></div>
+   <button class="accion" onclick="ir('#inc/nueva/${esc(p.id)}')"><span class="ic">📷</span><span>Nueva incidencia<small>Foto, tipo y ubicación</small></span></button>
+   <div class="card"><h2>Incidencias</h2>
+     <div class="chips" id="pFil">${[['ABIERTA', 'Abiertas'], ['CORREGIDA', 'Corregidas'], ['CERRADA', 'Cerradas'], ['TODAS', 'Todas']].map(([k, t]) =>
+       `<button type="button" class="chip ${filtro === k ? 'on' : ''}" data-f="${k}">${t} ${k === 'TODAS' ? todas.length : cuenta(k)}</button>`).join('')}</div>
+     <div id="pInc" style="margin-top:6px">${vis.length ? vis.map(i => `<div class="item" data-i="${esc(i.id)}" style="cursor:pointer">
+         ${i.mini ? `<img src="${i.mini}" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:8px;flex:none">` : '<span style="width:56px;height:56px;border-radius:8px;background:var(--fondo);flex:none"></span>'}
+         <span class="nom"><b>${esc(i.tipo)}</b>${i.desc ? ' · ' + esc(i.desc.slice(0, 60)) : ''}<small>${esc(fmtFecha(local(i.fecha)).slice(0, 16))}${i.subida !== i.actualizado ? ' · por enviar' : ''}</small></span>
+         <span class="estado ${CLASE_INC[i.estado]}">${ESTADOS_INC[i.estado]}</span></div>`).join('')
+       : `<div class="vacio">${todas.length ? 'Nada en este filtro.' : 'Sin incidencias todavía.'}</div>`}</div>
+     <div class="row" style="margin-top:10px"><button class="btn ghost sm" id="pMapa" style="flex:1">🗺️ Mapa</button><button class="btn ghost sm" id="pKmz" style="flex:1">⬇️ KMZ</button><button class="btn ghost sm" id="pWa" style="flex:1">📤 WhatsApp</button></div>
+     <div class="hint">KMZ y WhatsApp llevan solo las incidencias abiertas: lo que el proveedor tiene que corregir.</div></div>
+   <div class="card"><h2>Material</h2>
+     <div class="chips" id="pTab">${[['lib', 'Liberado'], ['rep', 'Reportado'], ['val', 'Validado']].map(([k, t]) => `<button type="button" class="chip ${tab === k ? 'on' : ''}" data-t="${k}">${t}</button>`).join('')}</div>
+     <div class="hint" style="margin-top:6px">${{lib:'Lo que se le liberó al proveedor (reservas).', rep:'Lo que el proveedor dice que usó.', val:'Lo que tú constatas instalado en el recorrido.'}[tab]}</div>
+     <div id="pMat">${editorCantidades(p.mat[tab] || {})}</div>
+     <div id="pRes"></div></div>
+   <div class="card"><h2>Constancias</h2>
+     ${p.actas.length ? p.actas.map(a => `<div class="item"><span class="nom">📎 ${a.url && a.url !== '#' ? `<a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.nombre)}</a>` : esc(a.nombre)}<small>${esc(fmtFecha(local(a.fecha)).slice(0, 10))}</small></span></div>`).join('') : '<div class="vacio">Sin documentos. Aquí guardas el acta que manda el proveedor.</div>'}
+     <label class="btn ghost" style="text-align:center;display:block">📎 Adjuntar acta (PDF o foto)<input type="file" id="pActa" hidden></label><div class="hint" id="pActaH"></div></div>`;
+  const cambio = () => { p.actualizado = new Date().toISOString(); guardarProy(); clearTimeout(pantallaProyecto._t); pantallaProyecto._t = setTimeout(subirProy, 3000); };
+  document.querySelectorAll('#pEst .chip').forEach(b => b.onclick = () => { p.estado = b.dataset.e; document.querySelectorAll('#pEst .chip').forEach(x => x.classList.toggle('on', x === b)); cambio(); });
+  $('#pEdit').onclick = () => editarProyecto(p);
+  document.querySelectorAll('#pFil .chip').forEach(b => b.onclick = () => { sessionStorage.setItem('fo.filtroInc', b.dataset.f); pantallaProyecto(id); });
+  document.querySelectorAll('#pInc [data-i]').forEach(el => el.onclick = () => ir('#inc/' + el.dataset.i));
+  document.querySelectorAll('#pTab .chip').forEach(b => b.onclick = () => { sessionStorage.setItem('fo.tabMat', b.dataset.t); pantallaProyecto(id); });
+  const resumen = () => {
+    const filas = MATERIALES.filter(([h]) => ['lib', 'rep', 'val'].some(k => parseFloat((p.mat[k] || {})[h]) > 0));
+    $('#pRes').innerHTML = filas.length ? `<table style="width:100%;font-size:13px;border-collapse:collapse;margin-top:12px"><tr style="color:var(--gris);text-align:right"><td style="text-align:left">Material</td><td>Lib.</td><td>Rep.</td><td>Val.</td><td>Dif.</td></tr>
+      ${filas.map(([h, n, u]) => { const c = k => parseFloat((p.mat[k] || {})[h]) || 0, dif = c('lib') - c('val');
+        return `<tr style="text-align:right;border-top:1px solid #f0f2f4"><td style="text-align:left;padding:6px 0">${esc(n)}${u === 'm' ? ' (m)' : ''}</td><td>${c('lib')}</td><td>${c('rep')}</td><td>${c('val')}</td>
+          <td style="font-weight:700;color:${dif > 0 ? 'var(--warn)' : dif < 0 ? 'var(--err)' : 'var(--ok)'}">${dif > 0 ? '+' : ''}${dif}</td></tr>`; }).join('')}</table>
+      <div class="hint">Dif. = liberado − validado. Positivo: material que debe regresar. Negativo: se instaló más de lo liberado.</div>` : '';
+  };
+  resumen();
+  activarCantidades($('#pMat'), v => { p.mat[tab] = v; cambio(); resumen(); });
+  $('#pMapa').onclick = () => mapaIncidencias(p);
+  $('#pKmz').onclick = () => kmzCorrecciones(p);
+  $('#pWa').onclick = () => { const ab = incDe(p.id).filter(i => i.estado === 'ABIERTA');
+    if(!ab.length) return toast('No hay incidencias abiertas');
+    mostrarTexto('Pendientes por corregir', `⚠️ ${p.nombre} · ${ab.length} corrección(es) pendiente(s)\n\n` + ab.map((i, n) => `${n + 1}. ${i.tipo}${i.desc ? ' · ' + i.desc : ''}\n${mapsUrl(i.lat, i.lng)}`).join('\n\n')); };
+  $('#pActa').addEventListener('change', async e => {
+    const f = e.target.files[0]; e.target.value = ''; if(!f) return;
+    const h = $('#pActaH');
+    if(!demo() && !navigator.onLine){ h.className = 'hint warn'; h.textContent = 'Necesitas señal para subir el documento.'; return; }
+    if(f.size > 20e6){ h.className = 'hint err'; h.textContent = 'El archivo pesa más de 20 MB.'; return; }
+    h.className = 'hint'; h.textContent = 'Subiendo…';
+    try{ const j = await apiProy('adjuntarActa', {proyecto: p.id, nombreProyecto: p.nombre, nombre: f.name, mime: f.type || 'application/octet-stream', archivo: await blobAb64(f)});
+      p.actas.push(j.acta); cambio(); subirProy(); pantallaProyecto(id); toast('Documento guardado en Drive'); }
+    catch(err){ h.className = 'hint err'; h.textContent = err.message; }
+  });
+}
+// Lista de cantidades por material (los más comunes arriba, el resto plegado)
+function editorCantidades(v){
+  const fila = ([h, nom, u]) => `<div class="item ${parseFloat(v[h]) > 0 ? 'con' : ''}"><span class="nom">${esc(nom)}<small>${u === 'm' ? 'metros' : 'piezas'}</small></span>
+    <div class="step ${u === 'm' ? 'm' : ''}"><button type="button" data-paso="${u === 'm' ? -10 : -1}">−</button><input inputmode="decimal" data-cant="${esc(h)}" value="${esc(v[h] || '')}" placeholder="0"><button type="button" data-paso="${u === 'm' ? 10 : 1}">+</button></div></div>`;
+  const com = MAT_COMUNES.map(h => MATERIALES.find(x => x[0] === h)).filter(Boolean), resto = MATERIALES.filter(([h]) => !MAT_COMUNES.includes(h));
+  return `${com.map(fila).join('')}<details ${resto.some(([h]) => parseFloat(v[h]) > 0) ? 'open' : ''}><summary class="hint" style="padding:8px 0;cursor:pointer">＋ Más materiales</summary>${resto.map(fila).join('')}</details>`;
+}
+function activarCantidades(box, alCambiar){
+  const leer = () => { const v = {}; box.querySelectorAll('[data-cant]').forEach(i => { const q = parseFloat(i.value); if(q > 0) v[i.dataset.cant] = String(q); i.closest('.item').classList.toggle('con', q > 0); }); alCambiar(v); };
+  box.addEventListener('input', e => { if(e.target.matches('[data-cant]')) leer(); });
+  box.addEventListener('click', e => { const b = e.target.closest('[data-paso]'); if(!b) return;
+    const i = b.parentElement.querySelector('input'); i.value = Math.max(0, (parseFloat(i.value) || 0) + +b.dataset.paso) || ''; leer(); });
+}
+
+/* --- Foto sellada: fecha, coordenadas y texto sobre la imagen --- */
+async function ubicacionDeFoto(f){
+  try{ const p = gpsDeFoto(await f.slice(0, 262144).arrayBuffer()); if(p) return {pos:p, origen:'ubicación de la foto'}; }catch(e){}
+  return await new Promise(r => navigator.geolocation ? navigator.geolocation.getCurrentPosition(p => r({pos:[p.coords.latitude, p.coords.longitude], origen:`GPS ±${Math.round(p.coords.accuracy)} m`}),
+    () => r(null), {enableHighAccuracy:true, timeout:15000, maximumAge:30000}) : r(null));
+}
+async function sellarFoto(f, pos, origen, renglones){
+  const cuando = new Date(Math.abs(Date.now() - f.lastModified) < 864e5 ? f.lastModified : Date.now()), dos = n => String(n).padStart(2, '0');
+  const img = await createImageBitmap(f), k = Math.min(1, 1600 / Math.max(img.width, img.height));
+  const cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+  const g = cv.getContext('2d'); g.drawImage(img, 0, 0, cv.width, cv.height);
+  const pad = Math.round(cv.width / 40), fs = Math.max(14, Math.round(cv.width / 34));
+  const lineas = [`${dos(cuando.getDate())}/${dos(cuando.getMonth() + 1)}/${cuando.getFullYear()} ${dos(cuando.getHours())}:${dos(cuando.getMinutes())}:${dos(cuando.getSeconds())}`,
+    pos ? `${pos[0].toFixed(6)}, ${pos[1].toFixed(6)}  (${origen})` : 'Sin coordenadas', ...renglones].filter(Boolean);
+  const alto = lineas.length * fs * 1.35 + pad;
+  g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, cv.height - alto, cv.width, alto); g.fillStyle = '#fff'; g.textBaseline = 'top';
+  lineas.forEach((t, i) => { g.font = `${i === 0 ? 700 : 500} ${fs}px system-ui, sans-serif`; g.fillText(t, pad, cv.height - alto + pad / 2 + i * fs * 1.35, cv.width - pad * 2); });
+  const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.82));
+  const m = document.createElement('canvas'), km = 160 / Math.max(cv.width, cv.height); m.width = Math.round(cv.width * km); m.height = Math.round(cv.height * km);
+  m.getContext('2d').drawImage(cv, 0, 0, m.width, m.height);
+  return {blob, mini: m.toDataURL('image/jpeg', 0.55), cuando};
+}
+
+/* --- Nueva incidencia / ver incidencia --- */
+function pantallaIncNueva(pid){
+  const p = PROY.proyectos.find(x => x.id === pid); if(!p || USER.rol !== 'ADMIN') return reemplazar('#proyectos');
+  $('#titulo').textContent = 'Nueva incidencia';
+  let archivo = null, ubic = null;
+  $('#app').innerHTML = `<div id="fi">
+   <div class="card"><h2>Foto</h2><div id="iPrev" class="vacio">Toma la foto de lo que hay que corregir. Se le pone fecha, hora y coordenadas.</div>
+     <label class="btn" style="text-align:center;display:block">📷 Tomar foto<input type="file" id="iFoto" accept="image/*" capture="environment" hidden></label></div>
+   <div class="card"><h2>Tipo</h2><div class="chips" id="iTipo">${TIPOS_INC.map(t => `<button type="button" class="chip" data-t="${t}">${t.charAt(0) + t.slice(1).toLowerCase()}</button>`).join('')}</div>
+     <label>Detalle</label><textarea id="iDesc" rows="2" placeholder="Opcional: poste, tramo, qué falta"></textarea></div>
+   <div class="card"><h2>Ubicación</h2><div class="row"><input id="iCoord" inputmode="decimal" placeholder="Se toma de la foto o del GPS"><button type="button" class="btn sm sec" id="iMapa" style="flex:0 0 auto">🗺️</button></div><div class="hint" id="iUbH"></div></div>
+   <div id="ierr" class="hint err"></div></div>`;
+  $('#bar').classList.remove('hidden');
+  $('#bar').innerHTML = `<button class="btn ghost" id="iCanc" style="flex:.5">Cancelar</button><button class="btn verde" id="iOk">Guardar incidencia</button>`;
+  $('#iCanc').onclick = () => volver('#proyecto/' + pid);
+  document.querySelectorAll('#iTipo .chip').forEach(b => b.onclick = () => document.querySelectorAll('#iTipo .chip').forEach(x => x.classList.toggle('on', x === b)));
+  $('#iFoto').addEventListener('change', async e => {
+    const f = e.target.files[0]; if(!f) return; archivo = f;
+    const url = URL.createObjectURL(f); $('#iPrev').innerHTML = `<img src="${url}" alt="" style="width:100%;max-height:45vh;object-fit:contain;border-radius:10px;background:#000">`;
+    $('#iUbH').textContent = 'Buscando ubicación…';
+    ubic = await ubicacionDeFoto(f);
+    if(!$('#fi')) return;
+    if(ubic){ $('#iCoord').value = ubic.pos[0].toFixed(6) + ', ' + ubic.pos[1].toFixed(6); $('#iUbH').textContent = 'De: ' + ubic.origen; }
+    else $('#iUbH').textContent = 'No se obtuvo la ubicación; márcala en el mapa.';
+  });
+  $('#iMapa').onclick = async () => abrirMapa($('#iCoord').value, (la, lo) => { $('#iCoord').value = la.toFixed(6) + ', ' + lo.toFixed(6); ubic = {pos:[la, lo], origen:'marcado en el mapa'}; $('#iUbH').textContent = 'De: marcado en el mapa'; },
+    {...await capasProyecto(p), titulo:'Toca dónde está la incidencia'});
+  $('#iOk').onclick = async () => {
+    const t = document.querySelector('#iTipo .chip.on'), c = parseCoords($('#iCoord').value), err = $('#ierr');
+    const faltan = [!archivo && 'foto', !t && 'tipo', !c && 'ubicación'].filter(Boolean);
+    if(faltan.length){ err.textContent = 'Falta: ' + faltan.join(', '); toast(err.textContent); return; }
+    const b = $('#iOk'); b.disabled = true; b.textContent = 'Guardando…';
+    try{
+      const desc = $('#iDesc').value.trim(), origen = ubic && ubic.pos[0] === c[0] && ubic.pos[1] === c[1] ? ubic.origen : 'coordenadas escritas';
+      const s = await sellarFoto(archivo, c, origen, [`${p.nombre} · ${t.dataset.t}`, desc.slice(0, 80)]);
+      const id = uuid(), ahora = new Date().toISOString();
+      await IDB.poner('inc-' + id, s.blob);
+      PROY.incidencias.push({id, proyecto: pid, tipo: t.dataset.t, desc, lat: c[0], lng: c[1], estado: 'ABIERTA', fecha: s.cuando.toISOString(), quien: USER.nombre,
+        mini: s.mini, _fotoPend: 'inc-' + id, actualizado: ahora});
+      if(p.estado === 'EN CONSTRUCCIÓN' || p.estado === 'EN RECORRIDO'){ p.estado = 'CON INCIDENCIAS'; p.actualizado = ahora; }
+      guardarProy(); subirProy();
+      toast('Incidencia guardada'); reemplazar('#inc/' + id);
+    }catch(e){ err.textContent = 'No se pudo guardar: ' + e.message; b.disabled = false; b.textContent = 'Guardar incidencia'; }
+  };
+}
+async function fotoDeInc(i, corr){
+  const pend = corr ? i._corrPend : i._fotoPend; let b = null;
+  try{ b = await IDB.traer(pend || ('inc-' + i.id + (corr ? '-c' : ''))); }catch(e){}
+  if(b) return b;
+  const f = corr ? i.fotoCorr : i.foto; if(!f || !f.id) return null;
+  if(!demo() && !navigator.onLine) return null;
+  try{ const j = await apiProy('fotosInc', {ids:[f.id]}); const x = j.fotos[0]; if(!x || !x.b64) return null;
+    b = new Blob([b64aBytes(x.b64)], {type:'image/jpeg'}); IDB.poner('inc-' + i.id + (corr ? '-c' : ''), b).catch(() => {}); return b; }catch(e){ return null; }
+}
+const textoInc = (i, p) => `⚠️ INCIDENCIA · ${p ? p.nombre : ''}\nTipo: ${i.tipo}${i.desc ? '\nDetalle: ' + i.desc : ''}\nUbicación: ${(+i.lat).toFixed(6)}, ${(+i.lng).toFixed(6)}\n${mapsUrl(i.lat, i.lng)}\nEstado: ${ESTADOS_INC[i.estado].toUpperCase()}`;
+async function compartirInc(i, p){
+  const txt = textoInc(i, p), b = await fotoDeInc(i, i.estado !== 'ABIERTA' && (i.fotoCorr || i._corrPend));
+  const f = b && new File([b], `incidencia_${(p ? p.nombre : '').replace(/\W+/g, '_')}_${String(i.fecha).slice(0, 10)}.jpg`, {type:'image/jpeg'});
+  if(f && navigator.canShare && navigator.canShare({files:[f], text:txt})){ try{ await navigator.share({files:[f], text:txt}); return; }catch(e){ if(e.name === 'AbortError') return; } }
+  compartir(txt);
+}
+function pantallaInc(id){
+  const i = PROY.incidencias.find(x => x.id === id), p = i && PROY.proyectos.find(x => x.id === i.proyecto);
+  if(!i || !p || USER.rol !== 'ADMIN') return reemplazar('#proyectos');
+  $('#titulo').textContent = 'Incidencia';
+  $('#app').innerHTML = `<div class="card" style="padding:0;overflow:hidden"><div id="vFoto" style="background:#000;min-height:120px;display:flex;align-items:center;justify-content:center">
+      ${i.mini ? `<img src="${i.mini}" alt="" style="width:100%;max-height:50vh;object-fit:contain;filter:blur(1px)">` : ''}</div>
+     <div style="padding:14px 16px"><div class="lista"><div class="f"><b>${esc(i.tipo)}</b><span class="estado ${CLASE_INC[i.estado]}">${ESTADOS_INC[i.estado]}</span></div></div>
+      ${i.desc ? `<div style="margin-top:6px">${esc(i.desc)}</div>` : ''}
+      <div class="hint" style="margin-top:6px">${esc(p.nombre)} · ${esc(fmtFecha(local(i.fecha)).slice(0, 16))} · ${esc(i.quien || '')}</div>
+      <div class="hint"><a href="${mapsUrl(i.lat, i.lng)}" target="_blank" rel="noopener">${(+i.lat).toFixed(6)}, ${(+i.lng).toFixed(6)} · abrir en Maps</a></div>
+      ${i.foto && i.foto.url && i.foto.url !== '#' ? `<div class="hint"><a href="${esc(i.foto.url)}" target="_blank" rel="noopener">Foto en Drive</a>${i.fotoCorr && i.fotoCorr.url && i.fotoCorr.url !== '#' ? ` · <a href="${esc(i.fotoCorr.url)}" target="_blank" rel="noopener">foto de la corrección</a>` : ''}</div>` : ''}
+      ${i.subida !== i.actualizado ? '<div class="hint warn">Por enviar: se sube a Drive con señal.</div>' : ''}
+      ${i.corregida ? `<div class="hint ok">Corregida el ${esc(fmtFecha(local(i.corregida)).slice(0, 16))}</div>` : ''}${i.cerrada ? `<div class="hint ok">Validada y cerrada el ${esc(fmtFecha(local(i.cerrada)).slice(0, 16))}</div>` : ''}
+      <button class="btn verde" id="vComp">📤 Compartir por WhatsApp</button>
+      <button class="btn ghost" id="vEdit">Editar tipo o detalle</button></div></div>`;
+  $('#bar').classList.remove('hidden');
+  const sig = {ABIERTA: ['Marcar corregida', 'CORREGIDA'], CORREGIDA: ['Validar y cerrar', 'CERRADA'], CERRADA: ['Reabrir', 'ABIERTA']}[i.estado];
+  $('#bar').innerHTML = `<button class="btn ghost" id="vVol" style="flex:.5">Proyecto</button><button class="btn" id="vSig">${sig[0]}</button>`;
+  $('#vVol').onclick = () => volver('#proyecto/' + p.id);
+  fotoDeInc(i, false).then(b => { if(!b || !$('#vFoto')) return; const u = URL.createObjectURL(b); $('#vFoto').innerHTML = `<img src="${u}" alt="" style="width:100%;max-height:55vh;object-fit:contain">`; });
+  $('#vComp').onclick = () => compartirInc(i, p);
+  const cambio = () => { i.actualizado = new Date().toISOString(); guardarProy(); subirProy(); };
+  $('#vEdit').onclick = () => {
+    const {o, cerrar} = ventana('Editar incidencia', `<div class="mbody"><label>Tipo</label><select id="eTipo">${opciones(TIPOS_INC, i.tipo)}</select>
+      <label>Detalle</label><textarea id="eDesc" rows="3">${esc(i.desc || '')}</textarea></div>`, `<button class="btn" id="eOk">Guardar</button>`);
+    o.querySelector('#eOk').onclick = () => { i.tipo = o.querySelector('#eTipo').value || i.tipo; i.desc = o.querySelector('#eDesc').value.trim(); cambio(); cerrar(); setTimeout(router, 60); };
+  };
+  $('#vSig').onclick = async () => {
+    const [, nuevo] = sig, ahora = new Date().toISOString();
+    if(nuevo === 'CORREGIDA'){
+      const r = await preguntar('¿Agregar una foto de cómo quedó corregido?', 'Tomar foto', 'Sin foto');
+      if(r){ const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.capture = 'environment';
+        const f = await new Promise(ok => { inp.onchange = () => ok(inp.files[0]); inp.click(); });
+        if(f){ const u = await ubicacionDeFoto(f), pos = u ? u.pos : [+i.lat, +i.lng];
+          const s = await sellarFoto(f, pos, u ? u.origen : 'ubicación de la incidencia', [`${p.nombre} · CORREGIDO: ${i.tipo}`]);
+          await IDB.poner('inc-' + i.id + '-c', s.blob); i._corrPend = 'inc-' + i.id + '-c'; i.miniCorr = s.mini; } }
+      i.corregida = ahora;
+    }
+    if(nuevo === 'CERRADA') i.cerrada = ahora;
+    if(nuevo === 'ABIERTA'){ i.corregida = ''; i.cerrada = ''; }
+    i.estado = nuevo; cambio();
+    if(nuevo === 'CERRADA' && !incDe(p.id).some(x => x.estado !== 'CERRADA')) toast('Todas las incidencias están cerradas: puedes marcar el proyecto como Validado');
+    router();
+  };
+}
+
+/* --- Mapa y KMZ de correcciones --- */
+async function capasProyecto(p){
+  const c = DOCS.capas.find(x => x.id === p.capa), lineas = c ? await rutasDe(c) : [];
+  const puntos = incDe(p.id).map(i => ({lat:+i.lat, lng:+i.lng, id:i.id, color: COLOR_INC[i.estado],
+    info: `<div style="display:flex;gap:10px;align-items:center">${i.mini ? `<img src="${i.mini}" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:8px">` : ''}
+      <div style="flex:1"><b>${esc(i.tipo)}</b> · ${ESTADOS_INC[i.estado]}<div class="hint">${esc((i.desc || '').slice(0, 70))}</div></div>
+      <button class="btn sm" onclick="history.back();setTimeout(()=>ir('#inc/${i.id}'),80)">Ver</button></div>`}));
+  return {lineas, puntos};
+}
+async function mapaIncidencias(p){
+  abrirMapa('', null, {...await capasProyecto(p), soloVer:true, titulo: p.nombre,
+    hint:'<span style="color:#d93025">●</span> abierta · <span style="color:#e0a400">●</span> corregida · <span style="color:#1f8a4c">●</span> cerrada'});
+}
+async function kmzCorrecciones(p){
+  const ab = incDe(p.id).filter(i => i.estado === 'ABIERTA');
+  if(!ab.length) return toast('No hay incidencias abiertas');
+  const {o} = ventana('KMZ de correcciones', `<div class="mbody"><div class="vacio" id="kEst">Preparando ${ab.length} incidencia(s) con sus fotos…</div></div>`, '');
+  try{
+    const fotos = [];
+    for(const [n, i] of ab.entries()){ const b = await fotoDeInc(i, false); if(b) fotos.push({n, i, datos: new Uint8Array(await b.arrayBuffer())}); }
+    const c = DOCS.capas.find(x => x.id === p.capa), rutas = c ? await rutasDe(c) : [];
+    const hoy = hoyISO(), kml = `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${esc(p.nombre)} · correcciones ${hoy}</name>
+      <Style id="inc"><IconStyle><color>ff2530d9</color><scale>1.2</scale><Icon><href>http://maps.google.com/mapfiles/kml/paddle/red-circle.png</href></Icon></IconStyle></Style>
+      <Style id="ruta"><LineStyle><color>b0c45c7a</color><width>3</width></LineStyle></Style>
+      ${TIPOS_INC.filter(t => ab.some(i => i.tipo === t)).map(t => `<Folder><name>${esc(t)}</name>${ab.map((i, n) => i.tipo !== t ? '' : `<Placemark><name>${n + 1}. ${esc(t)}</name>
+        <description><![CDATA[<b>${esc(t)}</b><br>${esc(i.desc || '')}<br>${esc(fmtFecha(local(i.fecha)).slice(0, 16))}<br><a href="${mapsUrl(i.lat, i.lng)}">Abrir en Maps</a>${fotos.some(x => x.n === n) ? `<br><img src="files/${n + 1}.jpg" width="480">` : ''}]]></description>
+        <styleUrl>#inc</styleUrl><Point><coordinates>${i.lng},${i.lat},0</coordinates></Point></Placemark>`).join('')}</Folder>`).join('')}
+      ${rutas.length ? `<Folder><name>Rutas del proyecto</name><visibility>1</visibility>${rutas.map(r => `<Placemark><name>${esc(r.n || '')}</name><styleUrl>#ruta</styleUrl><LineString><coordinates>${r.c.map(([la, lo]) => lo + ',' + la + ',0').join(' ')}</coordinates></LineString></Placemark>`).join('')}</Folder>` : ''}
+      </Document></kml>`;
+    const k = new TextEncoder().encode(kml);
+    const ents = [{nombre:'doc.kml', met:0, crc:crc32(k), csz:k.length, usz:k.length, datos:k},
+      ...fotos.map(x => ({nombre:`files/${x.n + 1}.jpg`, met:0, crc:crc32(x.datos), csz:x.datos.length, usz:x.datos.length, datos:x.datos}))];
+    entregarArchivo(armarZip(ents), `${p.nombre} correcciones ${hoy}.kmz`, o);
+    if(fotos.length < ab.length) o.querySelector('.mbody').insertAdjacentHTML('beforeend', `<div class="hint warn">${ab.length - fotos.length} incidencia(s) van sin foto (no se pudo bajar de Drive).</div>`);
+  }catch(e){ o.querySelector('#kEst').textContent = 'No se pudo armar el KMZ: ' + e.message; }
+}
+
+/* ===== Inventario =====
+   Ubicaciones: el almacén y cada cuadrilla. El stock de cada una sale de su último conteo, más lo que entró,
+   menos lo que salió y menos el material de sus folios. Administrador y supervisor capturan y corrigen todo desde aquí;
+   la cuadrilla ve su material y confirma lo que recibe. */
+const ALMACEN = 'ALMACÉN';
+const TIPOS_MOV = {CONTEO:'Conteo', ENTRADA:'Entrada al almacén', ENTREGA:'Entrega a cuadrilla', TRASPASO:'Traspaso entre cuadrillas', DEVOLUCION:'Devolución al almacén', MERMA:'Merma'};
+/* ---- Inventario: reglas compartidas (servidor y app) ---- */
+function invClave_(s) { return String(s || '').replace(/\s+/g, ' ').trim().toUpperCase(); }
+// Stock de una ubicación = último conteo + lo que entró (ya confirmado) − lo que salió − lo consumido en folios (todo después del conteo).
+// "hasta" (opcional) calcula el stock como estaba en esa fecha.
+function invStock_(movs, consumos, u, hasta) {
+  const vivos = movs.filter(m => !m.anulado && (!hasta || String(m.fecha) < String(hasta)));
+  let base = null;
+  vivos.forEach(m => { if (m.tipo === 'CONTEO' && m.a === u && (!base || String(m.fecha) > String(base.fecha))) base = m; });
+  const s = {}, t0 = base ? String(base.fecha) : '';
+  const suma = (items, signo) => Object.keys(items || {}).forEach(k => { s[k] = (s[k] || 0) + signo * (Number(items[k]) || 0); });
+  if (base) suma(base.items, 1);
+  // Entregas y traspasos: salen del origen al registrarse y entran al destino hasta que la cuadrilla confirma (mientras, van "por confirmar")
+  const porConf = {};
+  vivos.forEach(m => { if (m.tipo === 'CONTEO' || String(m.fecha) < t0) return;
+    if (m.de === u) suma(m.items, -1);
+    if (m.a !== u) return;
+    if ((m.tipo === 'ENTREGA' || m.tipo === 'TRASPASO') && !m.conf) Object.keys(m.items || {}).forEach(k => { porConf[k] = (porConf[k] || 0) + (Number(m.items[k]) || 0); });
+    else suma(m.items, 1); });
+  if (base) (consumos || []).forEach(c => { if (c.cuadrilla === u && String(c.fecha) >= t0 && (!hasta || String(c.fecha) < String(hasta))) suma(c.items, -1); });
+  Object.keys(s).forEach(k => { s[k] = Math.round(s[k] * 100) / 100; });
+  return { stock: s, conteo: t0, sinConteo: !base, porConfirmar: porConf };
+}
+/* ---- fin de reglas compartidas ---- */
+
+const MAT_CLAVE = MATERIALES.map(([h, n, u, g]) => ({k: invClave_(h), h, n, u, g}));
+const fmtQ = n => String(Math.round((Number(n) || 0) * 100) / 100);
+let INV = LS.get('inv', {movs:[], minimos:{alm:{}, cua:{}}, consumos:[], t:''});
+const guardarInv = () => { LS.set('inv', INV); pintarPendientes(); };
+const invPorSubir = () => veTodo() ? INV.movs.filter(m => m.subida !== m.actualizado).length + (INV.minPend ? 1 : 0) : 0;
+const ordenU = (a, b) => (a !== ALMACEN) - (b !== ALMACEN) || a.localeCompare(b, 'es', {numeric:true});
+function ubicaciones(){
+  const s = new Set([ALMACEN]);
+  (CFG.usuarios || []).forEach(u => { if(u.activo !== false && u.cuadrilla && (u.rol === 'TECNICO' || u.rol === 'AUXILIAR')) s.add(u.cuadrilla); });
+  INV.movs.forEach(m => { if(!m.anulado){ if(m.de) s.add(m.de); if(m.a) s.add(m.a); } });
+  return [...s].sort(ordenU);
+}
+const cortoU = u => u === ALMACEN ? 'Almacén' : u.replace(/^CUADRILLA\s+/i, 'C');
+const nombreU = u => u === ALMACEN ? 'Almacén' : u.charAt(0) + u.slice(1).toLowerCase();
+// Material de un folio, para descontarlo de su cuadrilla
+function consumoDeFolio(f){
+  const d = f.d, tec = String(d['TECNICO QUE ATIENDE'] || '').split(',')[0].trim();
+  const cua = f.cuadrilla || ((CFG.usuarios || []).find(u => u.nombre === tec) || {}).cuadrilla; if(!cua) return null;
+  const items = {}; MAT_CLAVE.forEach(m => { const q = parseFloat(d[m.h]); if(q > 0) items[m.k] = q; });
+  if(!Object.keys(items).length) return null;
+  const t = completa(d['HORA FINAL']) ? d['HORA FINAL'] : d['FECHA Y HORA DE LLEGADA'];
+  return {cuadrilla: cua, fecha: completa(t) ? new Date(t).toISOString() : f.creado, folio: d['FOLIO/OS'], items};
+}
+const consumosTodos = () => demo() ? FOLIOS.map(consumoDeFolio).filter(Boolean)
+  : (INV.consumos || []).concat(FOLIOS.filter(f => f.estado !== 'enviado' && (f.version || 1) === 1).map(consumoDeFolio).filter(Boolean));
+const stockDe = (u, hasta, sin) => invStock_(sin ? INV.movs.filter(m => m.id !== sin) : INV.movs, consumosTodos(), u, hasta);
+const minimosDe = u => (u === ALMACEN ? INV.minimos.alm : INV.minimos.cua) || {};
+function alertasInv(){
+  const out = [];
+  ubicaciones().forEach(u => { const st = stockDe(u), min = minimosDe(u); if(st.sinConteo) return;
+    MAT_CLAVE.forEach(m => { if(min[m.k] > 0 && (st.stock[m.k] || 0) < min[m.k]) out.push({u, m, stock: st.stock[m.k] || 0, min: min[m.k]}); }); });
+  return out;
+}
+const resumenItems = items => MAT_CLAVE.filter(m => items && items[m.k] > 0).map(m => `${fmtQ(items[m.k])}${m.u === 'm' ? ' m' : ''} ${m.n}`).join(', ');
+const porConfirmar = cua => INV.movs.filter(m => !m.anulado && !m.conf && m.a === cua && (m.tipo === 'ENTREGA' || m.tipo === 'TRASPASO'));
+
+// Servidor de mentiras para la demo
+async function apiInv(accion, datos){
+  if(!demo()) return api(accion, datos);
+  const s = LS.get('demoInv', {movs:{}, minimos:{alm:{}, cua:{}}}), r = (() => {
+    if(accion === 'inventario') return {movs: Object.values(s.movs).filter(m => veTodo() || m.de === USER.cuadrilla || m.a === USER.cuadrilla), minimos: s.minimos, consumos: []};
+    if(accion === 'guardarMov'){ const m = datos.mov, y = s.movs[m.id]; if(!y || String(y.actualizado) <= String(m.actualizado)) s.movs[m.id] = {...m, conf: m.conf || (y && y.conf)}; return {}; }
+    if(accion === 'guardarMinimos'){ s.minimos = datos.minimos; return {}; }
+    if(accion === 'confirmarMov'){ const m = s.movs[datos.id]; if(!m) throw new Error('No encontré esa entrega.');
+      m.conf = {por: USER.id, nombre: USER.nombre, fecha: new Date().toISOString()}; m.actualizado = m.conf.fecha; return {mov: m}; }
+    throw new Error('Acción desconocida');
+  })();
+  LS.set('demoInv', s); return {ok:true, ...r};
+}
+let sincInvEnCurso = null;
+async function sincInv(){
+  if(!USER || USER.rol === 'EXTERNO' || (!demo() && !navigator.onLine)) return;
+  if(sincInvEnCurso) return sincInvEnCurso;
+  sincInvEnCurso = (async () => {
+    try{
+      if(veTodo()){
+        for(const m of INV.movs.filter(m => m.subida !== m.actualizado)){
+          try{ const v = m.actualizado, {subida, error, ...mov} = m; await apiInv('guardarMov', {mov}); m.subida = v; m.error = ''; }catch(e){ m.error = String(e.message || e); } }
+        if(INV.minPend){ try{ await apiInv('guardarMinimos', {minimos: INV.minimos}); INV.minPend = false; }catch(e){} }
+      }
+      const j = await apiInv('inventario', {});
+      j.movs.forEach(r => { const k = INV.movs.findIndex(x => x.id === r.id);
+        if(k < 0) INV.movs.push({...r, subida: r.actualizado}); else if(String(r.actualizado) > String(INV.movs[k].actualizado)) INV.movs[k] = {...r, subida: r.actualizado}; });
+      if(!INV.minPend) INV.minimos = {alm: (j.minimos || {}).alm || {}, cua: (j.minimos || {}).cua || {}};
+      INV.consumos = j.consumos || []; INV.t = new Date().toISOString();
+    }catch(e){ console.log('inventario', e); }
+    guardarInv();
+  })();
+  try{ await sincInvEnCurso; } finally { sincInvEnCurso = null; }
+}
+const invViejo = () => !INV.t || Date.now() - new Date(INV.t) > 60000;
+
+/* --- Captura de cantidades: todos los materiales por grupo --- */
+function editorInv(v, ref){
+  return [...new Set(MAT_CLAVE.map(m => m.g))].map(g => `<div class="grp">${esc(g)}</div>` + MAT_CLAVE.filter(m => m.g === g).map(m =>
+    `<div class="item ${v[m.k] > 0 ? 'con' : ''}"><span class="nom">${esc(m.n)}<small>${m.u === 'm' ? 'metros' : 'piezas'}${ref ? ' · sistema: ' + fmtQ(ref[m.k] || 0) : ''}</small></span>
+      <div class="step m"><button type="button" data-paso="${m.u === 'm' ? -100 : -1}">−</button><input inputmode="decimal" data-inv="${esc(m.k)}" value="${v[m.k] > 0 ? fmtQ(v[m.k]) : ''}" placeholder="0"><button type="button" data-paso="${m.u === 'm' ? 100 : 1}">+</button></div></div>`).join('')).join('');
+}
+function leerInv(box){ const v = {}; box.querySelectorAll('[data-inv]').forEach(i => { const q = parseFloat(i.value); if(q > 0) v[i.dataset.inv] = q; i.closest('.item').classList.toggle('con', q > 0); }); return v; }
+function activarInv(box, alCambiar){
+  box.addEventListener('input', e => { if(e.target.matches('[data-inv]')) alCambiar(leerInv(box)); });
+  box.addEventListener('click', e => { const b = e.target.closest('[data-paso]'); if(!b) return;
+    const i = b.parentElement.querySelector('input'); i.value = Math.max(0, (parseFloat(i.value) || 0) + +b.dataset.paso) || ''; alCambiar(leerInv(box)); });
+}
+// Si no se toca la fecha se guarda la hora exacta (con segundos), para que el orden entre conteos y movimientos sea el real
+const campoFechaInv = iso => { const t = iso || new Date().toISOString(), l = local(t);
+  return `<label>Fecha y hora</label><div class="fh" id="iFH" data-iso="${t}" data-ini="${l.slice(0, 16)}"><input type="date" id="iF" value="${l.slice(0, 10)}"><input type="time" id="iH" value="${l.slice(11, 16)}"></div>`; };
+const leerFechaInv = (nuevo) => { const f = $('#iF').value, h = $('#iH').value || '12:00', box = $('#iFH'); if(!f) return '';
+  if(`${f}T${h}` === box.dataset.ini) return nuevo ? new Date().toISOString() : box.dataset.iso;
+  return new Date(`${f}T${h}`).toISOString(); };
+function tablaStock(u){
+  const st = stockDe(u), min = minimosDe(u), filas = MAT_CLAVE.filter(m => (st.stock[m.k] || 0) !== 0 || min[m.k] > 0);
+  return filas.length ? filas.map(m => { const q = st.stock[m.k] || 0, bajo = !st.sinConteo && min[m.k] > 0 && q < min[m.k];
+    return `<div class="item"><span class="nom">${esc(m.n)}<small>${m.u === 'm' ? 'metros' : 'piezas'}${min[m.k] > 0 ? ' · mínimo ' + fmtQ(min[m.k]) : ''}</small></span>
+      ${bajo ? '<span class="estado error">bajo mínimo</span>' : ''}<b style="font-size:17px;min-width:56px;text-align:right;color:${q < 0 ? 'var(--err)' : bajo ? 'var(--err)' : 'var(--txt)'}">${fmtQ(q)}</b></div>`; }).join('')
+    : '<div class="vacio">Sin material registrado.</div>';
+}
+const avisoPorConfirmar = u => { const t = resumenItems(stockDe(u).porConfirmar); return t ? `<div class="hint warn" style="margin-top:8px">Por confirmar: ${esc(t)}. No cuenta hasta que la cuadrilla confirme que lo recibió.</div>` : ''; };
+function filaMov(m){
+  const ruta = m.tipo === 'CONTEO' ? nombreU(m.a) : [m.de && nombreU(m.de), m.a && nombreU(m.a)].filter(Boolean).join(' → ');
+  return `<div class="item" data-mov="${esc(m.id)}" style="cursor:pointer;${m.anulado ? 'opacity:.5' : ''}"><span class="nom"><b>${TIPOS_MOV[m.tipo] || m.tipo}</b> · ${esc(ruta)}
+    <small>${esc(resumenItems(m.items) || 'sin material')}</small><small>${esc(fmtFecha(local(m.fecha)).slice(0, 16))} · ${esc(m.usuario || '')}${m.reserva ? ' · reserva ' + esc(m.reserva) : ''}</small></span>
+    ${m.anulado ? '<span class="estado error">anulado</span>' : m.subida !== m.actualizado ? '<span class="estado pendiente">por enviar</span>'
+      : (m.tipo === 'ENTREGA' || m.tipo === 'TRASPASO') ? `<span class="estado ${m.conf ? 'enviado' : 'pendiente'}">${m.conf ? 'recibido' : 'sin confirmar'}</span>` : ''}</div>`;
+}
+
+/* --- Pantalla principal (administrador y supervisor) --- */
+function pantallaInventario(sinBajar){
+  if(!veTodo()) return pantallaMiMaterial(sinBajar);
+  $('#titulo').textContent = 'Inventario';
+  const us = ubicaciones(); let u = sessionStorage.getItem('fo.invU'); if(!us.includes(u)) u = ALMACEN;
+  const st = stockDe(u), al = alertasInv(), sinConteo = us.filter(x => stockDe(x).sinConteo);
+  $('#app').innerHTML = `
+   ${sinConteo.length ? `<div class="card"><h2>Conteo inicial</h2><div class="hint" style="margin:0">Falta contar: <b>${esc(sinConteo.map(nombreU).join(', '))}</b>. Elige cada una abajo y toca Contar; el stock empieza a moverse desde su conteo.</div></div>` : ''}
+   ${al.length ? `<div class="card"><h2 style="color:var(--err)">${al.length} material(es) bajo mínimo</h2>${al.slice(0, 8).map(a => `<div class="item" data-ir="${esc(a.u)}" style="cursor:pointer"><span class="nom">${esc(a.m.n)}<small>${esc(nombreU(a.u))}</small></span><b style="color:var(--err)">${fmtQ(a.stock)}</b><span class="hint" style="margin:0">de ${fmtQ(a.min)}</span></div>`).join('')}
+      ${al.length > 8 ? `<div class="hint">y ${al.length - 8} más.</div>` : ''}</div>` : ''}
+   <div class="tira" id="iUb">${us.map(x => `<button type="button" class="chip ${x === u ? 'on' : ''}" data-u="${esc(x)}">${esc(cortoU(x))}${stockDe(x).sinConteo ? ' ·' : ''}</button>`).join('')}</div>
+   <div class="card"><h2>${esc(nombreU(u))}</h2>
+     <div class="hint ${st.sinConteo ? 'warn' : ''}" style="margin:0 0 6px">${st.sinConteo ? 'Sin conteo todavía.' : 'Último conteo: ' + esc(fmtFecha(local(st.conteo)).slice(0, 16))}</div>
+     ${tablaStock(u)}${avisoPorConfirmar(u)}
+     <div class="row" style="margin-top:10px"><button class="btn ghost" id="iContar">Contar</button><button class="btn" id="iMov">＋ Movimiento</button></div></div>
+   <div class="menu">
+     <a class="mi" onclick="ir('#inv/movs')"><span class="ic">🧾</span><span class="tx"><b>Movimientos</b><small>Entradas, entregas, traspasos, merma y conteos</small></span><span class="ch">›</span></a>
+     <a class="mi" onclick="ir('#inv/minimos')"><span class="ic">⚠️</span><span class="tx"><b>Stock mínimo</b><small>Cuándo avisar que falta material</small></span><span class="ch">›</span></a>
+     <a class="mi" id="iTodo"><span class="ic">📋</span><span class="tx"><b>Ver todo junto</b><small>Cada material en almacén y cuadrillas</small></span><span class="ch">›</span></a></div>`;
+  const elegir = x => { sessionStorage.setItem('fo.invU', x); pantallaInventario(true); };
+  document.querySelectorAll('#iUb .chip').forEach(b => b.onclick = () => elegir(b.dataset.u));
+  document.querySelectorAll('[data-ir]').forEach(b => b.onclick = () => elegir(b.dataset.ir));
+  $('#iContar').onclick = () => ir('#inv/conteo/' + encodeURIComponent(u));
+  $('#iMov').onclick = () => ir('#inv/nuevo');
+  $('#iTodo').onclick = () => {
+    const filas = MAT_CLAVE.filter(m => us.some(x => (stockDe(x).stock[m.k] || 0) !== 0)), sts = us.map(x => stockDe(x));
+    ventana('Todo el inventario', `<div class="mbody" style="overflow:auto"><table style="border-collapse:collapse;font-size:13px;white-space:nowrap">
+      <tr style="color:var(--gris)"><td style="padding:6px 10px 6px 0">Material</td>${us.map(x => `<td style="padding:6px 8px;text-align:right">${esc(cortoU(x))}</td>`).join('')}<td style="padding:6px 8px;text-align:right"><b>Total</b></td></tr>
+      ${filas.map(m => `<tr style="border-top:1px solid #f0f2f4"><td style="padding:7px 10px 7px 0">${esc(m.n)}${m.u === 'm' ? ' (m)' : ''}</td>${sts.map((s, i) => { const q = s.stock[m.k] || 0, min = minimosDe(us[i])[m.k];
+          return `<td style="padding:7px 8px;text-align:right;color:${!s.sinConteo && min > 0 && q < min ? 'var(--err)' : 'inherit'}">${s.sinConteo && !q ? '—' : fmtQ(q)}</td>`; }).join('')}
+        <td style="padding:7px 8px;text-align:right"><b>${fmtQ(sts.reduce((t, s) => t + (s.stock[m.k] || 0), 0))}</b></td></tr>`).join('')}</table>
+      ${filas.length ? '<div class="hint">En rojo: bajo su mínimo. Raya: sin conteo.</div>' : '<div class="vacio">Aún no hay material registrado.</div>'}</div>`, '');
+  };
+  if(!sinBajar && invViejo()) sincInv().then(() => { if(location.hash === '#inventario' && !MODALES.length) pantallaInventario(true); });
+}
+
+/* --- Conteo de una ubicación (el inicial y los de cada mes) --- */
+function pantallaConteo(u, id){
+  if(!veTodo()) return reemplazar('#inventario');
+  const prev = id ? INV.movs.find(x => x.id === id) : null;
+  if(prev) u = prev.a;
+  $('#titulo').textContent = 'Conteo · ' + nombreU(u);
+  const ahora = stockDe(u), primero = ahora.sinConteo && !prev;
+  const base = prev ? prev.items : (primero ? {} : Object.fromEntries(Object.entries(ahora.stock).filter(([, q]) => q > 0)));
+  $('#app').innerHTML = `<div id="fc"><div class="card">${campoFechaInv(prev && prev.fecha)}
+      <div class="hint">${primero ? 'Conteo inicial: escribe lo que hay físicamente. Lo que dejes en 0 queda en cero.' : prev ? 'Corrige las cantidades de este conteo.' : 'Ya viene lo que marca el sistema: cambia solo lo que no coincida con lo físico.'}</div>
+      <label>Nota</label><input id="cNota" value="${esc(prev ? prev.nota || '' : '')}" placeholder="Opcional"></div>
+    <div class="card" id="cMat">${editorInv(base, !primero && !prev ? ahora.stock : null)}</div><div id="cErr" class="hint err"></div></div>`;
+  $('#bar').classList.remove('hidden');
+  $('#bar').innerHTML = `<button class="btn ghost" id="cCanc" style="flex:.5">Cancelar</button>${prev ? `<button class="btn ghost" id="cAnu" style="flex:.6">${prev.anulado ? 'Restaurar' : 'Anular'}</button>` : ''}<button class="btn verde" id="cOk">Guardar conteo</button>`;
+  activarInv($('#cMat'), () => {});
+  $('#cCanc').onclick = () => volver('#inventario');
+  const guardar = anular => {
+    const fecha = leerFechaInv(!prev); if(!fecha){ $('#cErr').textContent = 'Falta la fecha.'; return; }
+    const items = leerInv($('#cMat')), antes = stockDe(u, fecha, prev && prev.id), ts = new Date().toISOString();
+    const dif = {}; if(!antes.sinConteo) MAT_CLAVE.forEach(m => { const d = (items[m.k] || 0) - (antes.stock[m.k] || 0); if(Math.abs(d) > 0.001) dif[m.k] = Math.round(d * 100) / 100; });
+    const m = prev || {id: uuid(), tipo: 'CONTEO', de: '', a: u, usuario: USER.nombre};
+    Object.assign(m, {fecha, items, dif, nota: $('#cNota').value.trim(), actualizado: ts});
+    if(anular !== undefined) m.anulado = anular;
+    if(!prev) INV.movs.push(m);
+    guardarInv(); sincInv(); sessionStorage.setItem('fo.invU', u);
+    toast(anular ? 'Conteo anulado' : 'Conteo guardado'); volver('#inventario');
+  };
+  $('#cOk').onclick = () => guardar();
+  const an = $('#cAnu'); if(an) an.onclick = async () => { if(prev.anulado || await preguntar('¿Anular este conteo? El stock vuelve a calcularse con el conteo anterior.', 'Anular')) guardar(!prev.anulado); };
+}
+
+/* --- Movimiento: entrada, entrega, traspaso, devolución o merma --- */
+function pantallaMov(id){
+  if(!veTodo()) return reemplazar('#inventario');
+  const prev = id ? INV.movs.find(x => x.id === id) : null; if(id && !prev) return reemplazar('#inv/movs');
+  if(prev && prev.tipo === 'CONTEO') return pantallaConteo(prev.a, prev.id);
+  const us = ubicaciones(), cuas = us.filter(x => x !== ALMACEN), uSel = sessionStorage.getItem('fo.invU'), enCua = cuas.includes(uSel);
+  const m = prev ? JSON.parse(JSON.stringify(prev)) : {id: uuid(), tipo: enCua ? 'ENTREGA' : 'ENTRADA', de: '', a: enCua ? uSel : '', items: {}, nota: '', reserva: '', usuario: USER.nombre};
+  $('#titulo').textContent = prev ? 'Corregir movimiento' : 'Nuevo movimiento';
+  const sel = (idc, label, lista, val) => `<div><label>${label}</label><select id="${idc}">${opciones(lista, val)}</select></div>`;
+  $('#app').innerHTML = `<div id="fv"><div class="card"><div class="chips" id="vTipo">${['ENTRADA', 'ENTREGA', 'TRASPASO', 'DEVOLUCION', 'MERMA'].map(t => `<button type="button" class="chip ${m.tipo === t ? 'on' : ''}" data-t="${t}">${TIPOS_MOV[t]}</button>`).join('')}</div>
+      <div id="vCampos"></div>${campoFechaInv(prev && prev.fecha)}<label>Nota</label><input id="vNota" value="${esc(m.nota || '')}" placeholder="Opcional">
+      ${prev && !prev.anulado && (prev.tipo === 'ENTREGA' || prev.tipo === 'TRASPASO') ? (prev.conf ? `<div class="hint ok" style="margin-top:10px">Recibido por ${esc(prev.conf.nombre)} el ${esc(fmtFecha(local(prev.conf.fecha)).slice(0, 16))}</div>`
+        : `<div class="hint warn" style="margin-top:10px">La cuadrilla aún no confirma: no cuenta en su material.</div><button type="button" class="btn ghost sm" id="vConf" style="margin-top:6px">Marcar como recibido</button>`) : ''}</div>
+    <div class="card" id="vMat">${editorInv(m.items || {})}</div><div id="vErr" class="hint err"></div></div>`;
+  const campos = () => {
+    const t = m.tipo, de = cuas.includes(m.de) ? m.de : '', a = cuas.includes(m.a) ? m.a : '';
+    $('#vCampos').innerHTML = t === 'ENTRADA' ? `<label>Número de reserva</label><input id="vRes" inputmode="numeric" value="${esc(m.reserva || '')}" placeholder="Opcional"><div class="hint">Material que llega al almacén.</div>`
+      : t === 'ENTREGA' ? sel('vA', 'Para la cuadrilla', cuas, a) + '<div class="hint">Sale del almacén. La cuadrilla confirma que lo recibió.</div>'
+      : t === 'TRASPASO' ? `<div class="row">${sel('vDe', 'De', cuas, de)}${sel('vA', 'Para', cuas, a)}</div>`
+      : t === 'DEVOLUCION' ? sel('vDe', 'De la cuadrilla', cuas, de) + '<div class="hint">Regresa al almacén.</div>'
+      : sel('vDe', 'De dónde se da de baja', us, us.includes(m.de) ? m.de : '') + '<div class="hint">Material dañado, perdido o sobrante que ya no sirve. Escribe el motivo en la nota.</div>';
+    ['vDe', 'vA'].forEach(k => { const e = $('#' + k); if(e) e.onchange = () => { m[k === 'vDe' ? 'de' : 'a'] = e.value; }; });
+  };
+  campos();
+  document.querySelectorAll('#vTipo .chip').forEach(b => b.onclick = () => { m.tipo = b.dataset.t; document.querySelectorAll('#vTipo .chip').forEach(x => x.classList.toggle('on', x === b)); campos(); });
+  activarInv($('#vMat'), () => {});
+  $('#bar').classList.remove('hidden');
+  $('#bar').innerHTML = `<button class="btn ghost" id="vCanc" style="flex:.5">Cancelar</button>${prev ? `<button class="btn ghost" id="vAnu" style="flex:.6">${prev.anulado ? 'Restaurar' : 'Anular'}</button>` : ''}<button class="btn verde" id="vOk">Guardar</button>`;
+  $('#vCanc').onclick = () => volver('#inventario');
+  const guardar = async anular => {
+    const err = $('#vErr'), t = m.tipo, de = ($('#vDe') || {}).value || '', a = ($('#vA') || {}).value || '';
+    const r = {ENTRADA: ['', ALMACEN], ENTREGA: [ALMACEN, a], TRASPASO: [de, a], DEVOLUCION: [de, ALMACEN], MERMA: [de, '']}[t];
+    const items = leerInv($('#vMat')), fecha = leerFechaInv(!prev), nota = $('#vNota').value.trim();
+    const faltan = [!fecha && 'fecha', (t === 'ENTREGA' || t === 'TRASPASO') && !a && 'para quién', (t === 'TRASPASO' || t === 'DEVOLUCION' || t === 'MERMA') && !de && 'de dónde',
+      !Object.keys(items).length && 'material', t === 'MERMA' && !nota && 'motivo en la nota'].filter(Boolean);
+    if(faltan.length){ err.textContent = 'Falta: ' + faltan.join(', '); toast(err.textContent); return; }
+    if(t === 'TRASPASO' && de === a){ err.textContent = 'El traspaso es entre dos cuadrillas distintas.'; return; }
+    if(r[0] && anular === undefined){ const st = stockDe(r[0], null, prev && prev.id);
+      const corto = MAT_CLAVE.filter(x => items[x.k] > (st.stock[x.k] || 0));
+      if(!st.sinConteo && corto.length && !(await preguntar(`${nombreU(r[0])} no tiene suficiente: ${corto.map(x => `${x.n} (hay ${fmtQ(st.stock[x.k] || 0)})`).join(', ')}. ¿Guardar de todos modos?`, 'Guardar', 'Revisar'))) return; }
+    const reg = prev || m, cambioMat = prev && (JSON.stringify(prev.items) !== JSON.stringify(items) || prev.a !== r[1]);
+    Object.assign(reg, {tipo: t, de: r[0], a: r[1], items, fecha, nota, reserva: t === 'ENTRADA' ? ($('#vRes').value || '').trim() : '', actualizado: new Date().toISOString()});
+    if(cambioMat) delete reg.conf;                    // cambió lo entregado: la cuadrilla vuelve a confirmar
+    if(anular !== undefined) reg.anulado = anular;
+    if(!prev) INV.movs.push(reg);
+    guardarInv(); sincInv();
+    toast(anular ? 'Movimiento anulado' : 'Movimiento guardado'); volver('#inventario');
+  };
+  $('#vOk').onclick = () => guardar();
+  const cf = $('#vConf'); if(cf) cf.onclick = async () => {        // la cuadrilla no pudo confirmar en la app: lo marca el jefe y queda con su nombre
+    if(!(await preguntar(`¿Marcar como recibido por ${nombreU(prev.a)}? Queda registrado que lo confirmaste tú.`, 'Marcar recibido'))) return;
+    const ts = new Date().toISOString(); prev.conf = {por: USER.id, nombre: USER.nombre, fecha: ts}; prev.actualizado = ts;
+    guardarInv(); sincInv(); toast('Marcado como recibido'); volver('#inventario'); };
+  const an = $('#vAnu'); if(an) an.onclick = async () => { if(prev.anulado || await preguntar('¿Anular este movimiento? Deja de contar en el stock, pero queda en el historial.', 'Anular')) guardar(!prev.anulado); };
+}
+function pantallaMovs(sinBajar){
+  if(!veTodo()) return reemplazar('#inventario');
+  $('#titulo').textContent = 'Movimientos';
+  const us = ubicaciones(), f = sessionStorage.getItem('fo.invF') || '';
+  const lista = INV.movs.filter(m => !f || m.de === f || m.a === f).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha))).slice(0, 150);
+  $('#app').innerHTML = `<div class="tira" id="mF"><button type="button" class="chip ${f ? '' : 'on'}" data-u="">Todos</button>${us.map(x => `<button type="button" class="chip ${x === f ? 'on' : ''}" data-u="${esc(x)}">${esc(cortoU(x))}</button>`).join('')}</div>
+    <div class="card">${lista.length ? lista.map(filaMov).join('') : '<div class="vacio">Sin movimientos.</div>'}</div><div class="hint">Toca un movimiento para corregirlo o anularlo.</div>`;
+  document.querySelectorAll('#mF .chip').forEach(b => b.onclick = () => { sessionStorage.setItem('fo.invF', b.dataset.u); pantallaMovs(true); });
+  document.querySelectorAll('[data-mov]').forEach(el => el.onclick = () => ir('#inv/mov/' + el.dataset.mov));
+  if(!sinBajar && invViejo()) sincInv().then(() => { if(location.hash === '#inv/movs' && !MODALES.length) pantallaMovs(true); });
+}
+function pantallaMinimos(){
+  if(!veTodo()) return reemplazar('#inventario');
+  $('#titulo').textContent = 'Stock mínimo';
+  const tab = sessionStorage.getItem('fo.invM') || 'alm';
+  $('#app').innerHTML = `<div class="card"><div class="chips" id="nTab"><button type="button" class="chip ${tab === 'alm' ? 'on' : ''}" data-t="alm">Almacén</button><button type="button" class="chip ${tab === 'cua' ? 'on' : ''}" data-t="cua">Cada cuadrilla</button></div>
+      <div class="hint">${tab === 'alm' ? 'Lo menos que debe haber en el almacén.' : 'Lo menos que debe traer cada cuadrilla (el mismo mínimo para todas).'} Deja en 0 lo que no quieras vigilar. Se guarda solo.</div></div>
+    <div class="card" id="nMat">${editorInv(INV.minimos[tab] || {})}</div>`;
+  document.querySelectorAll('#nTab .chip').forEach(b => b.onclick = () => { sessionStorage.setItem('fo.invM', b.dataset.t); pantallaMinimos(); });
+  let reloj = null;
+  activarInv($('#nMat'), v => { INV.minimos[tab] = v; INV.minPend = true; guardarInv(); clearTimeout(reloj); reloj = setTimeout(sincInv, 2500); });
+  $('#bar').classList.remove('hidden');
+  $('#bar').innerHTML = `<button class="btn" id="nOk">Listo</button>`;
+  $('#nOk').onclick = () => { clearTimeout(reloj); sincInv(); volver('#inventario'); };
+}
+
+/* --- La cuadrilla: su material y lo que tiene por confirmar --- */
+function pantallaMiMaterial(sinBajar){
+  $('#titulo').textContent = 'Material de mi cuadrilla';
+  const cua = USER.cuadrilla;
+  if(!cua){ $('#app').innerHTML = '<div class="card"><div class="vacio">Tu usuario no tiene cuadrilla asignada.</div></div>'; return; }
+  const st = stockDe(cua), pend = porConfirmar(cua);
+  const ult = INV.movs.filter(m => !m.anulado && m.tipo !== 'CONTEO' && (m.de === cua || m.a === cua)).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha))).slice(0, 8);
+  $('#app').innerHTML = `${pend.map(m => `<div class="card"><h2>${m.tipo === 'ENTREGA' ? 'Entrega del almacén' : 'Traspaso de ' + esc(nombreU(m.de))}</h2>
+       <div>${esc(resumenItems(m.items))}</div><div class="hint">${esc(fmtFecha(local(m.fecha)).slice(0, 16))} · ${esc(m.usuario || '')}</div>
+       <button class="btn verde" data-conf="${esc(m.id)}">Confirmar que lo recibí</button><div class="hint">Todavía no cuenta en tu material. Si no coincide, no confirmes y avisa al supervisor.</div></div>`).join('')}
+    <div class="card"><h2>${esc(nombreU(cua))}</h2><div class="hint ${st.sinConteo ? 'warn' : ''}" style="margin:0 0 6px">${st.sinConteo ? 'Aún no se ha hecho el conteo de tu cuadrilla.' : 'Según el conteo del ' + esc(fmtFecha(local(st.conteo)).slice(0, 10)) + ' y tus folios.'}</div>${tablaStock(cua)}</div>
+    ${ult.length ? `<div class="card"><h2>Últimos movimientos</h2>${ult.map(filaMov).join('')}</div>` : ''}`;
+  document.querySelectorAll('[data-conf]').forEach(b => b.onclick = async () => {
+    if(!demo() && !navigator.onLine) return toast('Necesitas señal para confirmar.');
+    b.disabled = true; b.textContent = 'Confirmando…';
+    try{ const j = await apiInv('confirmarMov', {id: b.dataset.conf}); const k = INV.movs.findIndex(x => x.id === j.mov.id); if(k >= 0) INV.movs[k] = {...j.mov, subida: j.mov.actualizado};
+      guardarInv(); toast('Recibido confirmado'); pantallaMiMaterial(true); }
+    catch(e){ toast(e.message); b.disabled = false; b.textContent = 'Confirmar que lo recibí'; }
+  });
+  if(!sinBajar && invViejo()) sincInv().then(() => { if(location.hash === '#inventario' && !MODALES.length) pantallaMiMaterial(true); });
+}
+
 /* ===== Mini mapa (sin librerías) ===== */
 const MAPA_COLORES = {'MARINA':'#2a7ab8','MALECON':'#c2702a','NUEVO VALLARTA':'#2f9e5b','BUCERIAS':'#8b5cc4','PUNTA MITA':'#c4415e'};
 function abrirMapa(coordsTxt, alElegir, opts = {}){   // opts: titulo, hint, lineas, puntos, soloVer
@@ -1288,7 +2101,7 @@ function abrirMapa(coordsTxt, alElegir, opts = {}){   // opts: titulo, hint, lin
        <div class="mhint" id="mhint">${opts.hint || 'Toca el mapa donde está el daño.'}</div>
        <div class="mzoom"><button id="mzi" aria-label="Acercar">+</button><button id="mzo" aria-label="Alejar">−</button></div><div class="mattr">© OpenStreetMap</div></div>
      <div class="minfo" id="minf"></div>`,
-    `<button class="btn ghost" id="mgps" style="${opts.soloVer ? '' : 'flex:0 0 auto;'}white-space:nowrap;padding:14px 12px">📍 Mi ubicación</button>${opts.soloVer ? '<button class="hidden" id="mok"></button>' : '<button class="btn verde" id="mok">Usar este punto</button>'}`, true);
+    `<button class="btn ghost" id="mgps" style="${opts.soloVer ? '' : 'flex:0 0 auto;width:auto;'}white-space:nowrap;padding:14px 12px">📍 Mi ubicación</button>${opts.soloVer ? '<button class="hidden" id="mok"></button>' : '<button class="btn verde" id="mok">Usar este punto</button>'}`, true);
   const mv = o.querySelector('#mv'), mt = o.querySelector('#mt'), mg = o.querySelector('#mg'), pin = o.querySelector('#mpin'), yoEl = o.querySelector('#myo');
   const tiles = new Map();
   function zonas(){
@@ -1341,6 +2154,7 @@ function abrirMapa(coordsTxt, alElegir, opts = {}){   // opts: titulo, hint, lin
     if(Math.abs(dx) + Math.abs(dy) > 8) ini.mov = true;
     if(ini.mov){ cx = ini.cx - dx; cy = ini.cy - dy; pintar(); } });
   const fin = e => { if(!ptrs.has(e.pointerId)) return; ptrs.delete(e.pointerId);
+    if(ptrs.size === 1){ const [q] = [...ptrs.values()]; ini = {x:q[0], y:q[1], cx, cy, mov:true}; pinch = null; return; }   // soltó un dedo: sigue desde aquí
     if(ptrs.size === 0){ if(ini && !ini.mov && e.type === 'pointerup'){ const r = mv.getBoundingClientRect();
         const px = cx - r.width/2 + (e.clientX - r.left), py = cy - r.height/2 + (e.clientY - r.top);
         let cerca = null, dmin = 22; pts.forEach(p => { const dd = Math.hypot(wx(p.lng,z) - px, wy(p.lat,z) - py); if(dd < dmin){ dmin = dd; cerca = p; } });
@@ -1459,7 +2273,7 @@ function pantallaFolio(id){
       <div><label>OLT <span class="req">*</span></label><select data-c="OLT" id="fOlt"></select></div></div>
     <div class="hint" id="hCluster"></div>
     <div class="hint" id="hCiudad"></div>
-    <button type="button" class="btn sec" id="bFoto">📷 Foto de evidencia (fecha, hora y coordenadas)</button>
+    <button type="button" class="btn ghost sm" id="bFoto">📷 Foto con fecha y coordenadas (opcional)</button>
     <label>Ubicación del daño (dirección)</label><input data-c="UBICACIÓN DEL DAÑO" value="${esc(d['UBICACIÓN DEL DAÑO']||'')}" placeholder="Si lo dejas vacío se llena solo al enviar">
   </details>
   <details class="card" open><summary>3. Atención</summary>
@@ -1654,6 +2468,8 @@ function pantallaFolio(id){
     }
     if(d['FECHA Y HORA DE LLEGADA'] < d['FECHA Y HORA DE ASIGNACIÓN'] && !(await preguntar('La llegada es antes que la asignación. ¿Guardar así?','Guardar','Revisar'))) return;
     if(d['HORA FINAL'] && d['HORA FINAL'] < d['FECHA Y HORA DE LLEGADA'] && !(await preguntar('La hora final es antes que la llegada. ¿Guardar así?','Guardar','Revisar'))) return;
+    if(!edit && USER.cuadrilla){ const st = stockDe(USER.cuadrilla), corto = st.sinConteo ? [] : MAT_CLAVE.filter(m => parseFloat(d[m.h]) > (st.stock[m.k] || 0));
+      if(corto.length && !(await preguntar(`Según el inventario no tienes suficiente: ${corto.map(m => `${m.n} (tienes ${fmtQ(st.stock[m.k] || 0)})`).join(', ')}. ¿Guardar de todos modos?`, 'Guardar', 'Revisar'))) return; }
     const dup = d['FOLIO/OS'] !== 'N/A' && FOLIOS.find(f => f.d['FOLIO/OS']===d['FOLIO/OS'] && (!edit || f.id!==edit.id));
     if(dup && !(await preguntar(`Ya tienes el folio ${d['FOLIO/OS']} registrado. ¿Guardarlo de todos modos?`,'Guardar'))) return;
     const tecU = (CFG.usuarios||[]).find(u=>u.nombre===d['TECNICO QUE ATIENDE'].split(' , ')[0]);
@@ -1793,7 +2609,7 @@ function pantallaVer(id){
      ${f.estado==='pendiente'?'<div class="hint">Está guardado en el teléfono. Se envía solo cuando haya señal.</div>':''}</div>
    <div class="card"><h2>Texto para WhatsApp</h2><pre class="wa" id="wa">${esc(txt)}</pre>
      <button class="btn verde" id="bShare">Compartir por WhatsApp</button><button class="btn ghost" id="bCopy">Copiar texto</button>
-     <button class="btn sec" id="bFotoV">📷 Foto de evidencia</button></div>
+     <button class="btn ghost sm" id="bFotoV" style="margin-top:6px">📷 Foto con fecha y coordenadas (opcional)</button></div>
    ${ed?'':`<div class="card"><div class="hint">Ya pasaron ${HORAS_EDICION} h; para corregirlo pide al supervisor.</div></div>`}`;
   $('#bar').classList.remove('hidden');
   $('#bar').innerHTML = `<button class="btn ghost" onclick="volver('#folios')">Regresar</button>${ed?`<button class="btn" onclick="ir('#editar/${f.id}')">Corregir</button>`:''}`;
