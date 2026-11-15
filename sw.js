@@ -1,6 +1,6 @@
 // Folios FO · service worker: guarda la app en el teléfono para que abra al instante y sin señal.
 // Al publicar una versión nueva, cambia el número de CACHE (igual que APP_VERSION en index.html).
-const CACHE = 'folios-fo-v0.15.0';
+const CACHE = 'folios-fo-v0.18.0';
 const MAPAS = 'folios-fo-mapas';          // pedazos de mapa ya vistos, para verlos sin señal
 const MAX_MAPAS = 3000;                    // ~30-50 MB como máximo
 const ARCHIVOS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
@@ -29,6 +29,13 @@ self.addEventListener('fetch', e => {
     return;
   }
   if (url.origin !== location.origin) return;               // el servidor (Apps Script) nunca se guarda
+  if (url.searchParams.has('t')) {                          // "Buscar versión nueva": va directo a internet y renueva la copia guardada
+    e.respondWith(fetch(e.request, {cache: 'no-store'}).then(res => {
+      if (res.ok) { const copia = res.clone(); caches.open(CACHE).then(c => { c.put('./index.html', copia.clone()); c.put('./', copia); }); }
+      return res;
+    }));
+    return;
+  }
   // App: abre al instante con la copia guardada y actualiza en segundo plano para la próxima vez.
   // (Antes esperaba a internet primero: con señal débil la app tardaba en abrir.)
   e.respondWith(caches.open(CACHE).then(async c => {

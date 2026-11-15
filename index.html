@@ -11,6 +11,8 @@ function aplicarTema(){
   const oscuro = t === 'oscuro' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
   document.documentElement.dataset.tema = oscuro ? 'oscuro' : 'claro';
   document.querySelector('meta[name=theme-color]').content = oscuro ? '#191e24' : '#ffffff';
+  let g = false; try{ g = JSON.parse(localStorage.getItem('fo.letra')) === 'grande'; }catch(e){}
+  document.documentElement.style.zoom = g ? '1.12' : '';
 }
 aplicarTema(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', aplicarTema);
 </script>
@@ -31,6 +33,8 @@ a{color:var(--azul)}
 header{position:sticky;top:0;z-index:5;background:var(--sup);color:var(--txt);border-bottom:1px solid var(--borde);padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));display:flex;align-items:center;gap:10px}
 header h1{font-size:17px;font-weight:650;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 header button{background:var(--fondo);color:var(--txt);border:1px solid var(--borde);border-radius:999px;padding:6px 12px;font-size:13px}
+#btnAjustes{width:36px;height:36px;padding:0;border-radius:50%;font-size:17px;flex:none;position:relative}
+#btnAjustes.aviso::after{content:"";position:absolute;top:-1px;right:-1px;width:11px;height:11px;border-radius:50%;background:var(--err);border:2px solid var(--sup)}
 #btnAtras{width:36px;height:36px;padding:0 0 3px;border-radius:50%;font-size:24px;line-height:1;flex:none;display:flex;align-items:center;justify-content:center}
 .banner{padding:8px 16px;font-size:14px}
 .banner.demo{background:var(--warnbg);color:var(--warntx)}
@@ -147,7 +151,7 @@ video.qr{width:100%;border-radius:12px;background:#000;max-height:60vh;object-fi
 </style>
 </head>
 <body>
-<header><button id="btnAtras" class="hidden" aria-label="Regresar">‹</button><h1 id="titulo">Folios FO</h1><button id="btnSync" class="hidden">⟳ <span id="pend">0</span></button><button id="btnSalir" class="hidden">Salir</button></header>
+<header><button id="btnAtras" class="hidden" aria-label="Regresar">‹</button><h1 id="titulo">Folios FO</h1><button id="btnSync" class="hidden">⟳ <span id="pend">0</span></button><button id="btnAjustes" class="hidden" aria-label="Ajustes">⚙</button></header>
 <div id="bDemo" class="banner demo hidden">Modo demostración: los folios se guardan solo en este teléfono.</div>
 <div id="bOff" class="banner off hidden">Sin conexión. Puedes seguir capturando; se envía al volver la señal.</div>
 <main id="app"></main>
@@ -155,7 +159,7 @@ video.qr{width:100%;border-radius:12px;background:#000;max-height:60vh;object-fi
 <script>
 /* ===== Configuración ===== */
 const API_URL = 'https://script.google.com/macros/s/AKfycby_e_HA5Szkra7cKYe159eZNLoVl9m8k1ZedPrlgWN4Ah8PUjM_jhn_BFGv5FWLiNE/exec';            // URL de la implementación de Apps Script (termina en /exec). Vacío = modo demo.
-const APP_VERSION = '0.15.0';
+const APP_VERSION = '0.18.0';
 const HORAS_EDICION = 48;      // horas que un técnico puede corregir su folio
 const CENTRO_MAPA = [20.66, -105.24];   // donde abre el mapa si aún no hay coordenadas
 const DIAS_HISTORIAL = 30;     // los folios ya enviados se borran del teléfono después de estos días (siguen en Sheets)
@@ -324,6 +328,7 @@ async function sincronizar(manual, conErrores = true){
   if(MIS_DOCS.some(x => !x.subido && !x.rechazado)) subirDocs();
   if(USER.rol === 'ADMIN' && proyPorSubir()) subirProy();
   if(invPorSubir()) sincInv();
+  if(repPorSubir()) sincRep();
   const pend = FOLIOS.filter(f => f.estado === 'pendiente' || (conErrores && f.estado === 'error'));
   if(!navigator.onLine || sincronizando || !pend.length){ if(manual && !pend.length && !docsPorEnviar()) toast('Todo está enviado'); return; }
   sincronizando = true;
@@ -349,7 +354,7 @@ async function sincronizar(manual, conErrores = true){
 }
 function pintarPendientes(){
   let n = USER ? FOLIOS.filter(f => f.estado !== 'enviado' && esMio(f)).length : 0;
-  try{ n += USER ? docsPorEnviar() : 0; if(USER && USER.rol === 'ADMIN') n += proyPorSubir(); if(USER) n += invPorSubir(); }catch(e){}
+  try{ n += USER ? docsPorEnviar() : 0; if(USER && USER.rol === 'ADMIN') n += proyPorSubir(); if(USER) n += invPorSubir() + repPorSubir(); }catch(e){}
   $('#pend').textContent = n;
   $('#btnSync').style.background = n ? 'rgba(255,190,60,.45)' : '';
   $('#bOff').classList.toggle('hidden', navigator.onLine);
@@ -370,14 +375,16 @@ function router(){
   $('#bDemo').classList.toggle('hidden', !demo());
   $('#bar').classList.add('hidden'); $('#bar').innerHTML='';
   const logged = !!USER;
-  $('#btnSync').classList.toggle('hidden', !logged); $('#btnSalir').classList.toggle('hidden', !logged);
+  $('#btnSync').classList.toggle('hidden', !logged); $('#btnAjustes').classList.toggle('hidden', !logged || location.hash === '#ajustes'); try{ pintarAvisoRep(); }catch(e){}
   $('#btnAtras').classList.add('hidden');
   if(!logged) return pantallaLogin();
   const h = location.hash;
   const esInicio = h === '' || h === '#' || (USER.rol === 'EXTERNO' && h === '#docs');
   $('#btnAtras').classList.toggle('hidden', esInicio);
-  if(USER.rol === 'EXTERNO' && !/^#doc/.test(h)) return reemplazar('#docs');      // póliza / externos: solo documentación
+  if(USER.rol === 'EXTERNO' && !/^#(doc|ajustes)/.test(h)) return reemplazar('#docs');      // póliza / externos: solo documentación
   if(h.startsWith('#docs')) return pantallaDocs();
+  if(h === '#ajustes') return pantallaAjustes();
+  if(h === '#reportes') return pantallaReportes();
   if(h === '#inventario') return pantallaInventario();
   if(h === '#inv/movs') return pantallaMovs();
   if(h === '#inv/minimos') return pantallaMinimos();
@@ -484,7 +491,8 @@ function pantallaInicio(){
             num(PROY.proyectos.filter(x => x.estado !== 'VALIDADO').length))}
         ${docs}</div>
       <div class="seccion">Operación</div><div class="menu">${inventario}${folios}${reporte}${mi('#nuevo', '＋', 'Nuevo folio', 'Capturar un folio')}</div>
-      <div class="seccion">Administración</div><div class="menu">${mi('#usuarios', '👥', 'Usuarios', 'Altas, PIN y cuadrillas')}</div>`;
+      <div class="seccion">Administración</div><div class="menu">${mi('#usuarios', '👥', 'Usuarios', 'Altas, PIN y cuadrillas')}
+        ${mi('#reportes', '💬', 'Reportes', (n => n ? `<span style="color:var(--err)">${n} nuevo(s) por revisar</span>` : 'Problemas que avisan desde la app')(repNuevos()), num(repNuevos()))}</div>`;
   } else if(rol === 'SUPERVISOR'){
     cuerpo = `<div class="menu">${inventario}${reporte}</div>
       ${kpis}<div class="menu">${folios}${docs}${mi('#nuevo', '＋', 'Nuevo folio', 'Capturar un folio')}</div>`;
@@ -495,9 +503,7 @@ function pantallaInicio(){
   $('#app').innerHTML = `<div class="hola"><b>Hola, ${esc(USER.nombre.split(' ')[0].charAt(0) + USER.nombre.split(' ')[0].slice(1).toLowerCase())}</b>
      <span>${esc({ADMIN:'Administrador', SUPERVISOR:'Supervisor', TECNICO:'Técnico', AUXILIAR:'Auxiliar'}[rol] || rol)}${USER.cuadrilla ? ' · ' + esc(USER.cuadrilla) : ''}</span></div>
    ${rol === 'TECNICO' || rol === 'AUXILIAR' ? '' : borrador}${cuerpo}
-   <div class="pie"><div class="chips" id="hTema" style="justify-content:center;margin-bottom:10px">${[['auto', 'Automático'], ['claro', 'Claro'], ['oscuro', 'Oscuro']].map(([k, t]) =>
-       `<button type="button" class="chip ${LS.get('tema', 'auto') === k ? 'on' : ''}" data-k="${k}">${t}</button>`).join('')}</div>Versión ${APP_VERSION}</div>`;
-  document.querySelectorAll('#hTema .chip').forEach(b => b.onclick = () => { LS.set('tema', b.dataset.k); aplicarTema(); document.querySelectorAll('#hTema .chip').forEach(x => x.classList.toggle('on', x === b)); });
+   <div class="pie">Versión ${APP_VERSION}</div>`;
   const bd = $('#bDesc'); if(bd) bd.onclick = async () => { if(await preguntar('¿Descartar el folio sin terminar?','Descartar')){ LS.del(CLAVE_BORRADOR()); router(); } };
 }
 
@@ -2133,6 +2139,126 @@ function pantallaTraspaso(){
   };
 }
 
+/* ===== Reportes de problemas =====
+   Cualquiera reporta desde Ajustes (con captura opcional); se guarda en la hoja REPORTES y al administrador le llega un correo.
+   El administrador los revisa, responde y los marca resueltos; quien reportó ve el estado y la respuesta en sus Ajustes. */
+const ESTADOS_REP = {'NUEVO': ['Nuevo', 'error'], 'EN REVISIÓN': ['En revisión', 'pendiente'], 'RESUELTO': ['Resuelto', 'enviado']};
+let REP = LS.get('reportes', {lista: [], vistos: {}, t: ''});
+const firmaRep = () => REP.lista.map(r => r.id + r.actualizado + r.estado).join('|');
+const guardarRep = () => { LS.set('reportes', REP); pintarPendientes(); };
+const misReportes = () => REP.lista.filter(r => r.usuario === (USER && USER.id)).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+const repPorSubir = () => USER ? REP.lista.filter(r => r.subida !== r.actualizado && (USER.rol === 'ADMIN' || r.usuario === USER.id)).length : 0;
+const repNuevos = () => REP.lista.filter(r => r.estado === 'NUEVO').length;
+const repSinLeer = () => misReportes().filter(r => r.respuesta && REP.vistos[r.id] !== r.actualizado).length;     // respuestas que aún no ve quien reportó
+async function apiRep(accion, datos){
+  if(!demo()) return api(accion, datos);
+  const s = LS.get('demoRep', {}), r = (() => {
+    if(accion === 'reportes') return {reportes: Object.values(s).filter(x => USER.rol === 'ADMIN' || x.usuario === USER.id)};
+    const x = datos.reporte, y = s[x.id];
+    if(!y) s[x.id] = {...x, usuario: USER.id, nombre: USER.nombre, rol: USER.rol, cuadrilla: USER.cuadrilla, estado: 'NUEVO', respuesta: '', foto: datos.foto ? {id: 'demo', url: '#'} : null};
+    else if(USER.rol === 'ADMIN') s[x.id] = {...y, estado: x.estado, respuesta: x.respuesta, respondio: USER.nombre, actualizado: x.actualizado};
+    return {reporte: s[x.id]};
+  })();
+  LS.set('demoRep', s); return {ok: true, ...r};
+}
+let sincRepEnCurso = null;
+async function sincRep(){
+  if(!USER || (!demo() && !navigator.onLine)) return;
+  if(sincRepEnCurso) return sincRepEnCurso;
+  sincRepEnCurso = (async () => {
+    try{
+      for(const r of REP.lista.filter(r => r.subida !== r.actualizado && (USER.rol === 'ADMIN' || r.usuario === USER.id))){
+        try{ const v = r.actualizado, {subida, _foto, ...reporte} = r, datos = {reporte};
+          if(_foto){ const b = await IDB.traer(_foto); if(b) datos.foto = await blobAb64(b); }
+          const j = await apiRep('guardarReporte', datos); Object.assign(r, j.reporte, {subida: j.reporte.actualizado || v}); delete r._foto;
+          if(_foto) IDB.quitar(_foto).catch(() => {});
+        }catch(e){ console.log('reporte', e); }
+      }
+      const j = await apiRep('reportes', {});
+      j.reportes.forEach(x => { const k = REP.lista.findIndex(y => y.id === x.id);
+        if(k < 0) REP.lista.push({...x, subida: x.actualizado}); else if(String(x.actualizado) >= String(REP.lista[k].actualizado) && REP.lista[k].subida === REP.lista[k].actualizado) REP.lista[k] = {...x, subida: x.actualizado}; });
+      REP.t = new Date().toISOString();
+    }catch(e){ console.log('reportes', e); }
+    guardarRep(); pintarAvisoRep();
+  })();
+  try{ await sincRepEnCurso; } finally { sincRepEnCurso = null; }
+}
+const pintarAvisoRep = () => { const b = $('#btnAjustes'); if(b) b.classList.toggle('aviso', !!USER && repSinLeer() > 0); };
+// Achica la captura para que suba rápido
+async function reducirFoto(f){
+  const img = await createImageBitmap(f), k = Math.min(1, 1600 / Math.max(img.width, img.height)), cv = document.createElement('canvas');
+  cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k); cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+  return new Promise(r => cv.toBlob(r, 'image/jpeg', 0.8));
+}
+function textoProblema(t){
+  const ua = navigator.userAgent, tel = (ua.match(/Android [\d.]+; ([^)]+)\)/) || ua.match(/\(([^)]+)\)/) || [])[1] || '';
+  const fallos = FOLIOS.filter(f => f.estado === 'error' && esMio(f)).slice(0, 3).map(f => `Folio ${f.d['FOLIO/OS']}: ${f.error}`);
+  return {equipo: tel, senal: navigator.onLine ? 'Con señal' : 'Sin señal', porEnviar: $('#pend').textContent, errores: fallos,
+    wa: `⚠️ Problema en Folios FO\n${t}\n\n${USER.nombre} · ${USER.rol}${USER.cuadrilla ? ' · ' + USER.cuadrilla : ''}\nVersión ${APP_VERSION} · ${tel}\n${navigator.onLine ? 'Con señal' : 'Sin señal'} · por enviar: ${$('#pend').textContent}${fallos.length ? '\nErrores de envío:\n' + fallos.join('\n') : ''}`};
+}
+function avisarProblema(){
+  const adm = (CFG.usuarios || []).find(u => u.rol === 'ADMIN' && u.telefono && u.id !== USER.id) || (CFG.usuarios || []).find(u => u.rol === 'ADMIN' && u.telefono);
+  let foto = null;
+  const {o, cerrar} = ventana('Avisar de un problema', `<div class="mbody"><label>¿Qué pasó?</label><textarea id="qTxt" rows="5" placeholder="Qué estabas haciendo y qué salió mal"></textarea>
+    <label class="btn ghost sm" style="display:inline-block;margin-top:10px">📎 Adjuntar captura<input type="file" id="qFoto" accept="image/*" hidden></label><div id="qPrev"></div>
+    <div class="hint">El reporte le llega al administrador con los datos de tu app. Aquí mismo, en Ajustes, verás su respuesta.</div><div id="qErr" class="hint err"></div>
+    <button class="btn ghost sm" id="qWa" style="margin-top:14px">Es urgente: mandarlo por WhatsApp</button></div>`,
+    `<button class="btn verde" id="qOk">Enviar reporte</button>`);
+  o.querySelector('#qFoto').addEventListener('change', e => { foto = e.target.files[0] || null;
+    o.querySelector('#qPrev').innerHTML = foto ? `<img src="${URL.createObjectURL(foto)}" alt="" style="max-width:120px;max-height:160px;border-radius:8px;margin-top:8px;display:block">` : ''; });
+  o.querySelector('#qTxt').addEventListener('input', () => { o.querySelector('#qErr').textContent = ''; });
+  const texto = () => { const t = o.querySelector('#qTxt').value.trim(); if(!t) o.querySelector('#qErr').textContent = 'Escribe qué pasó.'; return t; };
+  o.querySelector('#qWa').onclick = () => { const t = texto(); if(!t) return; const msg = textoProblema(t).wa; cerrar();
+    if(adm) location.href = `https://wa.me/${telWA(adm.telefono)}?text=${encodeURIComponent(msg)}`; else compartir(msg); };
+  o.querySelector('#qOk').onclick = async () => {
+    const t = texto(); if(!t) return;
+    const b = o.querySelector('#qOk'); b.disabled = true;
+    const id = uuid(), ts = new Date().toISOString(), d = textoProblema(t);
+    const r = {id, texto: t, fecha: ts, actualizado: ts, usuario: USER.id, nombre: USER.nombre, rol: USER.rol, cuadrilla: USER.cuadrilla || '', estado: 'NUEVO', respuesta: '',
+      version: APP_VERSION, equipo: d.equipo, senal: d.senal, porEnviar: d.porEnviar, errores: d.errores};
+    if(foto){ try{ await IDB.poner('rep-' + id, await reducirFoto(foto)); r._foto = 'rep-' + id; }catch(e){} }
+    REP.lista.push(r); guardarRep(); sincRep();
+    cerrar(); toast(demo() || navigator.onLine ? 'Reporte enviado' : 'Reporte guardado. Se envía con señal.');
+    setTimeout(() => { if(location.hash === '#ajustes') pantallaAjustes(); }, 80);
+  };
+}
+const filaRep = (r, conQuien) => `<div class="item" data-rep="${esc(r.id)}" style="cursor:pointer;align-items:flex-start"><span class="nom">${conQuien ? `<b>${esc(r.nombre || '')}</b>${r.cuadrilla ? ' · ' + esc(r.cuadrilla) : ''}<br>` : ''}${esc(r.texto.length > 110 ? r.texto.slice(0, 110) + '…' : r.texto)}
+    <small>${esc(fmtFecha(local(r.fecha)).slice(0, 16))}${r.foto || r._foto ? ' · con captura' : ''}${r.subida !== r.actualizado ? ' · por enviar' : ''}</small>
+    ${r.respuesta ? `<small style="color:var(--txt);margin-top:4px">↳ ${esc(r.respuesta)}</small>` : ''}</span><span class="estado ${ESTADOS_REP[r.estado] ? ESTADOS_REP[r.estado][1] : 'pendiente'}">${ESTADOS_REP[r.estado] ? ESTADOS_REP[r.estado][0] : esc(r.estado)}</span></div>`;
+function verReporte(id){
+  const r = REP.lista.find(x => x.id === id); if(!r) return;
+  const admin = USER.rol === 'ADMIN';
+  if(r.usuario === USER.id && r.respuesta){ REP.vistos[r.id] = r.actualizado; guardarRep(); pintarAvisoRep(); }
+  const {o, cerrar} = ventana('Reporte', `<div class="mbody"><div class="card" style="margin:0 0 12px"><div class="lista"><div class="f"><b>${esc(r.nombre || '')}</b><span class="estado ${ESTADOS_REP[r.estado][1]}">${ESTADOS_REP[r.estado][0]}</span></div></div>
+      <div class="hint" style="margin:2px 0 8px">${esc([r.rol, r.cuadrilla, fmtFecha(local(r.fecha)).slice(0, 16)].filter(Boolean).join(' · '))}</div>
+      <div style="white-space:pre-wrap">${esc(r.texto)}</div>
+      <div class="hint" style="margin-top:8px">${esc(['Versión ' + (r.version || '?'), r.equipo, r.senal, 'por enviar: ' + (r.porEnviar || 0)].filter(Boolean).join(' · '))}</div>
+      ${(r.errores || []).length ? `<div class="hint err">${r.errores.map(esc).join('<br>')}</div>` : ''}
+      ${r.foto && r.foto.url && r.foto.url !== '#' ? `<a class="btn ghost sm" style="margin-top:8px;text-decoration:none" href="${esc(r.foto.url)}" target="_blank" rel="noopener">📎 Ver captura</a>` : r.foto || r._foto ? '<div class="hint">📎 Con captura</div>' : ''}</div>
+    ${admin ? `<label>Estado</label><div class="chips" id="rEst">${Object.keys(ESTADOS_REP).map(e => `<button type="button" class="chip ${r.estado === e ? 'on' : ''}" data-e="${e}">${ESTADOS_REP[e][0]}</button>`).join('')}</div>
+      <label>Respuesta para ${esc((r.nombre || '').split(' ')[0])}</label><textarea id="rResp" rows="3" placeholder="Qué revisaste o qué debe hacer">${esc(r.respuesta || '')}</textarea>`
+      : r.respuesta ? `<div class="sug"><b>Respuesta${r.respondio ? ' de ' + esc(r.respondio) : ''}:</b><br>${esc(r.respuesta)}</div>` : '<div class="hint">Aún sin respuesta.</div>'}</div>`,
+    admin ? `<button class="btn" id="rOk">Guardar</button>` : '');
+  if(!admin) return;
+  let est = r.estado;
+  o.querySelectorAll('#rEst .chip').forEach(b => b.onclick = () => { est = b.dataset.e; o.querySelectorAll('#rEst .chip').forEach(x => x.classList.toggle('on', x === b)); });
+  o.querySelector('#rOk').onclick = () => { const resp = o.querySelector('#rResp').value.trim();
+    if(resp && est === 'NUEVO') est = 'EN REVISIÓN';
+    Object.assign(r, {estado: est, respuesta: resp, respondio: USER.nombre, actualizado: new Date().toISOString()}); guardarRep(); sincRep();
+    cerrar(); toast('Reporte actualizado'); setTimeout(() => { if(location.hash === '#reportes') pantallaReportes(true); }, 80); };
+}
+function pantallaReportes(sinBajar){
+  if(USER.rol !== 'ADMIN') return reemplazar('#ajustes');
+  $('#titulo').textContent = 'Reportes';
+  const f = sessionStorage.getItem('fo.repF') || 'ABIERTOS';
+  const lista = REP.lista.filter(r => f === 'TODOS' || (f === 'ABIERTOS' ? r.estado !== 'RESUELTO' : r.estado === 'RESUELTO')).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+  $('#app').innerHTML = `<div class="tira" id="rF">${[['ABIERTOS', 'Por atender'], ['RESUELTOS', 'Resueltos'], ['TODOS', 'Todos']].map(([k, t]) => `<button type="button" class="chip ${f === k ? 'on' : ''}" data-k="${k}">${t}</button>`).join('')}</div>
+    <div class="card">${lista.length ? lista.map(r => filaRep(r, true)).join('') : `<div class="vacio">${f === 'ABIERTOS' ? 'Nada por atender.' : 'Sin reportes.'}</div>`}</div>`;
+  document.querySelectorAll('#rF .chip').forEach(b => b.onclick = () => { sessionStorage.setItem('fo.repF', b.dataset.k); pantallaReportes(true); });
+  document.querySelectorAll('[data-rep]').forEach(e => e.onclick = () => verReporte(e.dataset.rep));
+  if(!sinBajar){ const antes = firmaRep(); sincRep().then(() => { if(firmaRep() !== antes && location.hash === '#reportes' && !MODALES.length) pantallaReportes(true); }); }
+}
+
 /* ===== Mini mapa (sin librerías) ===== */
 const MAPA_COLORES = {'MARINA':'#2a7ab8','MALECON':'#c2702a','NUEVO VALLARTA':'#2f9e5b','BUCERIAS':'#8b5cc4','PUNTA MITA':'#c4415e'};
 function abrirMapa(coordsTxt, alElegir, opts = {}){   // opts: titulo, hint, lineas, puntos, soloVer
@@ -2670,12 +2796,108 @@ function pantallaVer(id){
 
 /* ===== Inicio ===== */
 $('#btnSync').onclick = () => sincronizar(true);
-$('#btnSalir').onclick = async () => {
+$('#btnAjustes').onclick = () => ir('#ajustes');
+async function cerrarSesion(){
   const n = FOLIOS.filter(f=>f.estado!=='enviado' && esMio(f)).length;
   if(!(await preguntar(n ? `Hay ${n} folio(s) sin enviar. Se quedan en este teléfono y se envían solos cuando haya señal, aunque entre otra persona. ¿Salir?` : '¿Cerrar sesión?','Salir'))) return;
   if(!n){ const cr = LS.get('creds', {}); delete cr[USER.id]; LS.set('creds', cr); }
   USER=null; LS.del('usuario'); reemplazar('#');
+}
+/* ===== Ajustes: cambiar PIN, ayuda y aviso de problemas ===== */
+function cambiarPin(){
+  const {o, cerrar} = ventana('Cambiar mi PIN', `<div class="mbody">
+    <label>PIN actual</label><input id="kAct" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
+    <label>PIN nuevo (4 a 6 números)</label><input id="kNue" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
+    <label>Repite el PIN nuevo</label><input id="kRep" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
+    <div class="hint">No uses 1234 ni tu fecha de nacimiento. Si lo olvidas, el administrador te da uno nuevo.</div><div id="kErr" class="hint err"></div></div>`,
+    `<button class="btn" id="kOk">Cambiar PIN</button>`);
+  o.querySelectorAll('input').forEach(i => i.addEventListener('input', () => { i.value = i.value.replace(/\D/g, ''); }));
+  o.querySelector('#kOk').onclick = async () => {
+    const a = o.querySelector('#kAct').value, n = o.querySelector('#kNue').value, r = o.querySelector('#kRep').value, err = o.querySelector('#kErr');
+    const mal = a !== String(USER.pin) ? 'El PIN actual no es correcto.' : !/^\d{4,6}$/.test(n) ? 'El PIN nuevo debe tener de 4 a 6 números.' : n !== r ? 'Los dos PIN nuevos no coinciden.'
+      : n === a ? 'El PIN nuevo es igual al actual.' : /^(\d)\1+$/.test(n) || '0123456789'.includes(n) ? 'Ese PIN es muy fácil de adivinar; elige otro.' : '';
+    if(mal){ err.textContent = mal; return; }
+    if(demo()){ err.textContent = 'En modo demostración el PIN de todos es 1234 y no se cambia.'; return; }
+    if(!navigator.onLine){ err.textContent = 'Necesitas señal para cambiar el PIN.'; return; }
+    const b = o.querySelector('#kOk'); b.disabled = true; b.textContent = 'Cambiando…';
+    try{
+      const j = await api('cambiarPin', {pinNuevo: n});
+      USER.pin = n; LS.set('usuario', USER);
+      const ll = LS.get('llaves', {}); ll[USER.id] = {llave: j.llave, sal: j.sal}; LS.set('llaves', ll);
+      const cr = LS.get('creds', {}); if(cr[USER.id]){ cr[USER.id] = n; LS.set('creds', cr); }
+      cerrar(); toast('PIN cambiado. Úsalo la próxima vez que entres.');
+    }catch(e){ err.textContent = e.message; b.disabled = false; b.textContent = 'Cambiar PIN'; }
+  };
+}
+const AYUDA = {
+  campo: [['Capturar un folio', ['Toca Nuevo folio.', 'Llena el número, la falla y la hora de asignación.', 'En Ubicación toca Mi ubicación o Marcar en mapa: el cluster sale solo.', 'Elige la causa: la app propone trabajos y material; pon las cantidades.', 'Escanea el QR, revisa los técnicos y toca Guardar folio.', 'Comparte el texto por WhatsApp.']],
+    ['Sin señal', ['Captura igual: el folio queda "Por enviar" en el teléfono.', 'Se envía solo al volver la señal. El número junto a ⟳ es lo que falta por enviar.']],
+    ['Corregir un folio', ['Entra a Folios de mi cuadrilla y toca el folio.', 'Toca Corregir. Tienes 48 horas; después lo corrige el supervisor.']],
+    ['Material de mi cuadrilla', ['Ahí ves lo que traes según el último conteo y tus folios.', 'Cuando te entreguen material, revisa que coincida y toca Confirmar que lo recibí.', 'Para dar material a otra cuadrilla: Pasar material a otra cuadrilla.', 'Si algo no coincide, avisa al supervisor.']],
+    ['Documentar un 2N', ['Entra a Documentación de 2N y toca Documentar 2N.', 'Escanea el QR parado junto al 2N y espera a que el GPS sea preciso.', 'Elige la capacidad y el brazo, y guarda.', 'Si instalaste un 2N nuevo en un folio, marca "Sí, documentarlo" al cierre.']]],
+  externo: [['Documentar un 2N', ['Toca Documentar 2N.', 'Escanea el QR parado junto al 2N y espera a que el GPS sea preciso.', 'Si es un 2N del KMZ, la app lo reconoce; si no, queda como nuevo.', 'Elige la capacidad y el brazo, y guarda.', 'Sin señal se guarda en el teléfono y se envía después.']]],
+  jefe: [['Inventario', ['Conteo inicial: elige almacén o cuadrilla y toca Contar.', '＋ Movimiento: entradas, entregas, traspasos, devoluciones y merma.', 'La entrega cuenta en la cuadrilla cuando confirma; si no puede, abre el movimiento y toca Marcar como recibido.', 'Para corregir o anular: Movimientos y toca el renglón.', 'Stock mínimo: define cuándo avisar.']],
+    ['Reporte semanal', ['Entra a Reporte semanal de material, elige la semana y descarga el Excel.', 'Solo entran folios con hora final dentro de esa semana.']],
+    ['Folios', ['Ves los de todos, de los últimos 30 días.', 'Puedes corregir cualquiera; el cambio queda en LOG_CAMBIOS.']]],
+  admin: [['Seguimiento de masivas', ['＋ Nueva masiva y pega el mensaje del NOC tal cual.', 'Elige técnicos y llena cada etapa; cada una tiene su mensaje.', 'Traer datos del folio del técnico llena lo que ya capturó.', 'Al terminar, Marcar cerrada.']],
+    ['Proyectos y validación', ['Crea el proyecto y carga su KMZ.', 'En el recorrido: Nueva incidencia con foto, tipo y ubicación.', 'Manda al proveedor el KMZ o la lista de pendientes.', 'Marca cada incidencia corregida y luego cerrada; llena el material y adjunta el acta.']],
+    ['Usuarios', ['Altas, cuadrillas y PIN en Usuarios.', 'Enviar acceso por WhatsApp manda el enlace y el PIN.', 'Para póliza: rol Externo y escribe la empresa.']],
+    ['Actualizar la app', ['Sube index.html y sw.js a GitHub.', 'Si cambió el servidor: pega Code.gs y publica una nueva versión.', 'En cada teléfono: Ajustes > Buscar versión nueva.']]]
 };
+function verAyuda(){
+  const r = USER.rol, temas = r === 'EXTERNO' ? AYUDA.externo : r === 'ADMIN' ? [...AYUDA.admin, ...AYUDA.jefe, ...AYUDA.campo] : r === 'SUPERVISOR' ? [...AYUDA.jefe, ...AYUDA.campo.filter(t => t[0] !== 'Material de mi cuadrilla')] : AYUDA.campo;
+  ventana('Ayuda', `<div class="mbody">${temas.map(([t, pasos], i) => `<details class="gr" ${i ? '' : 'open'}><summary>${esc(t)}</summary><ol style="margin:0 0 12px;padding-left:22px;font-size:15px;line-height:1.5">${pasos.map(x => `<li>${esc(x)}</li>`).join('')}</ol></details>`).join('')}
+    <div class="hint" style="margin-top:14px">¿Algo no funciona? Ajustes > Avisar de un problema.</div></div>`, '');
+}
+/* ===== Ajustes: cuenta, apariencia, envío y versión ===== */
+function pantallaAjustes(){
+  $('#titulo').textContent = 'Ajustes';
+  const pend = +$('#pend').textContent || 0;
+  const chips = (id, clave, def, ops) => `<div class="chips" id="${id}">${ops.map(([k, t]) => `<button type="button" class="chip ${LS.get(clave, def) === k ? 'on' : ''}" data-k="${k}">${t}</button>`).join('')}</div>`;
+  $('#app').innerHTML = `
+   <div class="card"><h2>Mi cuenta</h2><b>${esc(USER.nombre)}</b>
+     <div class="hint">${esc({ADMIN:'Administrador', SUPERVISOR:'Supervisor', TECNICO:'Técnico', AUXILIAR:'Auxiliar', EXTERNO:'Externo'}[USER.rol] || USER.rol)}${USER.cuadrilla ? ' · ' + esc(USER.cuadrilla) : ''}${USER.telefono ? ' · ' + esc(USER.telefono) : ''}</div>
+     <div class="hint">Para cambiar tus datos, pídelo al administrador.</div>
+     <button class="btn sec" id="aPin">Cambiar mi PIN</button>
+     <button class="btn ghost" id="btnSalir">Cerrar sesión</button></div>
+   <div class="card"><h2>Apariencia</h2><label style="margin-top:0">Tema</label>${chips('aTema', 'tema', 'auto', [['auto', 'Automático'], ['claro', 'Claro'], ['oscuro', 'Oscuro']])}
+     <div class="hint">Automático sigue al teléfono.</div>
+     <label>Tamaño de letra</label>${chips('aLetra', 'letra', 'normal', [['normal', 'Normal'], ['grande', 'Grande']])}</div>
+   <div class="card"><h2>Envío y datos</h2>
+     <div class="hint" style="margin:0">${pend ? `<b style="color:var(--warn)">${pend} por enviar.</b> Se envían solos cuando hay señal.` : 'Todo está enviado.'}${navigator.onLine ? '' : ' Ahora no hay conexión.'}</div>
+     <button class="btn sec" id="aEnviar">Enviar ahora</button>
+     <button class="btn sec" id="aListas">Actualizar usuarios y listas</button>
+     <div class="hint" id="aMapasH">Mapas guardados para ver sin señal: …</div>
+     <button class="btn ghost sm" id="aMapas" style="margin-top:6px">Borrar mapas guardados</button></div>
+   <div class="card"><h2>Aplicación</h2><div class="hint" style="margin:0">Folios FO · versión ${APP_VERSION}${demo() ? ' · modo demostración' : ''}</div>
+     <button class="btn sec" id="aAct">Buscar versión nueva</button><div class="hint" id="aActH"></div></div>
+   <div class="menu">
+     <a class="mi" id="aAyuda"><span class="ic">❓</span><span class="tx"><b>Ayuda</b><small>Cómo se usa, paso a paso</small></span><span class="ch">›</span></a>
+     <a class="mi" id="aProb"><span class="ic">💬</span><span class="tx"><b>Avisar de un problema</b><small>Le llega al administrador y aquí ves su respuesta</small></span><span class="ch">›</span></a></div>
+   ${(m => m.length ? `<div class="card"><h2>Mis reportes</h2>${m.slice(0, 10).map(r => filaRep(r, false)).join('')}</div>` : '')(misReportes())}`;
+  document.querySelectorAll('[data-rep]').forEach(e => e.onclick = () => { verReporte(e.dataset.rep); });
+  if(!pantallaAjustes.bajando && (!REP.t || Date.now() - new Date(REP.t) > 60000)){ pantallaAjustes.bajando = true; const antes = firmaRep();     // solo se redibuja si llegó algo nuevo
+    sincRep().then(() => { pantallaAjustes.bajando = false; if(firmaRep() !== antes && location.hash === '#ajustes' && !MODALES.length) pantallaAjustes(); }); }
+  $('#aPin').onclick = cambiarPin; $('#aAyuda').onclick = verAyuda; $('#aProb').onclick = avisarProblema;
+  $('#btnSalir').onclick = cerrarSesion;
+  const grupo = (id, clave) => document.querySelectorAll(`#${id} .chip`).forEach(b => b.onclick = () => { LS.set(clave, b.dataset.k); aplicarTema();
+    document.querySelectorAll(`#${id} .chip`).forEach(x => x.classList.toggle('on', x === b)); });
+  grupo('aTema', 'tema'); grupo('aLetra', 'letra');
+  $('#aEnviar').onclick = async () => { await sincronizar(true); if(typeof sincInv === 'function') sincInv(); if(location.hash === '#ajustes') setTimeout(() => location.hash === '#ajustes' && pantallaAjustes(), 1500); };
+  $('#aListas').onclick = async () => { if(demo()) return toast('Modo demo: no hay servidor'); if(!navigator.onLine) return toast('Necesitas señal');
+    toast('Actualizando…'); await bajarConfig(); toast('Usuarios y listas actualizados'); };
+  const contar = async () => { try{ const c = await caches.open('folios-fo-mapas'), n = (await c.keys()).length; const h = $('#aMapasH'); if(h) h.textContent = `Mapas guardados para ver sin señal: ${n} pedazo(s).`; }catch(e){ const h = $('#aMapasH'); if(h) h.textContent = 'Este navegador no guarda mapas.'; } };
+  contar();
+  $('#aMapas').onclick = async () => { if(!(await preguntar('¿Borrar los mapas guardados? Se vuelven a bajar al abrir el mapa con señal.', 'Borrar'))) return; try{ await caches.delete('folios-fo-mapas'); }catch(e){} contar(); toast('Mapas borrados'); };
+  $('#aAct').onclick = async () => { const h = $('#aActH');
+    if(!navigator.onLine){ h.textContent = 'Necesitas señal.'; return; }
+    if(!('serviceWorker' in navigator)){ location.reload(); return; }
+    h.textContent = 'Buscando…';
+    try{ const r = await navigator.serviceWorker.getRegistration(); if(r) await r.update();
+      const t = await (await fetch('index.html?t=' + Date.now(), {cache:'no-store'})).text(), v = (t.match(/APP_VERSION = '([^']+)'/) || [])[1];
+      if(v && v !== APP_VERSION){ h.textContent = `Hay versión ${v}. Abriendo…`; setTimeout(() => location.reload(), 1200); } else h.textContent = 'Ya tienes la versión más nueva.'; }
+    catch(e){ h.textContent = 'No se pudo revisar; intenta con mejor señal.'; } };
+}
 if(USER) USER.nombre = MAY(USER.nombre);
 if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost')) navigator.serviceWorker.register('sw.js').catch(()=>{});
 history.replaceState({n:0, raiz:1}, '', location.href.split('#')[0] + '#');
@@ -2685,7 +2907,7 @@ history.pushState({n:0, guardia:1}, '', location.href);
   FOLIOS = FOLIOS.filter(f => f.estado !== 'enviado' || new Date(f.editado || f.creado).getTime() > limite);
   if(FOLIOS.length !== antes) LS.set('folios', FOLIOS);
 })();
-router(); pintarPendientes(); bajarConfig().then(()=>{ if(!USER) refrescarLogin(); }); sincronizar();
+router(); pintarPendientes(); bajarConfig().then(()=>{ if(!USER) refrescarLogin(); }); sincronizar(); { const antes = firmaRep(); sincRep().then(() => { if(USER && firmaRep() !== antes && (location.hash === '' || location.hash === '#') && !MODALES.length) router(); }); }
 </script>
 </body>
 </html>
