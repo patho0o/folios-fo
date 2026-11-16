@@ -151,10 +151,24 @@ details.gr .cnt{margin-left:auto;font-weight:400;font-size:13px;color:var(--gris
 .minfo{padding:10px 12px;font-size:14px;border-top:1px solid var(--borde)}
 video.qr{width:100%;border-radius:12px;background:#000;max-height:60vh;object-fit:cover}
 .marca{display:flex;align-items:center;gap:14px;margin:18px 4px 16px}.marca img{width:64px;height:64px;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,.25)}.marca b{display:block;font-size:26px;letter-spacing:3px}.marca span{color:var(--gris);font-size:13px}
+/* indicadores de carga */
+#carga{position:absolute;left:0;right:0;bottom:-1px;height:3px;overflow:hidden;opacity:0;transition:opacity .2s;pointer-events:none}
+#carga.si{opacity:1}
+#carga::before{content:"";position:absolute;top:0;bottom:0;width:40%;left:-40%;background:linear-gradient(90deg,transparent,#7fb2ff,#2bea5a,transparent);animation:carga 1.1s ease-in-out infinite}
+@keyframes carga{to{left:100%}}
+#btnSync .gira{display:inline-block}
+#btnSync.girando .gira{animation:gira .9s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
+button.ocupado::before{content:"";display:inline-block;width:14px;height:14px;margin-right:8px;vertical-align:-2px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:gira .8s linear infinite}
+#app.entra{animation:entra .18s ease-out}
+.modal{animation:sube .2s ease-out}
+@keyframes entra{from{opacity:.35;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes sube{from{opacity:.4;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){#carga::before,#btnSync.girando .gira,button.ocupado::before,#app.entra,.modal{animation:none}}
 </style>
 </head>
 <body>
-<header><button id="btnAtras" class="hidden" aria-label="Regresar">‹</button><h1 id="titulo">NODO</h1><button id="btnSync" class="hidden">⟳ <span id="pend">0</span></button><button id="btnAjustes" class="hidden" aria-label="Ajustes">⚙</button></header>
+<header><button id="btnAtras" class="hidden" aria-label="Regresar">‹</button><h1 id="titulo">NODO</h1><button id="btnSync" class="hidden"><span class="gira">⟳</span> <span id="pend">0</span></button><button id="btnAjustes" class="hidden" aria-label="Ajustes">⚙</button><div id="carga" role="progressbar" aria-label="Cargando"></div></header>
 <div id="bDemo" class="banner demo hidden">Modo demostración: los folios se guardan solo en este teléfono.</div>
 <div id="bOff" class="banner off hidden">Sin conexión. Puedes seguir capturando; se envía al volver la señal.</div>
 <main id="app"></main>
@@ -162,7 +176,7 @@ video.qr{width:100%;border-radius:12px;background:#000;max-height:60vh;object-fi
 <script>
 /* ===== Configuración ===== */
 const API_URL = 'https://script.google.com/macros/s/AKfycbzI9uNq8muKRdLWnrY6StHGs8bfSvacPbXsOTxjHJPNpU4ZHK_CaRrfD4PDAmNcbt-kHQ/exec';            // URL de la implementación de Apps Script (termina en /exec). Vacío = modo demo.
-const APP_VERSION = '0.22.1';
+const APP_VERSION = '0.22.2';
 const HORAS_EDICION = 48;      // horas que un técnico puede corregir su folio
 const CENTRO_MAPA = [20.66, -105.24];   // donde abre el mapa si aún no hay coordenadas
 const DIAS_HISTORIAL = 30;     // los folios ya enviados se borran del teléfono después de estos días (siguen en Sheets)
@@ -368,6 +382,16 @@ document.addEventListener('change', e => {
 }, true);
 
 /* ===== Red ===== */
+let enCurso = 0, relojCarga = 0;               // barra delgada bajo el encabezado mientras hay algo yendo al servidor
+function cargando(d){
+  enCurso = Math.max(0, enCurso + d); const b = document.getElementById('carga'); if(!b) return;
+  if(enCurso && !relojCarga) relojCarga = setTimeout(() => { relojCarga = 0; if(enCurso) b.classList.add('si'); }, 300);
+  if(!enCurso){ clearTimeout(relojCarga); relojCarga = 0; b.classList.remove('si'); }
+}
+new MutationObserver(ms => ms.forEach(m => {    // botón deshabilitado con "…" (Guardando…, Enviando…) muestra un círculo girando
+  const b = m.target.closest && m.target.closest('button') || (m.target.parentElement && m.target.parentElement.closest('button'));
+  if(b) b.classList.toggle('ocupado', b.disabled && /…\s*$/.test(b.textContent));
+})).observe(document.body, {subtree:true, attributes:true, attributeFilter:['disabled'], childList:true, characterData:true});
 async function api(accion, datos, cred){
   if(esDemoUser()){
     if(SIMULADO[accion]){ await new Promise(r => setTimeout(r, 150)); return {ok: true, ...SIMULADO[accion](datos || {})}; }
@@ -375,13 +399,14 @@ async function api(accion, datos, cred){
   }
   cred = cred || {id: USER && USER.id, pin: USER && USER.pin};
   const ctl = new AbortController(), reloj = setTimeout(() => ctl.abort(), ESPERA_SERVIDOR);
-  let r;
+  let r; cargando(1);
   try{
     r = await fetch(API_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, signal: ctl.signal,
       body: JSON.stringify({accion, usuario:cred.id, pin:cred.pin, version:APP_VERSION, ...datos})});
-  }catch(e){ throw new Error(e.name === 'AbortError' ? 'La señal está muy débil; se reintentará.' : 'No hay conexión con el servidor; se reintentará.'); }
+  }catch(e){ cargando(-1); throw new Error(e.name === 'AbortError' ? 'La señal está muy débil; se reintentará.' : 'No hay conexión con el servidor; se reintentará.'); }
   finally{ clearTimeout(reloj); }
   let j; try{ j = await r.json(); }catch(e){ throw new Error('El servidor respondió algo inesperado; revisa que la implementación esté publicada.'); }
+  finally{ cargando(-1); }
   if(!j.ok) throw new Error(j.error || 'Error del servidor'); return j;
 }
 async function bajarConfig(){
@@ -404,7 +429,7 @@ async function sincronizar(manual, conErrores = true){
   if(repPorSubir()) sincRep();
   const pend = FOLIOS.filter(f => f.estado === 'pendiente' || (conErrores && f.estado === 'error'));
   if(!navigator.onLine || sincronizando || !pend.length){ if(manual && !pend.length && !docsPorEnviar()) toast('Todo está enviado'); return; }
-  sincronizando = true;
+  sincronizando = true; $('#btnSync').classList.add('girando');
   let ok = 0; const cambiados = new Set();
   for(const f of pend){ const antes = f.estado + f.error;
     try{
@@ -421,7 +446,7 @@ async function sincronizar(manual, conErrores = true){
     if(f.estado + f.error !== antes) cambiados.add(f.id);
     guardarFolios();
   }
-  sincronizando = false;
+  sincronizando = false; $('#btnSync').classList.remove('girando');
   if(ok) toast(`${ok} folio(s) enviado(s)`);
   const h = location.hash;                 // redibuja solo si lo que está en pantalla cambió
   if(!MODALES.length && cambiados.size && (h.startsWith('#folios') || h==='' || h==='#' || (h.startsWith('#ver/') && cambiados.has(h.slice(5))))) router();
@@ -445,7 +470,9 @@ function padreDe(h){
 $('#btnAtras').onclick = () => volver(padreDe(location.hash));
 
 /* ===== Pantallas ===== */
+let ultimaRuta = null;
 function router(){
+  if(location.hash !== ultimaRuta){ ultimaRuta = location.hash; const a = $('#app'); a.classList.remove('entra'); void a.offsetWidth; a.classList.add('entra'); }
   $('#bDemo').classList.toggle('hidden', !demo() && !esDemoUser());
   $('#bDemo').textContent = esDemoUser() ? 'Usuario de demostración: puedes ver y probar todo, pero nada se guarda en el Sheets.' : 'Modo demostración: los folios se guardan solo en este teléfono.';
   $('#bar').classList.add('hidden'); $('#bar').innerHTML='';
