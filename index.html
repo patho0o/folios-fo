@@ -162,7 +162,7 @@ video.qr{width:100%;border-radius:12px;background:#000;max-height:60vh;object-fi
 <script>
 /* ===== Configuración ===== */
 const API_URL = 'https://script.google.com/macros/s/AKfycbzI9uNq8muKRdLWnrY6StHGs8bfSvacPbXsOTxjHJPNpU4ZHK_CaRrfD4PDAmNcbt-kHQ/exec';            // URL de la implementación de Apps Script (termina en /exec). Vacío = modo demo.
-const APP_VERSION = '0.22.0';
+const APP_VERSION = '0.22.1';
 const HORAS_EDICION = 48;      // horas que un técnico puede corregir su folio
 const CENTRO_MAPA = [20.66, -105.24];   // donde abre el mapa si aún no hay coordenadas
 const DIAS_HISTORIAL = 30;     // los folios ya enviados se borran del teléfono después de estos días (siguen en Sheets)
@@ -3017,8 +3017,14 @@ function pantallaAjustes(){
 }
 if(USER) USER.nombre = MAY(USER.nombre);
 if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost')) navigator.serviceWorker.register('sw.js').catch(()=>{});
-history.replaceState({n:0, raiz:1}, '', location.href.split('#')[0] + '#');
-history.pushState({n:0, guardia:1}, '', location.href);
+const HASH_INICIAL = location.hash, BASE = location.href.split('#')[0];   // al recargar (jalar para actualizar) se queda en la misma pantalla
+history.replaceState({n:0, raiz:1}, '', BASE + '#');
+history.pushState({n:0, guardia:1}, '', BASE + '#');
+if(USER && HASH_INICIAL.length > 1){
+  const padre = padreDe(HASH_INICIAL);
+  if(padre !== '#' && padre !== HASH_INICIAL) history.pushState({n:1}, '', BASE + padre);
+  history.pushState({n: nivel() + 1}, '', BASE + HASH_INICIAL);
+}
 (function limpiarHistorial(){          // el teléfono guarda solo lo reciente; lo enviado ya está en Sheets
   const limite = Date.now() - DIAS_HISTORIAL * 864e5, antes = FOLIOS.length;
   FOLIOS = FOLIOS.filter(f => f.estado !== 'enviado' || new Date(f.editado || f.creado).getTime() > limite);
