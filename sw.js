@@ -1,13 +1,14 @@
 // NODO · service worker: guarda la app en el teléfono para que abra al instante y sin señal.
 // Al publicar una versión nueva, cambia el número de CACHE (igual que APP_VERSION en index.html).
-const CACHE = 'folios-fo-v0.22.2';
-const MAPAS = 'folios-fo-mapas';          // pedazos de mapa ya vistos, para verlos sin señal
+const CACHE = 'folios-fo-v0.25.0';
+const MAPAS = 'folios-fo-mapas';
+const COMPARTIDO = 'nodo-compartido';     // archivo que llega desde "Compartir" (ej. un KMZ de WhatsApp)          // pedazos de mapa ya vistos, para verlos sin señal
 const MAX_MAPAS = 3000;                    // ~30-50 MB como máximo
 const ARCHIVOS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARCHIVOS))); self.skipWaiting(); });
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE && k !== MAPAS).map(k => caches.delete(k)))));
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE && k !== MAPAS && k !== COMPARTIDO).map(k => caches.delete(k)))));
   self.clients.claim();
 });
 
@@ -20,6 +21,16 @@ async function recortarMapas(){
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
+  if (e.request.method === 'POST' && url.origin === location.origin && url.pathname.endsWith('/compartir')) {
+    e.respondWith((async () => {                            // Android "Compartir → NODO": se guarda el archivo y se abre la app
+      try {
+        const fd = await e.request.formData(), f = fd.getAll('archivo').find(x => x && x.name) || fd.get('archivo');
+        if (f && f.name) await (await caches.open(COMPARTIDO)).put('./compartido', new Response(f, {headers: {'x-nombre': encodeURIComponent(f.name), 'content-type': f.type || 'application/octet-stream'}}));
+      } catch (err) {}
+      return Response.redirect('./#compartido', 303);
+    })());
+    return;
+  }
   if (e.request.method !== 'GET') return;
   if (url.hostname === 'tile.openstreetmap.org') {          // mapas: lo guardado primero; si no, internet
     e.respondWith(caches.open(MAPAS).then(c => c.match(e.request).then(r => r || fetch(e.request).then(res => {
