@@ -228,7 +228,7 @@ button.ocupado::before{content:"";display:inline-block;width:14px;height:14px;ma
 <script>
 /* ===== Configuración ===== */
 const API_URL = 'https://script.google.com/macros/s/AKfycbzI9uNq8muKRdLWnrY6StHGs8bfSvacPbXsOTxjHJPNpU4ZHK_CaRrfD4PDAmNcbt-kHQ/exec';            // URL de la implementación de Apps Script (termina en /exec). Vacío = modo demo.
-const APP_VERSION = '0.31.1';
+const APP_VERSION = '0.32.0';
 const HORAS_EDICION = 48;      // horas que un técnico puede corregir su folio
 const CENTRO_MAPA = [20.66, -105.24];   // donde abre el mapa si aún no hay coordenadas
 const DIAS_HISTORIAL = 30;     // los folios ya enviados se borran del teléfono después de estos días (siguen en Sheets)
@@ -1326,7 +1326,8 @@ function pantallaDocs(sinBajar){
           return `<div class="item"><span class="nom">${esc(c.nombre)}<small>${h} de ${p.length} documentados · cargado ${esc(fmtFecha(local(c.actualizado)).slice(0,10))}</small></span></div>`; }).join('')
         : '<div class="hint">Carga el KMZ con las rutas y los 2N del proyecto. Sus 2N aparecen como pendientes en el mapa de todos.</div>'}
       <label class="btn sec" style="text-align:center;display:block;margin-top:10px">⬆️ Cargar KMZ<input type="file" id="dKmz" accept=".kmz,.kml,application/vnd.google-earth.kmz,application/vnd.google-earth.kml+xml,application/zip,application/octet-stream" hidden></label>
-      <button class="btn sec" id="dBajar">⬇️ Descargar KMZ actualizado</button></div>` : ''}
+      <button class="btn sec" id="dBajar">⬇️ Descargar KMZ actualizado</button>
+      <button class="btn sec" id="dXlsQr">⬇️ Excel de QR de 2N</button></div>` : ''}
    <div class="card"><h2>Documentados</h2>${admin ? '' : '<div class="hint" style="margin-top:0">Lo que capturaste este mes y los 2N de proyectos activos.</div>'}
      <input id="dBus" placeholder="Buscar QR, brazo o cluster" autocapitalize="characters" style="margin-bottom:6px"><div id="dLista"></div></div>`;
   const pintar = q => {
@@ -1354,6 +1355,7 @@ function pantallaDocs(sinBajar){
   $('#dBus').addEventListener('input', e => pintar(e.target.value));
   $('#dMapa').onclick = () => mapaDocs();
   if(admin){
+    $('#dXlsQr').onclick = () => excelQr(v);
     $('#dKmz').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if(f) cargarKmz(f); });
     $('#dBajar').onclick = () => elegirDescarga();
   }
@@ -1720,9 +1722,45 @@ async function armarKmz(capa){
   return {blob: armarZip(ents), nombre: `${capa.nombre} documentado ${hoy}.kmz`};
 }
 const ESTILO_2N = `<Style id="fo_2n_doc"><IconStyle><color>ff4c8a1f</color><scale>1.1</scale><Icon><href>http://maps.google.com/mapfiles/kml/paddle/grn-circle.png</href></Icon></IconStyle><LabelStyle><scale>0.8</scale></LabelStyle></Style><Style id="fo_2n_nuevo"><IconStyle><color>ff00a4e0</color><scale>1.1</scale><Icon><href>http://maps.google.com/mapfiles/kml/paddle/ylw-stars.png</href></Icon></IconStyle><LabelStyle><scale>0.8</scale></LabelStyle></Style>`;
-function entregarArchivo(blob, nombre, o){        // muestra el archivo listo dentro de la misma ventana
-  const url = URL.createObjectURL(blob), file = new File([blob], nombre, {type: blob.type});
-  o.querySelector('.mbody').innerHTML = `<div class="card" style="margin:0"><h2>KMZ listo</h2><b>${esc(nombre)}</b><div class="hint">${Math.ceil(blob.size / 1024)} KB · ábrelo con Google Earth</div></div>`;
+// Excel (.xlsx) armado en el teléfono: una hoja con los 2N documentados
+function xlsxSimple(hoja, cab, filas, anchos){
+  const x = v => String(v == null ? '' : v).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'})[c]).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '');
+  const col = i => String.fromCharCode(65 + i), celda = (v, r, i, st) => `<c r="${col(i)}${r}" t="inlineStr"${st ? ` s="${st}"` : ''}><is><t xml:space="preserve">${x(v)}</t></is></c>`;
+  const ult = col(cab.length - 1) + (filas.length + 1);
+  const hojaXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:${ult}"/>`
+    + `<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`
+    + `<cols>${cab.map((_, i) => `<col min="${i + 1}" max="${i + 1}" width="${anchos[i] || 16}" customWidth="1"/>`).join('')}</cols><sheetData>`
+    + `<row r="1">${cab.map((v, i) => celda(v, 1, i, 1)).join('')}</row>`
+    + filas.map((f, n) => `<row r="${n + 2}">${f.map((v, i) => celda(v, n + 2, i, 0)).join('')}</row>`).join('')
+    + `</sheetData>${filas.length ? `<autoFilter ref="A1:${ult}"/>` : ''}</worksheet>`;
+  const partes = {
+    '[Content_Types].xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`,
+    '_rels/.rels': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`,
+    'xl/workbook.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${x(hoja.slice(0, 31))}" sheetId="1" r:id="rId1"/></sheets>${filas.length ? `<definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="0" hidden="1">'${x(hoja.slice(0, 31))}'!$A$1:$${ult.replace(/(\d+)$/, '$$$1')}</definedName></definedNames>` : ''}</workbook>`,
+    'xl/_rels/workbook.xml.rels': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`,
+    'xl/styles.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF465264"/></patternFill></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="2"><xf fontId="0" fillId="0" borderId="0" xfId="0"/><xf fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`,
+    'xl/worksheets/sheet1.xml': hojaXml};
+  const enc = new TextEncoder();
+  return new Blob([armarZip(Object.entries(partes).map(([nombre, t]) => { const d = enc.encode(t); return {nombre, met: 0, crc: crc32(d), csz: d.length, usz: d.length, datos: d}; }))],
+    {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function filasQr(lista){
+  return lista.filter(x => x.estado === 'DOCUMENTADO' && !nomCierre(x) && x.qr)
+    .sort((a, b) => [a.brazo, a.qr].join('|').localeCompare([b.brazo, b.qr].join('|'), 'es', {numeric: true}))
+    .map(x => { const la = +x.lat, lo = +x.lng, ok = isFinite(la) && isFinite(lo) && (la || lo);
+      return [x.qr, x.brazo || '', x.nombreKmz || '', x.capacidad || '', ok ? `${la.toFixed(6)}, ${lo.toFixed(6)}` : '', ok ? olcCodificar(la, lo) : '']; });
+}
+function excelQr(lista){
+  const filas = filasQr(lista);
+  if(!filas.length) return toast('Aún no hay 2N documentados con QR.');
+  const {o} = ventana('Excel de QR', '<div class="mbody"><div class="vacio">Armando el Excel…</div></div>', '');
+  const nombre = `QR 2N ${hoyISO()}.xlsx`;
+  entregarArchivo(xlsxSimple('QR 2N', ['QR', 'BRAZO', 'ID DEL 2N', 'CAPACIDAD', 'COORDENADAS', 'PLUS CODE'], filas, [14, 18, 16, 12, 26, 16]), nombre, o,
+    {t: 'Excel listo', h: `${filas.length} 2N con QR · ábrelo con Excel o Google Sheets`});
+}
+function entregarArchivo(blob, nombre, o, txt){   // muestra el archivo listo dentro de la misma ventana
+  const url = URL.createObjectURL(blob), file = new File([blob], nombre, {type: blob.type}), t = txt || {t: 'KMZ listo', h: 'ábrelo con Google Earth'};
+  o.querySelector('.mbody').innerHTML = `<div class="card" style="margin:0"><h2>${esc(t.t)}</h2><b>${esc(nombre)}</b><div class="hint">${Math.ceil(blob.size / 1024)} KB · ${esc(t.h)}</div></div>`;
   let pie = o.querySelector('.mpie'); if(!pie){ pie = document.createElement('div'); pie.className = 'mpie'; o.appendChild(pie); }
   pie.innerHTML = `<a class="btn ghost" href="${url}" download="${esc(nombre)}" style="text-align:center;text-decoration:none">Descargar</a>${navigator.canShare && navigator.canShare({files:[file]}) ? '<button class="btn verde" id="aComp">Compartir</button>' : ''}`;
   const c = o.querySelector('#aComp'); if(c) c.onclick = () => navigator.share({files:[file], title:nombre}).catch(() => {});
