@@ -1,6 +1,6 @@
 // NODO · service worker: guarda la app en el teléfono para que abra al instante y sin señal.
 // Al publicar una versión nueva, cambia el número de CACHE (igual que APP_VERSION en index.html).
-const CACHE = 'folios-fo-v0.25.0';
+const CACHE = 'folios-fo-v0.31.1';
 const MAPAS = 'folios-fo-mapas';
 const COMPARTIDO = 'nodo-compartido';     // archivo que llega desde "Compartir" (ej. un KMZ de WhatsApp)          // pedazos de mapa ya vistos, para verlos sin señal
 const MAX_MAPAS = 3000;                    // ~30-50 MB como máximo

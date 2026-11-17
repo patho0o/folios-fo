@@ -73,7 +73,7 @@ textarea{min-height:80px;resize:vertical}
 .tira{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 10px;scrollbar-width:none}.tira::-webkit-scrollbar{display:none}.tira .chip{flex:none}
 .hint{font-size:13px;color:var(--gris);margin-top:4px}
 .hint.ok{color:var(--ok)}.hint.warn{color:var(--warn)}.hint.err{color:var(--err)}
-.fh{display:flex;gap:8px}.fh input{min-width:0}.fh input[type=date]{flex:1.3}.fh input[type=time]{flex:1}
+.fh{display:flex;gap:8px}.fh input{min-width:0;width:auto}.fh input[type=date]{flex:1.3 1 0}.fh input[type=time],.fh input[data-hora]{flex:1 1 0}
 .item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--linea)}
 .item:last-child{border-bottom:0}
 .item .nom{font-size:14px;flex:1;min-width:0}
@@ -94,7 +94,7 @@ textarea{min-height:80px;resize:vertical}
 pre.wa{white-space:pre-wrap;font-family:inherit;font-size:14px;background:var(--wabg);border-radius:8px;padding:12px;margin:0;max-height:50vh;overflow:auto}
 .big{font-size:26px;font-weight:700}
 .kpis{display:flex;gap:8px}.kpis .card{flex:1;text-align:center;margin:0;padding:12px}
-.toast{position:fixed;left:50%;top:calc(64px + env(safe-area-inset-top));transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;z-index:40;max-width:90%}
+.toast{pointer-events:none;position:fixed;left:50%;top:calc(64px + env(safe-area-inset-top));transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;z-index:40;max-width:90%}
 .hidden{display:none!important}
 /* inicio */
 .hola{margin:4px 2px 14px}.hola b{display:block;font-size:22px;font-weight:700}.hola span{font-size:13px;color:var(--gris)}
@@ -168,6 +168,39 @@ video.qr{width:100%;border-radius:12px;background:#000;max-height:60vh;object-fi
 .grupoDoc>summary b{flex:1}.grupoDoc>summary span{color:var(--gris);font-size:13px;background:var(--fondo);border-radius:999px;padding:2px 10px}
 .grupoDoc.sub{margin-left:14px}.grupoDoc.sub>summary{padding:10px 2px;font-size:14px}.grupoDoc.sub>summary b{font-weight:500}
 .item.sinStock .step input{border-color:var(--warn);background:var(--warnbg);color:var(--warntx)}
+.cpo{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--linea)}.cpo .nom{flex:1}.cpo .nom small{display:block;color:var(--gris);font-size:12px}
+.cpo .step{display:flex;align-items:center;gap:8px}.cpo .step button{width:46px;height:46px;border-radius:12px;border:1px solid var(--borde);background:var(--campo);color:var(--txt);font-size:22px}
+.cpo .step button.mas{background:var(--azul);border-color:var(--azul);color:#fff}.cpoN{min-width:36px;text-align:center;font-size:20px}
+.tablero{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.tile{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-height:104px;padding:14px;border-radius:16px;background:var(--sup);box-shadow:var(--sombra);color:var(--txt);text-decoration:none;cursor:pointer}
+.tile:active{transform:scale(.98)}.tile b{font-size:15px;font-weight:650;line-height:1.2}.tile small{font-size:12px;color:var(--gris);line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tile .ico{margin-bottom:2px}.tile .num{position:absolute;top:10px;right:10px;background:var(--err);color:#fff;border-radius:999px;font-size:12px;font-weight:700;padding:2px 8px}
+.tablero .tile:last-child:nth-child(odd){grid-column:1 / -1;min-height:0;flex-direction:row;align-items:center;gap:12px;flex-wrap:wrap}
+#nav{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;background:var(--sup);border-top:1px solid var(--borde);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+#nav.hidden,#bar:not(.hidden) ~ #nav{display:none}
+#nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:0;color:var(--gris);font-size:11px;padding:6px 0;border-radius:10px}
+#nav button.on{color:var(--azul);font-weight:650}#nav button.hidden{display:none}
+.fab{position:fixed;right:16px;bottom:calc(74px + env(safe-area-inset-bottom));z-index:6;border:0;border-radius:999px;background:var(--azul);color:#fff;font-size:15px;font-weight:650;padding:14px 20px;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+:root[data-tema="oscuro"] .fab{background:#2a6db0}
+.kpis3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.kpi{display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 6px;border-radius:14px;background:var(--sup);box-shadow:var(--sombra);cursor:pointer;border:1.5px solid transparent}
+.kpi.on{border-color:var(--azul)}.kpi{color:var(--txt);text-decoration:none}.kpi b{font-size:22px}.kpi span{font-size:12px;color:var(--gris)}
+.item.fr{border-left:4px solid var(--borde);padding-left:10px}.item.fr.f-ok{border-left-color:var(--ok)}.item.fr.f-pend{border-left-color:var(--warn)}.item.fr.f-err{border-left-color:var(--err)}
+.card.lista{border-left:4px solid var(--borde)}.card.lista.e-enviado{border-left-color:var(--ok)}.card.lista.e-pendiente{border-left-color:var(--warn)}.card.lista.e-error{border-left-color:var(--err)}
+.matgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.matq{display:flex;flex-direction:column;gap:1px;padding:12px;border-radius:12px;background:var(--campo);border:1.5px solid var(--linea)}
+.matq b{font-size:22px}.matq span{font-size:13px}.matq small{font-size:11.5px;color:var(--gris);min-height:14px}
+.matq.bajo{border-color:var(--err)}.matq.bajo b,.matq.bajo small{color:var(--err)}
+.segm{display:flex;gap:4px;background:var(--sup);border-radius:999px;padding:4px;margin-bottom:12px;box-shadow:var(--sombra);position:sticky;top:58px;z-index:4}
+.segm button{flex:1;border:0;background:none;color:var(--gris);font-size:13px;padding:9px 4px;border-radius:999px;white-space:nowrap}
+.segm button.on{background:var(--azul);color:#fff;font-weight:650}:root[data-tema="oscuro"] .segm button.on{background:#2a6db0}
+.pasos{display:flex;gap:2px;margin:0 0 12px;position:sticky;top:58px;z-index:4;background:var(--fondo);padding:6px 0}
+.pasos button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:0;color:var(--gris);font-size:11.5px;padding:2px 0;position:relative}
+.pasos button i{font-style:normal;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--sup);border:1.5px solid var(--borde);font-size:13px;font-weight:700;z-index:1}
+.pasos button::before{content:"";position:absolute;top:15px;left:-50%;width:100%;height:2px;background:var(--borde)}.pasos button:first-child::before{display:none}
+.pasos button.on{color:var(--txt);font-weight:650}.pasos button.on i{background:var(--azul);border-color:var(--azul);color:#fff}
+.pasos button.ok i{background:var(--ok);border-color:var(--ok);color:#fff}.pasos button.ok::before,.pasos button.on::before{background:var(--ok)}
+:root[data-tema="oscuro"] .pasos button.on i{background:#2a6db0;border-color:#2a6db0}
 /* indicadores de carga */
 #carga{position:absolute;left:0;right:0;bottom:-1px;height:3px;overflow:hidden;opacity:0;transition:opacity .2s;pointer-events:none}
 #carga.si{opacity:1}
@@ -190,10 +223,12 @@ button.ocupado::before{content:"";display:inline-block;width:14px;height:14px;ma
 <div id="bOff" class="banner off hidden">Sin conexión. Puedes seguir capturando; se envía al volver la señal.</div>
 <main id="app"></main>
 <div id="bar" class="bar hidden"></div>
+<div id="fab"></div>
+<nav id="nav" class="hidden" aria-label="Navegación"><button type="button" data-nav="#"></button><button type="button" data-nav="#folios"></button><button type="button" data-nav="mapa"></button><button type="button" data-nav="#ajustes"></button></nav>
 <script>
 /* ===== Configuración ===== */
 const API_URL = 'https://script.google.com/macros/s/AKfycbzI9uNq8muKRdLWnrY6StHGs8bfSvacPbXsOTxjHJPNpU4ZHK_CaRrfD4PDAmNcbt-kHQ/exec';            // URL de la implementación de Apps Script (termina en /exec). Vacío = modo demo.
-const APP_VERSION = '0.25.0';
+const APP_VERSION = '0.31.1';
 const HORAS_EDICION = 48;      // horas que un técnico puede corregir su folio
 const CENTRO_MAPA = [20.66, -105.24];   // donde abre el mapa si aún no hay coordenadas
 const DIAS_HISTORIAL = 30;     // los folios ya enviados se borran del teléfono después de estos días (siguen en Sheets)
@@ -217,7 +252,7 @@ const CONCEPTOS = [
 const MATERIALES = [
  ['FO 96','FO 96H','m','Fibra y acero'],['FO 24H','FO 24H','m','Fibra y acero'],['ACERO','Acero','m','Fibra y acero'],
  ['CIERRE 2N','Cierre 2N','pza','Cierres'],['CIERRE TIPO MEXFO','Cierre tipo MEXFO','pza','Cierres'],['CIERRE TIPO MINI MEXFO','Cierre tipo mini MEXFO','pza','Cierres'],
- ['SP 1N 1:8','SP 1N 1:8','pza','Splitters'],['SP  2N 1:8','SP 2N 1:8','pza','Splitters'],['SP  2N 1:16','SP 2N 1:16','pza','Splitters'],
+ ['SP 1N 1:8','SP 1N 1:8','pza','Splitters'],['SP 1N 1:16','SP 1N 1:16','pza','Splitters','solo inventario y proyectos'],['SP  2N 1:8','SP 2N 1:8','pza','Splitters'],['SP  2N 1:16','SP 2N 1:16','pza','Splitters'],
  ['RAQUETAS ','Raquetas','pza','Accesorios'],['ETIQUETAS ','Etiquetas','pza','Accesorios'],['ACOPLADORES','Acopladores','pza','Accesorios'],['CINCHOS','Cinchos','pza','Accesorios'],
  ['PREFORMADO 300mm','Preformado 300 mm','pza','Preformados'],['PREFORMADO 600mm','Preformado 600 mm','pza','Preformados'],['PREFORMADO 900mm','Preformado 900 mm','pza','Preformados'],
  ['FLEJE (METROS)','Fleje','m','Sujeción'],['HEBILLAS','Hebillas','pza','Sujeción'],['HERRAJES TIPO "D"','Herrajes tipo D','pza','Sujeción'],
@@ -225,9 +260,11 @@ const MATERIALES = [
 // Máximo por folio, masiva u OT (lo que se gasta en un trabajo). Todo va en números enteros: metros completos y piezas.
 // Conteos, entradas y lo liberado a proyectos no tienen máximo (son totales).
 const MAX_MAT = {'FO 96': 1500, 'FO 24H': 1500, 'ACERO': 1500, 'CIERRE 2N': 6, 'CIERRE TIPO MEXFO': 4, 'CIERRE TIPO MINI MEXFO': 4,
-  'SP 1N 1:8': 4, 'SP 2N 1:8': 6, 'SP 2N 1:16': 6, 'RAQUETAS': 30, 'ETIQUETAS': 30, 'ACOPLADORES': 30, 'CINCHOS': 300,
+  'SP 1N 1:8': 4, 'SP 1N 1:16': 4, 'SP 2N 1:8': 6, 'SP 2N 1:16': 6, 'RAQUETAS': 30, 'ETIQUETAS': 30, 'ACOPLADORES': 30, 'CINCHOS': 300,
   'PREFORMADO 300MM': 40, 'PREFORMADO 600MM': 40, 'PREFORMADO 900MM': 40, 'FLEJE (METROS)': 300, 'HEBILLAS': 100,
   'HERRAJES TIPO "D"': 60, 'HERRAJES TIPO "J"': 60, 'HERRAJES TIPO "TANJENTE"': 60};
+// Materiales que van en folios y masivas (los marcados con 5º dato no tienen columna en Hoja 1)
+const MAT_FOLIO = MATERIALES.filter(m => !m[4]);
 const QR_VARIOS = 'NA MAS DE UN CIERRE AFECTADO';   // va en lugar del QR cuando hay más de un cierre afectado
 const DISTRITO = 'PUERTO VALLARTA';                 // distrito de la empresa (va en el mensaje de llegada)
 const CALIBRES = ['1H', '24H', '96H'];               // capacidad de fibra
@@ -241,7 +278,7 @@ const esMasiva = f => canonCausa(f) === 'AFECTACION MASIVA';
 const canonCausa = s => { const x = sinAcento(String(s||'').toUpperCase()).replace(/\s+/g,' ').trim(); return ALIAS_CAUSA[x] || x; };
 const CATALOGO = {
   trab: CONCEPTOS.map(([h,n,c]) => ({h, n, sub:c, uni:''})),
-  mat:  MATERIALES.map(([h,n,u,g]) => ({h, n, sub:u==='m'?'metros':'piezas', uni:u, g}))
+  mat:  MAT_FOLIO.map(([h,n,u,g]) => ({h, n, sub:u==='m'?'metros':'piezas', uni:u, g}))
 };
 
 /* ===== Utilidades ===== */
@@ -274,7 +311,7 @@ const esAdmin = () => !!USER && (USER.rol === 'ADMIN' || USER.rol === 'DEMO');  
 // Lo que el usuario de demostración "guarda" se queda en su espacio del teléfono; el servidor nunca lo recibe
 const SIMULADO = {
   guardarFolio: d => ({id: d.folio.id, ubicacion: '', aviso: ''}), guardarMasiva: () => ({}), guardarProyecto: () => ({}), guardarMinimos: () => ({}),
-  guardarMov: () => ({}), borrarFolio: () => ({}), borrarDoc: () => ({doc: null}), guardarPrev: d => ({ot: {id: d.ot.id, fotos: {}}}), guardarReporte: d => ({reporte: d.reporte}),
+  guardarMov: () => ({}), borrarFolio: () => ({}), borrarDoc: () => ({doc: null}), guardarPrev: d => ({ot: {id: d.ot.id, fotos: {}}}), guardarIdr: d => ({idr: {id: d.idr.id, foto: null}}), guardarReporte: d => ({reporte: d.reporte}),
   guardarIncidencia: d => ({incidencia: {id: d.incidencia.id, foto: null, fotoCorr: null}}),
   guardarDoc: d => { const t = new Date().toISOString(); return {doc: {...d.doc, qr: docNorm_(d.doc.qr), estado: 'DOCUMENTADO', quien: USER.nombre, empresa: 'DEMOSTRACIÓN',
     registradoPor: USER.id, fecha: d.doc.fecha || t, actualizado: t, capa: '', pm: ''}}; },
@@ -291,7 +328,7 @@ function toast(msg){ const t = document.createElement('div'); t.className='toast
 async function sha256(s){ const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 /* --- Navegación: el botón "atrás" del teléfono regresa a la pantalla anterior --- */
 const MODALES = [];
-const enFormulario = () => /^#(doc2n|inc\/nueva|prev\/(nueva|editar)|nuevo|editar)/.test(location.hash);   // no se redibujan al llegar datos                       // ventanas abiertas; "atrás" cierra la de arriba
+const enFormulario = () => /^#(idr\/nuevo|doc2n|pdoc|inc\/nueva|prev\/(nueva|editar)|nuevo|editar)/.test(location.hash);   // no se redibujan al llegar datos                       // ventanas abiertas; "atrás" cierra la de arriba
 const nivel = () => (history.state && history.state.n) || 0;
 function ir(h){ history.pushState({n: nivel() + 1}, '', h || '#'); router(); }
 function reemplazar(h){ history.replaceState({...(history.state||{}), n: nivel()}, '', h || '#'); router(); }
@@ -452,6 +489,8 @@ async function sincronizar(manual, conErrores = true){
   if(invPorSubir()) sincInv();
   if(repPorSubir()) sincRep();
   if(prevPorSubir()) subirPrev();
+  if(idrPorSubir()) subirIdr();
+  if(REC.marcas.length) sincRec();
   const pend = FOLIOS.filter(f => f.estado === 'pendiente' || (conErrores && f.estado === 'error'));
   if(!navigator.onLine || sincronizando || !pend.length){ if(manual && !pend.length && !docsPorEnviar()) toast('Todo está enviado'); return; }
   sincronizando = true; $('#btnSync').classList.add('girando');
@@ -478,7 +517,7 @@ async function sincronizar(manual, conErrores = true){
 }
 function pintarPendientes(){
   let n = USER ? FOLIOS.filter(f => f.estado !== 'enviado' && esMio(f)).length : 0;
-  try{ n += USER ? docsPorEnviar() : 0; if(USER && esAdmin()) n += proyPorSubir(); if(USER) n += invPorSubir() + repPorSubir() + prevPorSubir(); }catch(e){}
+  try{ n += USER ? docsPorEnviar() : 0; if(USER && esAdmin()) n += proyPorSubir(); if(USER) n += invPorSubir() + repPorSubir() + prevPorSubir() + idrPorSubir() + REC.marcas.length; }catch(e){}
   $('#pend').textContent = n;
   $('#btnSync').style.background = n ? 'rgba(255,190,60,.45)' : '';
   $('#bOff').classList.toggle('hidden', navigator.onLine);
@@ -489,21 +528,30 @@ setInterval(()=>sincronizar(false, false), 60000);
 
 // Botón ‹ del encabezado: regresa a la pantalla anterior (o a la que le corresponde si se abrió directo)
 function padreDe(h){
-  return h.startsWith('#prev/') ? '#prev' : h.startsWith('#inv/') ? '#inventario' : h.startsWith('#inc/') || h.startsWith('#proyecto/') ? '#proyectos' : h.startsWith('#doc2n') ? '#docs'
+  return h.startsWith('#idr/') ? '#idr' : h.startsWith('#pdoc/') ? '#proyecto/' + h.slice(6) : h.startsWith('#prev/') ? '#prev' : h.startsWith('#inv/') ? '#inventario' : h.startsWith('#inc/') || h.startsWith('#proyecto/') ? '#proyectos' : h.startsWith('#doc2n') ? '#docs'
     : h.startsWith('#masiva/') ? '#masivas' : h.startsWith('#ver/') || h.startsWith('#editar/') ? '#folios' : USER && USER.rol === 'EXTERNO' ? '#docs' : '#';
 }
 $('#btnAtras').onclick = () => volver(padreDe(location.hash));
 
 /* ===== Pantallas ===== */
+// Barra de abajo: Inicio, Folios, Mapa y Ajustes. Se esconde sola cuando la pantalla tiene sus propios botones (formularios).
+function pintarNav(logged){
+  const n = $('#nav'); n.classList.toggle('hidden', !logged); if(!logged) return;
+  const h = location.hash, ext = USER.rol === 'EXTERNO', act = h.startsWith('#ajustes') ? '#ajustes' : /^#(folios|ver|editar)/.test(h) ? '#folios' : (h === '' || h === '#') ? '#' : '';
+  [['#', 'casa', 'Inicio'], ['#folios', 'doc', 'Folios'], ['mapa', 'mapa', 'Mapa'], ['#ajustes', 'ajustes', 'Ajustes']].forEach(([k, ic, t], i) => { const b = n.children[i];
+    b.innerHTML = icono(ic, 'currentColor', 22) + `<span>${t}</span>`; b.classList.toggle('on', k === act); b.classList.toggle('hidden', ext && k === '#folios');
+    b.onclick = () => { if(k === 'mapa') return puedeDoc() ? mapaDocs() : toast('Tu usuario no tiene mapa.'); if(k === act) return; if(k === '#') return (h === '' || h === '#') ? null : reemplazar(ext ? '#docs' : '#'); ir(k); }; });
+}
 let ultimaRuta = null;
 function router(){
   if(location.hash !== ultimaRuta){ ultimaRuta = location.hash; const a = $('#app'); a.classList.remove('entra'); void a.offsetWidth; a.classList.add('entra'); }
   $('#bDemo').classList.toggle('hidden', !demo() && !esDemoUser());
   $('#bDemo').textContent = esDemoUser() ? 'Usuario de demostración: puedes ver y probar todo, pero nada se guarda en el Sheets.' : 'Modo demostración: los folios se guardan solo en este teléfono.';
-  $('#bar').classList.add('hidden'); $('#bar').innerHTML='';
+  $('#bar').classList.add('hidden'); $('#bar').innerHTML=''; $('#fab').innerHTML = '';
   const logged = !!USER;
   $('#btnSync').classList.toggle('hidden', !logged); $('#btnAjustes').classList.toggle('hidden', !logged || location.hash === '#ajustes'); try{ pintarAvisoRep(); }catch(e){}
   $('#btnAtras').classList.add('hidden');
+  pintarNav(logged);
   if(!logged) return pantallaLogin();
   if(sessionStorage.getItem('fo.irCompartido')){ sessionStorage.removeItem('fo.irCompartido'); return reemplazar('#compartido'); }
   const h = location.hash;
@@ -521,6 +569,9 @@ function router(){
   if(h.startsWith('#inv/conteo/')) return pantallaConteo(decodeURIComponent(h.slice(12)));
   if(h.startsWith('#inv/mov/')) return pantallaMov(h.slice(9));
   if(h === '#compartido') return pantallaCompartido();
+  if(h === '#idr') return pantallaIdr();
+  if(h === '#idr/nuevo') return pantallaIdrNuevo();
+  if(h.startsWith('#idr/ver/')) return verIdr(h.slice(9));
   if(h === '#prev') return pantallaPrev();
   if(h === '#prev/nueva') return pantallaOtPrev(null);
   if(h.startsWith('#prev/ot/')) return verOtPrev(h.slice(9));
@@ -529,6 +580,7 @@ function router(){
   if(h.startsWith('#proyecto/')) return pantallaProyecto(h.slice(10));
   if(h.startsWith('#inc/nueva/')) return pantallaIncNueva(h.slice(11));
   if(h.startsWith('#inc/')) return pantallaInc(h.slice(5));
+  if(h.startsWith('#pdoc/')) return pantallaDoc2n(null, h.slice(6));         // documentar desde el recorrido de un proyecto
   if(h.startsWith('#doc2n')) return pantallaDoc2n(decodeURIComponent(h.slice(7)) || null);
   if(h.startsWith('#nuevo')) return pantallaFolio(null);
   if(h.startsWith('#editar/')) return pantallaFolio(h.slice(8));
@@ -606,45 +658,58 @@ function pantallaLogin(){
   };
 }
 
+/* Íconos propios (línea, 24×24): se ven igual en cualquier teléfono */
+const ICONOS = {
+  alerta: 'M12 4l9 16H3z M12 10v4 M12 17v.5', obra: 'M8 4h8v3H8z M8 5.500H5v15h14v-15h-3 M9 14l2 2 4-4', pin: 'M12 21c-5-5-7-8-7-11a7 7 0 0 1 14 0c0 3-2 6-7 11z M12 12.500a2.500 2.500 0 1 0 0-5 2.500 2.500 0 0 0 0 5z',
+  caja: 'M4 8l8-4 8 4v8l-8 4-8-4z M4 8l8 4 8-4 M12 12v8', doc: 'M7 3h7l4 4v14H7z M14 3v4h4 M10 12h5 M10 16h5', barras: 'M5 20V10 M12 20V4 M19 20v-7', mas: 'M12 5v14 M5 12h14',
+  llave: 'M15 4a4.500 4.500 0 0 0-4 6l-7 7 3 3 7-7a4.500 4.500 0 0 0 6-4l-3 2-2-2z', mega: 'M4 10v4h3l7 4V6l-7 4z M17.500 9a4 4 0 0 1 0 6', gente: 'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M3 20c0-3 3-5 6-5s6 2 6 5 M16 5.500a3 3 0 0 1 0 5.500 M17.500 15c2 .500 3.500 2 3.500 5',
+  chat: 'M4 5h16v11H9l-5 4z', casa: 'M4 11l8-7 8 7v9H4z M10 20v-6h4v6', mapa: 'M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z M9 4v14 M15 6v14',
+  ajustes: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M12 3v3 M12 18v3 M3 12h3 M18 12h3 M5.600 5.600l2.100 2.100 M16.300 16.300l2.100 2.100 M5.600 18.400l2.100-2.100 M16.300 7.700l2.100-2.100'};
+const icono = (k, color = 'currentColor', t = 26) => `<svg class="ico" width="${t}" height="${t}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONOS[k] || ICONOS.doc}"/></svg>`;
+const ICO_TABLERO = {'🚨': ['alerta', '#ff3b30'], '🏗️': ['obra', '#e0a400'], '📍': ['pin', '#1fa855'], '📦': ['caja', '#3d6bff'], '📄': ['doc', 'var(--txt)'], '📊': ['barras', '#8b5cf6'],
+  '＋': ['mas', 'var(--azul)'], '🛠️': ['llave', '#1fa855'], '📣': ['mega', '#ff3b30'], '👥': ['gente', 'var(--gris)'], '💬': ['chat', 'var(--gris)']};
 function pantallaInicio(){
   $('#titulo').textContent = 'NODO';
   const hoy = hoyISO(), mios = FOLIOS.filter(esMio), pend = mios.filter(f=>f.estado!=='enviado').length;
   const deHoy = mios.filter(f=>local(f.creado).slice(0,10)===hoy).length, borr = LS.get(CLAVE_BORRADOR(), null);
   const rol = USER.rol, nd = docsPorEnviar(), abiertas = MASIVAS.filter(m => m.estado !== 'CERRADA');
-  const mi = (h, ic, t, sub, extra = '') => `<a class="mi" onclick="ir('${h}')"><span class="ic">${ic}</span><span class="tx"><b>${t}</b>${sub ? `<small>${sub}</small>` : ''}</span>${extra}<span class="ch">›</span></a>`;
+  // Tablero: cada opción es un cuadro con su ícono de línea (el emoji solo elige cuál ícono y color)
+  const mi = (h, ic, t, sub, extra = '') => { const [k, c] = ICO_TABLERO[ic] || ['doc', 'var(--txt)'];
+    return `<a class="tile" onclick="ir('${h}')">${icono(k, c)}<b>${t}</b>${sub ? `<small>${sub}</small>` : ''}${extra}</a>`; };
   const num = n => n ? `<span class="num">${n}</span>` : '';
   const kpis = `<div class="kpis" style="margin-bottom:12px"><div class="card" style="cursor:pointer" onclick="ir('#folios/hoy')"><div class="big">${deHoy}</div><div class="hint">Folios hoy ›</div></div>
      <div class="card" style="cursor:pointer" onclick="ir('#folios/pendientes')"><div class="big" style="color:${pend?'var(--warn)':'var(--ok)'}">${pend}</div><div class="hint">Por enviar ›</div></div></div>`;
   const borrador = borr ? `<div class="card"><h2>Tienes un folio sin terminar</h2><div class="hint">Folio ${esc(borr.d['FOLIO/OS']||'sin número')}, guardado en el teléfono.</div>
      <div class="row"><button class="btn ghost" id="bDesc">Descartar</button><button class="btn" onclick="ir('#nuevo')">Continuar</button></div></div>` : '';
   const folios = mi('#folios', '📄', veTodo() ? 'Folios de todos' : USER.cuadrilla ? 'Folios de mi cuadrilla' : 'Mis folios', 'Últimos 30 días');
-  const docs = mi('#docs', '📍', 'Documentación de 2N', 'QR, puertos y brazo de cada 2N', num(nd));
+  const docs = mi('#docs', '📍', 'Documentación', '2N, 1N y cierres de derivación', num(nd));
   const reporte = mi('#reporte', '📊', 'Reporte semanal de material', 'Formato GTB, de lunes a domingo');
   const nAl = veTodo() ? alertasInv().length : 0, nConf = USER.cuadrilla ? porConfirmar(USER.cuadrilla).length : 0;
   const inventario = veTodo() ? mi('#inventario', '📦', 'Inventario', nAl ? `<span style="color:var(--err)">${nAl} material(es) bajo mínimo</span>` : 'Stock de almacén y cuadrillas', num(nAl))
     : mi('#inventario', '📦', 'Material de mi cuadrilla', nConf ? `<span style="color:var(--warn)">Tienes ${nConf} entrega(s) por confirmar</span>` : 'Lo que tienes y lo que has recibido', num(nConf));
   let cuerpo;
   if(rol === 'ADMIN' || rol === 'DEMO'){
-    cuerpo = `<div class="menu">${mi('#masivas', '🚨', 'Seguimiento de masivas', abiertas.length ? abiertas.slice(0,3).map(m => esc(m.folio + ' · ' + (m.cluster||''))).join('<br>') : 'Sin masivas abiertas', num(abiertas.length))}
+    cuerpo = `<div class="tablero">${mi('#masivas', '🚨', 'Seguimiento de masivas', abiertas.length ? abiertas.slice(0,3).map(m => esc(m.folio + ' · ' + (m.cluster||''))).join('<br>') : 'Sin masivas abiertas', num(abiertas.length))}
         ${mi('#proyectos', '🏗️', 'Proyectos y validación', (n => n ? n + ' incidencia(s) abierta(s)' : 'Recorridos, incidencias y material')(PROY.incidencias.filter(i => i.estado === 'ABIERTA').length),
             num(PROY.proyectos.filter(x => x.estado !== 'VALIDADO').length))}
         ${docs}</div>
-      <div class="seccion">Operación</div><div class="menu">${inventario}${folios}${reporte}${mi('#nuevo', '＋', 'Nuevo folio', 'Capturar un folio')}</div>
-      ${prevVisible() ? `<div class="seccion">Preventivo${PREV_PUBLICO ? '' : ' · en construcción'}</div><div class="menu">${mi('#prev', '🛠️', 'OTs de preventivo', (n => n + ' OT(s) este mes')(PREV.ots.filter(o => String(o.termino || '').startsWith(hoyISO().slice(0, 7))).length))}</div>` : ''}
-      <div class="seccion">Administración</div><div class="menu">${mi('#usuarios', '👥', 'Usuarios', 'Altas, PIN y cuadrillas')}
+      <div class="seccion">Operación</div><div class="tablero">${inventario}${folios}${reporte}${mi('#nuevo', '＋', 'Nuevo folio', 'Capturar un folio')}</div>
+      ${prevVisible() ? `<div class="seccion">Preventivo${PREV_PUBLICO ? '' : ' · en construcción'}</div><div class="tablero">${mi('#prev', '🛠️', 'OTs de preventivo', (n => n + ' OT(s) este mes')(PREV.ots.filter(o => String(o.termino || '').startsWith(hoyISO().slice(0, 7))).length))}
+        ${mi('#idr', '📣', 'IDR · Inspector de red', (v => v ? `<span style="color:var(--err)">${v} fuera de plazo</span>` : idrAbiertos().length + ' por atender')(idrAbiertos().filter(idrVencido).length), num(idrAbiertos().length))}</div>` : ''}
+      <div class="seccion">Administración</div><div class="tablero">${mi('#usuarios', '👥', 'Usuarios', 'Altas, PIN y cuadrillas')}
         ${mi('#reportes', '💬', 'Reportes', (n => n ? `<span style="color:var(--err)">${n} nuevo(s) por revisar</span>` : 'Problemas que avisan desde la app')(repNuevos()), num(repNuevos()))}</div>`;
   } else if(rol === 'SUPERVISOR'){
-    cuerpo = `<div class="menu">${inventario}${reporte}</div>
-      ${kpis}<div class="menu">${folios}${docs}${mi('#nuevo', '＋', 'Nuevo folio', 'Capturar un folio')}</div>`;
+    cuerpo = `<div class="tablero">${inventario}${reporte}</div>
+      ${kpis}<div class="tablero">${folios}${docs}${mi('#nuevo', '＋', 'Nuevo folio', 'Capturar un folio')}</div>`;
   } else if(esPrev() && prevVisible()){
     const mes = PREV.ots.filter(o => o.cuadrilla === USER.cuadrilla && String(o.termino || '').startsWith(hoyISO().slice(0, 7))), pp = prevPorSubir();
     cuerpo = `<button class="accion" onclick="ir('#prev/nueva')"><span class="ic">＋</span><span>Nueva OT preventiva<small>Fotos, material y script</small></span></button>
       <div class="kpis" style="margin-bottom:12px"><div class="card" style="cursor:pointer" onclick="ir('#prev')"><div class="big">${mes.length}</div><div class="hint">OTs del mes ›</div></div>
         <div class="card" style="cursor:pointer" onclick="ir('#prev')"><div class="big" style="color:${pp ? 'var(--warn)' : 'var(--ok)'}">${pp}</div><div class="hint">Por enviar ›</div></div></div>
-      <div class="menu">${mi('#prev', '🛠️', 'Mis OTs', 'Las de mi cuadrilla')}${USER.cuadrilla ? inventario : ''}</div>`;
+      <div class="tablero">${mi('#idr', '📣', 'IDR por atender', idrAbiertos().length + ' anomalía(s)', num(idrAbiertos().length))}${mi('#prev', '🛠️', 'Recorrido y OTs', (rs => rs.length ? rs.reduce((s, x) => s + x.brazos.filter(b => b.estado === 'CONCLUIDO').length, 0) + ' de ' + rs.reduce((s, x) => s + x.brazos.length, 0) + ' brazos concluidos' : 'Las de mi cuadrilla')(recsDelMes(hoyISO().slice(0, 7))))}${USER.cuadrilla ? inventario : ''}</div>`;
   } else {
     cuerpo = `${borrador}<button class="accion" onclick="ir('#nuevo')"><span class="ic">＋</span><span>Nuevo folio<small>Captura y manda el script</small></span></button>
-      ${kpis}<div class="menu">${folios}${USER.cuadrilla ? inventario : ''}${docs}</div>`;
+      ${kpis}<div class="tablero">${folios}${USER.cuadrilla ? inventario : ''}${docs}</div>`;
   }
   $('#app').innerHTML = `<div class="hola"><b>Hola, ${esc(USER.nombre.split(' ')[0].charAt(0) + USER.nombre.split(' ')[0].slice(1).toLowerCase())}</b>
      <span>${esPrev() ? 'Preventivo · ' : ''}${esc({ADMIN:'Administrador', SUPERVISOR:'Supervisor', TECNICO:'Técnico', AUXILIAR:'Auxiliar', DEMO:'Demostración: puedes ver y probar todo; nada se guarda'}[rol] || rol)}${USER.cuadrilla ? ' · ' + esc(USER.cuadrilla) : ''}</span></div>
@@ -667,18 +732,19 @@ function pantallaLista(){
   const todos = FOLIOS.filter(f => veTodo() || esMio(f) || miCuadrilla(f)).concat(filtro ? [] : REMOTOS.filter(f => !locales.has(f.id) && (veTodo() || miCuadrilla(f) || f.usuario === USER.id)));
   const fs = todos
     .filter(f => filtro === 'hoy' ? esMio(f) && local(f.creado).slice(0,10) === hoy : filtro === 'pendientes' ? esMio(f) && f.estado !== 'enviado' : true).sort((a,b)=>(b.creado||'').localeCompare(a.creado||''));
-  $('#app').innerHTML = fs.length ? fs.map(f=>`<div class="card lista" onclick="ir('#ver/${f.id}')">
+  const mios = todos.filter(esMio), kp = (n, t, h, c = '') => `<a class="kpi ${filtro === h.split('/')[1] || (!filtro && h === '#folios') ? 'on' : ''}" onclick="reemplazar('${h}')"><b style="${c}">${n}</b><span>${t}</span></a>`;
+  const resumen = `<div class="kpis3">${kp(todos.length, 'Todos', '#folios')}${kp(mios.filter(f => local(f.creado).slice(0,10) === hoy).length, 'Hoy', '#folios/hoy')}${(n => kp(n, 'Por enviar', '#folios/pendientes', n ? 'color:var(--warn)' : 'color:var(--ok)'))(mios.filter(f => f.estado !== 'enviado').length)}</div>`;
+  $('#app').innerHTML = resumen + (fs.length ? fs.map(f=>`<div class="card lista e-${f.estado}" onclick="ir('#ver/${f.id}')">
      <div class="f"><b>${esc(f.d['FOLIO/OS'])}</b><span class="estado ${f.estado}">${{pendiente:'Por enviar',enviado:'Enviado',error:'Error'}[f.estado]}</span></div>
      <div class="hint">${esc(f.d['CLUSTER']||'')} · ${esc(fmtFecha(f.d['FECHA Y HORA DE LLEGADA']))}${f.editado?' · corregido':''}${!esMio(f)&&f.usuario?' · '+esc(nombreDe(f.usuario)):''}</div>
      ${f.estado==='error'?`<div class="hint err">${esc(f.error)}</div>`:''}</div>`).join('')
-   : `<div class="card"><div class="hint">${filtro ? 'No hay folios aquí.' : 'Aún no hay folios.'}</div></div>`;
+   : `<div class="card"><div class="hint">${filtro ? 'No hay folios aquí.' : 'Aún no hay folios.'}</div></div>`);
   const t = LS.get('remotosT', 0), hace = t ? Math.round((Date.now() - t) / 60000) : null;
   if(!filtro && !demo()) $('#app').insertAdjacentHTML('afterbegin', `<div class="hint" id="hRem" style="margin:0 4px 10px">${pantallaLista.bajando ? 'Actualizando desde el servidor…'
     : hace === null ? (navigator.onLine ? 'Actualizando desde el servidor…' : 'Sin señal: aún no se han descargado folios del servidor.')
     : `Folios del servidor actualizados ${hace < 1 ? 'hace un momento' : 'hace ' + hace + ' min'}${navigator.onLine ? '' : ' (sin señal)'}.`}</div>`);
   if(filtro === 'pendientes' && fs.length && navigator.onLine) $('#app').insertAdjacentHTML('afterbegin', '<button class="btn sec" style="margin:0 0 12px" onclick="sincronizar(true)">⟳ Reintentar envío ahora</button>');
-  $('#bar').classList.remove('hidden');
-  $('#bar').innerHTML = `<button class="btn ghost" onclick="volver('#')">Inicio</button><button class="btn" onclick="ir('#nuevo')">+ Nuevo</button>`;
+  $('#fab').innerHTML = `<button class="fab" onclick="ir('#nuevo')">+ Nuevo</button>`;
   if(!filtro && !demo() && navigator.onLine && !pantallaLista.bajando && Date.now() - LS.get('remotosT', 0) > 60000) bajarFolios();
 }
 async function bajarFolios(){
@@ -737,7 +803,7 @@ function elegirDeLista(titulo, lista, actual, alElegir){
 const MAT_COMUNES = ['CIERRE 2N', 'CIERRE TIPO MEXFO', 'CIERRE TIPO MINI MEXFO', 'FO 24H', 'FO 96'];   // primero, en este orden
 function textoMat(x){
   if(!x) return '';
-  const v = x.v || {}, l = [...MAT_COMUNES.map(h => MATERIALES.find(y => y[0] === h)).filter(Boolean), ...MATERIALES.filter(([h]) => !MAT_COMUNES.includes(h))].filter(([h]) => parseFloat(v[h]) > 0).map(([h, n, u]) => `${parseFloat(v[h])}${u === 'm' ? ' m' : ''} ${MAY(n)}`);
+  const v = x.v || {}, l = [...MAT_COMUNES.map(h => MATERIALES.find(y => y[0] === h)).filter(Boolean), ...MAT_FOLIO.filter(([h]) => !MAT_COMUNES.includes(h))].filter(([h]) => parseFloat(v[h]) > 0).map(([h, n, u]) => `${parseFloat(v[h])}${u === 'm' ? ' m' : ''} ${MAY(n)}`);
   if(x.otros && x.otros.trim()) l.push(MAY(x.otros.trim()));
   return l.join(', ');
 }
@@ -745,7 +811,7 @@ function editorMat(n, m){
   const x = (n === 3 ? (m.mat3 || m.mat2) : m.mat2) || {v:{}, otros:''}, v = x.v || {};
   const fila = ([h, nom, u]) => `<div class="item ${parseFloat(v[h]) > 0 ? 'con' : ''}"><span class="nom">${esc(nom)}<small>${u === 'm' ? 'metros' : 'piezas'}</small></span>
     <div class="step ${u === 'm' ? 'm' : ''}"><button type="button" data-paso="${u === 'm' ? -10 : -1}">−</button><input inputmode="numeric" data-mat="${esc(h)}" value="${esc(v[h] || '')}" placeholder="0"><button type="button" data-paso="${u === 'm' ? 10 : 1}">+</button></div></div>`;
-  const com = MAT_COMUNES.map(h => MATERIALES.find(x => x[0] === h)).filter(Boolean), resto = MATERIALES.filter(([h]) => !MAT_COMUNES.includes(h));
+  const com = MAT_COMUNES.map(h => MATERIALES.find(x => x[0] === h)).filter(Boolean), resto = MAT_FOLIO.filter(([h]) => !MAT_COMUNES.includes(h));
   const abiertos = resto.some(([h]) => parseFloat(v[h]) > 0);
   return `<div class="matm" data-matn="${n}">${com.map(fila).join('')}
     <details ${abiertos ? 'open' : ''}><summary class="hint" style="padding:8px 0;cursor:pointer">＋ Más materiales</summary>${resto.map(fila).join('')}</details>
@@ -805,8 +871,7 @@ function pantallaMasivas(sinBajar){
       <div class="hint">${esc(m.olt||'')}${m.puerto ? ' ' + esc(m.puerto) : ''} · ${esc(m.cluster||'')} · ${esc(m.clientesTP||0)} clientes · ${esc(fmtFecha(m.asignacion))}</div>
       <div class="hint">${esc((m.tecnicos||[]).join(', ') || 'Sin técnico asignado')}${m.estado==='CERRADA'?' · CERRADA':''}</div></div>`).join('')
     : '<div class="card"><div class="hint">No hay masivas. Toca "+ Nueva" y pega el mensaje de asignación.</div></div>';
-  $('#bar').classList.remove('hidden');
-  $('#bar').innerHTML = `<button class="btn ghost" onclick="volver('#')" style="flex:.6">Inicio</button><button class="btn" id="bNuevaM">+ Nueva masiva</button>`;
+  $('#fab').innerHTML = `<button class="fab" id="bNuevaM">+ Nueva masiva</button>`;
   $('#bNuevaM').onclick = nuevaMasiva;
   if(!sinBajar) bajarMasivas();
 }
@@ -960,7 +1025,7 @@ function pantallaReporte(){
     <div class="hint">Folios cerrados de lunes a domingo, en el formato que se entrega cada lunes.</div>
     <label>Semana</label><select id="rSem">${ops.map((o,i) => `<option value="${i}">${esc(o.txt)}</option>`).join('')}</select>
     <button class="btn" id="rGen">Generar reporte</button><div id="rRes"></div></div>`;
-  $('#bar').classList.remove('hidden'); $('#bar').innerHTML = `<button class="btn ghost" onclick="volver('#')">Inicio</button>`;
+
   $('#rGen').onclick = async () => {
     const o = ops[+$('#rSem').value], res = $('#rRes'), b = $('#rGen');
     if(demo()){ res.innerHTML = '<div class="hint warn" style="margin-top:10px">En modo demo no hay servidor: aquí aparecería el Excel de la semana.</div>'; return; }
@@ -990,8 +1055,7 @@ const telWA = t => { t = String(t||'').replace(/\D/g,''); return t.length === 10
 async function pantallaUsuarios(){
   if(!esAdmin()){ reemplazar('#'); return; }
   $('#titulo').textContent = 'Usuarios';
-  $('#bar').classList.remove('hidden');
-  $('#bar').innerHTML = `<button class="btn ghost" onclick="volver('#')" style="flex:.6">Inicio</button><button class="btn" id="bNuevoU">+ Nuevo usuario</button>`;
+  $('#fab').innerHTML = `<button class="fab" id="bNuevoU">+ Nuevo usuario</button>`;
   $('#bNuevoU').onclick = () => editarUsuario(null);
   if(!demo() && !navigator.onLine){ $('#app').innerHTML = '<div class="card"><div class="hint warn">Para ver y cambiar usuarios necesitas señal.</div></div>'; return; }
   $('#app').innerHTML = '<div class="card"><div class="hint">Cargando usuarios…</div></div>';
@@ -1128,7 +1192,7 @@ function docAplicar_(lista, doc, user, ahora) {
   const nuevo = r.estado !== 'DOCUMENTADO';
   Object.assign(r, { qr: qr, estado: 'DOCUMENTADO', capacidad: String(doc.capacidad || ''), brazo: String(doc.brazo || '').toUpperCase().trim(),
     lat: lat, lng: lng, cluster: String(doc.cluster || ''), origen: String(doc.origen || 'DOCUMENTACIÓN'), notas: String(doc.notas || ''), actualizado: ahora,
-    tipo: tipo, foto: String(doc.foto || r.foto || '') });
+    tipo: tipo, foto: String(doc.foto || r.foto || ''), proyecto: String(doc.proyecto || r.proyecto || '') });
   if (nuevo) { r.registradoPor = user.id; r.quien = user.nombre; r.empresa = user.cuadrilla || user.rol; r.fecha = ahora; }
   return r;
 }
@@ -1249,7 +1313,7 @@ const textoDoc = x => `<b>${esc(x.qr || nomCierre(x) || x.nombreKmz || '2N del K
 
 function pantallaDocs(sinBajar){
   if(!puedeDoc()) return reemplazar('#');
-  $('#titulo').textContent = 'Documentación 2N';
+  $('#titulo').textContent = 'Documentación';
   const admin = esAdmin(), v = vistaDocs();
   const hechos = v.filter(x => x.estado === 'DOCUMENTADO'), pend = v.filter(x => x.estado === 'PENDIENTE');
   $('#app').innerHTML = `
@@ -1270,7 +1334,7 @@ function pantallaDocs(sinBajar){
     const lista = hechos                     // el servidor ya manda solo lo que cada quien puede ver
       .filter(x => !q || MAY([x.qr, x.brazo, x.cluster, x.quien].join(' ')).includes(q))
       .sort((a,b) => String(b.fecha || '').localeCompare(String(a.fecha || '')));
-    const fila = x => `<div class="item" data-id="${esc(x.id)}" style="cursor:pointer"><span class="nom">${textoDoc(x)}</span>
+    const fila = x => `<div class="item fr ${x._local ? (x.error ? 'f-err' : 'f-pend') : 'f-ok'}" data-id="${esc(x.id)}" style="cursor:pointer"><span class="nom">${textoDoc(x)}</span>
       ${x._local ? `<span class="estado ${x.error ? 'error' : 'pendiente'}">${x.error ? (x.rechazado ? 'rechazado' : 'error') : 'por enviar'}</span>` : '<span class="estado enviado">✓</span>'}</div>`;
     if(!lista.length){ $('#dLista').innerHTML = `<div class="vacio">${q ? 'Sin resultados.' : 'Aún no hay cierres documentados.'}</div>`; }
     else if(q) $('#dLista').innerHTML = lista.slice(0, 80).map(fila).join('');
@@ -1354,20 +1418,22 @@ async function mapaDocs(foco){
 }
 
 /* --- Capturar un 2N --- */
-function pantallaDoc2n(id){
+function pantallaDoc2n(id, proyId){
   if(!puedeDoc()) return reemplazar('#');
   const prev = id ? vistaDocs().find(x => x.id === id) : null;
   if(id && !prev) return reemplazar('#docs');
   const admin = esAdmin();
   if(prev && !admin && !prev._local) return reemplazar('#docs');
   $('#titulo').textContent = prev ? 'Corregir cierre' : 'Documentar cierre';
-  const d = prev ? {...prev} : {id: uuid(), tipo:'2N', qr:'', capacidad:'', brazo:'', lat:'', lng:'', notas:'', liga:''};
+  const d = prev ? {...prev} : {id: uuid(), tipo:'2N', qr:'', capacidad:'', brazo:'', lat:'', lng:'', notas:'', liga:'', proyecto: proyId || ''};
+  const proy = d.proyecto ? PROY.proyectos.find(x => x.id === d.proyecto) : null, regreso = proy && !prev ? '#proyecto/' + proy.id : '#docs';
   d.tipo = d.tipo || '2N';
   let foto = null;                               // {clave, mini} de la foto nueva (la anterior queda si no se cambia)
   let ligaManual = !!prev;                      // al corregir no se vuelve a ligar solo
   const brazos = [...new Set(vistaDocs().flatMap(x => [x.brazo, (x.carpeta || '').split(' / ').pop()]).map(b => MAY(b).trim()).filter(Boolean))].sort();
   const otraCap = d.capacidad && !CAPACIDADES_2N.includes(d.capacidad);
   $('#app').innerHTML = `<div id="fd">
+   ${proy ? `<div class="card"><div class="hint warn" style="margin:0">🏗️ Proyecto <b>${esc(proy.nombre)}</b>: su material se suma solo al conteo del proyecto.</div></div>` : ''}
    <div class="card"><h2>¿Qué cierre es?</h2><div class="chips" id="dTipo">${TIPOS_CIERRE.map(([k, t]) => `<button type="button" class="chip ${d.tipo === k ? 'on' : ''}" data-k="${k}">${t}</button>`).join('')}</div>
      <div class="hint" id="dTipoH"></div></div>
    <div class="card" id="dQrCard"><h2>QR del 2N</h2><div class="row"><input id="dQr" value="${esc(d.qr)}" placeholder="TP000000" autocapitalize="characters"><button type="button" class="btn sm sec" id="dEsc" style="flex:0 0 auto;white-space:nowrap">📷 Escanear</button></div></div>
@@ -1402,7 +1468,7 @@ function pantallaDoc2n(id){
     if($('#dFotoV')) $('#dFotoV').innerHTML = `<img src="${sf.mini}" alt="" class="fotoDoc">`;
   };
   $('#dFoto').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if(f) ponerFoto(f); });
-  $('#dCanc').onclick = () => volver('#docs');
+  $('#dCanc').onclick = () => volver(regreso);
   const qr = $('#dQr'), co = $('#dCoord');
   qr.addEventListener('input', () => { const p = qr.selectionStart; qr.value = qr.value.toUpperCase(); qr.setSelectionRange(p, p); });
   $('#dBrazo').addEventListener('input', e => { const p = e.target.selectionStart; e.target.value = e.target.value.toUpperCase(); e.target.setSelectionRange(p, p); });
@@ -1462,13 +1528,13 @@ function pantallaDoc2n(id){
     if(dup){ err.textContent = `El QR ${d.qr} ya está documentado (${dup.quien || ''}${dup.brazo ? ', ' + dup.brazo : ''}).`; toast(err.textContent); return; }
     parar();
     const r = clusterDe(c[0], c[1]);
-    const x = {id:d.id, tipo:d.tipo, qr:d.qr, capacidad:d.capacidad, brazo:d.brazo, foto: d.foto || '', mini: foto ? foto.mini : d.mini, _fotoPend: foto ? foto.clave : d._fotoPend, lat:c[0], lng:c[1], cluster: r ? r.cluster : '', origen: d.origen || 'DOCUMENTACIÓN',
+    const x = {id:d.id, tipo:d.tipo, proyecto: d.proyecto || '', qr:d.qr, capacidad:d.capacidad, brazo:d.brazo, foto: d.foto || '', mini: foto ? foto.mini : d.mini, _fotoPend: foto ? foto.clave : d._fotoPend, lat:c[0], lng:c[1], cluster: r ? r.cluster : '', origen: d.origen || (d.proyecto ? 'PROYECTO' : 'DOCUMENTACIÓN'),
       notas:d.notas, liga:d.liga || '', usuario: USER.id, quien: d.quien || USER.nombre, registradoPor: d.registradoPor || USER.id,
       fecha: d.fecha || new Date().toISOString(), subido:false, error:'', rechazado:false};
     const i = MIS_DOCS.findIndex(y => y.id === d.id); if(i >= 0) MIS_DOCS[i] = {...MIS_DOCS[i], ...x}; else MIS_DOCS.push(x);
     guardarMisDocs();
     toast(demo() || navigator.onLine ? 'Guardado. Enviando…' : 'Guardado en el teléfono. Se enviará con señal.');
-    volver('#docs'); subirDocs();
+    volver(regreso); subirDocs();
   };
 }
 
@@ -1539,7 +1605,7 @@ function analizarKml(txt){
     [...pm.getElementsByTagNameNS('*', 'LineString')].forEach(l => {
       const c = [], todos = coordsKml(textoKml(l, 'coordinates'));
       todos.forEach((p, j) => { const u = c[c.length - 1]; if(!u || j === todos.length - 1 || docMetros_(u[0], u[1], p[0], p[1]) > 4) c.push([+p[0].toFixed(6), +p[1].toFixed(6)]); });
-      if(c.length > 1) rutas.push({n:nombre, color:color(pm), c});
+      if(c.length > 1) rutas.push({n:nombre, color:color(pm), c, f:carpeta});
     });
   });
   return {x, pms, puntos, rutas};
@@ -1739,6 +1805,99 @@ async function bajarProy(){
   }catch(e){ console.log('proyectos', e); }
 }
 
+/* --- Conteo de postes: validar contando postes en lugar de material por material ---
+   Reglas: cada poste lleva 2 m de fleje y 1 hebilla (con brazo de extensión: 6 m y 3 hebillas).
+   Paso: 1 tangente o 1 tipo D · Remate: 2 tipo D · Punta (1N o bote final): 1 tipo D.
+   Cada tipo D lleva un preformado por cable: 300 mm la FO de 24, 900 mm la de 96 y 600 mm el acero.
+   Raquetas: 1 por cierre (2N o MEXFO) y 2 por gaza. */
+const CABLES = [['FO 24H', 'FO 24', 'PREFORMADO 300mm'], ['FO 96', 'FO 96', 'PREFORMADO 900mm'], ['ACERO', 'Acero', 'PREFORMADO 600mm']];
+const TIPOS_POSTE = [['pt', 'Paso con tangente'], ['pd', 'Paso con tipo D'], ['rem', 'Remate'], ['pun', 'Punta (1N o bote final)']];
+const hMat = k => (MATERIALES.find(([h]) => invClave_(h) === invClave_(k)) || [k])[0];   // nombre de columna exacto (ej. "RAQUETAS ")
+// Metraje aproximado: largo de las rutas del KMZ por color (blanco = FO 96; rojo y azul = FO 24) × 1.17, que ya incluye gazas.
+// Acero: unos 70 m por cierre (entre 60 y 80). Es una referencia: se avisa si lo reportado difiere en más de 100 m.
+const FACTOR_FO = 1.17, ACERO_POR_CIERRE = 70, TOLERANCIA_M = 100;
+function cableDeColor(hex){
+  if(!hex) return 'FO 96';                                          // sin color en el KMZ = blanco (el color por omisión de Google Earth)
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || ''); if(!m) return '';
+  const [r, g, b] = m.slice(1).map(x => parseInt(x, 16)), mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+  if(mn > 170 && mx - mn < 50) return 'FO 96';                      // blanco
+  if((r === mx && r - Math.max(g, b) > 60) || (b === mx && b - Math.max(r, g) > 40)) return 'FO 24H';   // rojo o azul
+  return '';
+}
+async function calcularMetraje(p){
+  const capa = DOCS.capas.find(x => x.id === p.capa); if(!capa) throw new Error('Este proyecto no tiene KMZ ligado (Editar datos > KMZ del proyecto).');
+  const rutas = await rutasDe(capa), m = {'FO 96': 0, 'FO 24H': 0, otros: 0};
+  rutas.forEach(r => { let l = 0; for(let i = 1; i < r.c.length; i++) l += docMetros_(r.c[i - 1][0], r.c[i - 1][1], r.c[i][0], r.c[i][1]); m[cableDeColor(r.color) || 'otros'] += l; });
+  const docs = docsDeProy(p), cierres = docs.length + ((p.postes || {}).c2n || 0) + ((p.postes || {}).mexfo || 0);
+  return {fo96: Math.round(m['FO 96'] * FACTOR_FO), fo24: Math.round(m['FO 24H'] * FACTOR_FO), otros: Math.round(m.otros), acero: cierres * ACERO_POR_CIERRE, cierres, rutas: rutas.length, t: new Date().toISOString()};
+}
+function bloqueMetraje(p){
+  const m = p.metraje, rep = k => parseFloat(((p.mat || {}).rep || {})[k]) || 0;
+  const fila = (t, q, k) => { const d = rep(k) - q, mal = rep(k) > 0 && Math.abs(d) > TOLERANCIA_M;
+    return q || rep(k) ? `<div class="item"><span class="nom">${t}<small>${rep(k) ? `reportado ${rep(k)} m · diferencia ${d > 0 ? '+' : ''}${d} m` : 'sin reportado'}</small></span><b style="color:${mal ? 'var(--err)' : 'inherit'}">≈ ${q} m${mal ? ' ⚠️' : ''}</b></div>` : ''; };
+  return `<div class="seccion" style="margin:14px 0 4px">Metraje aproximado</div>
+    ${m ? `${fila('FO 96 (líneas blancas)', m.fo96, 'FO 96')}${fila('FO 24 (líneas rojas y azules)', m.fo24, 'FO 24H')}${fila(`Acero (${m.cierres} cierres × ${ACERO_POR_CIERRE} m)`, m.acero, 'ACERO')}
+      <div class="hint">Largo de ${m.rutas} ruta(s) del KMZ × ${FACTOR_FO} (ya incluye gazas).${m.otros ? ` Hay ${m.otros} m en líneas de otro color que no se contaron.` : ''} ⚠️ = más de ${TOLERANCIA_M} m de diferencia con lo reportado.</div>` : '<div class="hint">Con el KMZ del proyecto: líneas blancas = FO 96, rojas y azules = FO 24.</div>'}
+    <button class="btn ghost sm" id="ppMetraje">📏 ${m ? 'Volver a calcular' : 'Calcular con el KMZ'}</button><div class="hint err" id="ppMetErr"></div>`;
+}
+// 2N y 1N documentados en este proyecto (desde su recorrido o del KMZ ligado al proyecto)
+const docsDeProy = p => vistaDocs().filter(x => x.estado === 'DOCUMENTADO' && (x.proyecto === p.id || (p.capa && x.capa === p.capa)));
+const SPLITTER_2N = {'1x8': 'SP  2N 1:8', '1x16': 'SP  2N 1:16'};
+function calcPostes(pp, docs = []){
+  const t = {}, suma = (k, q) => { if(q) t[hMat(k)] = (t[hMat(k)] || 0) + q; };
+  const d2n = docs.filter(x => (x.tipo || '2N') === '2N');
+  suma('CIERRE 2N', d2n.length); suma('RAQUETAS', d2n.length);              // cada 2N: cierre, splitter según capacidad y una raqueta
+  d2n.forEach(x => { const sp = SPLITTER_2N[String(x.capacidad || '').toLowerCase()]; if(sp) suma(sp, 1); });
+  const d1n = docs.filter(x => x.tipo === '1N'), dder = docs.filter(x => x.tipo === 'DERIVACION');
+  suma('CIERRE TIPO MEXFO', d1n.length + dder.length); suma('RAQUETAS', d1n.length + dder.length);   // 1N y derivación: MEXFO y raqueta
+  d1n.forEach(x => suma(String(x.capacidad || '').toLowerCase() === '1x16' ? 'SP 1N 1:16' : 'SP 1N 1:8', 1));   // 1N: splitter 1:8 (o 1:16)
+  let postes = 0, ext = 0;
+  Object.entries(pp.grupos || {}).forEach(([cab, g]) => {
+    const n = (g.pt || 0) + (g.pd || 0) + (g.rem || 0) + (g.pun || 0), d = (g.pd || 0) + 2 * (g.rem || 0) + (g.pun || 0);
+    postes += n; ext += g.ext || 0;
+    suma('HERRAJES TIPO "TANJENTE"', g.pt || 0); suma('HERRAJES TIPO "D"', d);
+    cab.split('|').filter(Boolean).forEach(c => { const x = CABLES.find(y => y[0] === c); if(x) suma(x[2], d); });
+  });
+  suma('FLEJE (METROS)', 2 * postes + 4 * ext); suma('HEBILLAS', postes + 2 * ext);
+  suma('CIERRE 2N', pp.c2n || 0); suma('CIERRE TIPO MEXFO', pp.mexfo || 0);
+  suma('RAQUETAS', (pp.c2n || 0) + (pp.mexfo || 0) + 2 * (pp.gazas || 0));
+  return {items: t, postes, ext, gazas: pp.gazas || 0};
+}
+function tarjetaPostes(p){
+  const pp = p.postes = p.postes || {grupos: {}, cables: ['FO 24H'], c2n: 0, mexfo: 0, gazas: 0};
+  const clave = (pp.cables || []).slice().sort().join('|') || 'SIN CABLE', g = (pp.grupos[clave] = pp.grupos[clave] || {});
+  const docs = docsDeProy(p), d2n = docs.filter(x => (x.tipo || '2N') === '2N'), d1n = docs.filter(x => x.tipo === '1N'), dder = docs.filter(x => x.tipo === 'DERIVACION'), c = calcPostes(pp, docs), cont = (k, t, v, sub = '') => `<div class="cpo"><span class="nom">${t}${sub ? `<small>${sub}</small>` : ''}</span>
+      <div class="step"><button type="button" data-pp="${k}" data-d="-1">−</button><b class="cpoN">${v || 0}</b><button type="button" data-pp="${k}" data-d="1" class="mas">＋</button></div></div>`;
+  return `<div class="card" id="pPostes"><h2>Conteo de postes</h2>
+    <div class="hint" style="margin-top:0">Elige los cables del tramo y toca ＋ en cada poste. La app calcula fleje, hebillas, herrajes, preformados y raquetas.</div>
+    <label>Cables en este tramo</label><div class="chips" id="ppCab">${CABLES.map(([k, t]) => `<button type="button" class="chip ${(pp.cables || []).includes(k) ? 'on' : ''}" data-c="${k}">${t}</button>`).join('')}</div>
+    ${TIPOS_POSTE.map(([k, t]) => cont('g.' + k, t, g[k])).join('')}
+    ${cont('g.ext', 'Con brazo de extensión', g.ext, 'además de su tipo: 6 m de fleje y 3 hebillas')}
+    <div class="seccion" style="margin:14px 0 4px">Cierres y gazas</div>
+    <div class="cpo"><span class="nom">2N documentados<small>${d2n.length ? esc(Object.entries(d2n.reduce((a, x) => (a[x.capacidad || 'sin capacidad'] = (a[x.capacidad || 'sin capacidad'] || 0) + 1, a), {})).map(([k, n]) => n + ' de ' + k).join(' · ')) + ' · suman cierre, splitter y raqueta' : 'Se suman solos al documentarlos'}</small></span><b class="cpoN" style="margin-right:54px">${d2n.length}</b></div>
+    ${d1n.length + dder.length ? `<div class="cpo"><span class="nom">1N y derivaciones documentados<small>${[d1n.length && d1n.length + ' 1N (MEXFO, splitter 1N y raqueta)', dder.length && dder.length + ' derivación(es) (MEXFO y raqueta)'].filter(Boolean).join(' · ')}</small></span><b class="cpoN" style="margin-right:54px">${d1n.length + dder.length}</b></div>` : ''}
+    ${cont('c2n', 'Otros cierres 2N', pp.c2n, 'sin documentar')}${cont('mexfo', 'Otros cierres MEXFO', pp.mexfo, 'sin documentar')}${cont('gazas', 'Gazas', pp.gazas, 'unos 18 m de fibra cada una')}
+    <div class="sug" style="margin-top:12px"><b>${c.postes} poste(s)</b>${c.ext ? ' · ' + c.ext + ' con extensión' : ''}${c.gazas ? ` · gazas ≈ ${c.gazas * 18} m de FO` : ''}<br>
+      ${Object.keys(c.items).length ? Object.entries(c.items).map(([h, q]) => `${q}${/FLEJE/.test(h) ? ' m' : ''} ${esc((MATERIALES.find(x => x[0] === h) || [, h])[1]).toLowerCase()}`).join(' · ') : 'Todavía nada contado.'}</div>
+    ${Object.keys(pp.grupos).filter(k => Object.values(pp.grupos[k]).some(Boolean)).length > 1 ? `<div class="hint">Tramos contados: ${Object.entries(pp.grupos).filter(([, x]) => Object.values(x).some(Boolean)).map(([k, x]) => esc(k.split('|').map(y => (CABLES.find(z => z[0] === y) || [, y])[1]).join(' + ')) + ': ' + ((x.pt || 0) + (x.pd || 0) + (x.rem || 0) + (x.pun || 0))).join(' · ')}</div>` : ''}
+    ${bloqueMetraje(p)}
+    <button class="btn verde" id="ppPasar" style="margin-top:10px" ${Object.keys(c.items).length || p.metraje ? '' : 'disabled'}>Pasar a Validado</button>
+    <div class="hint">Reemplaza en "Validado" solo los materiales que salen del conteo; lo demás se queda como está.</div></div>`;
+}
+function activarPostes(p, cambio){
+  const box = $('#pPostes'); if(!box) return;
+  const pp = p.postes, repintar = () => { box.outerHTML = tarjetaPostes(p); activarPostes(p, cambio); };
+  box.querySelectorAll('#ppCab .chip').forEach(b => b.onclick = () => { const s = new Set(pp.cables || []); s.has(b.dataset.c) ? s.delete(b.dataset.c) : s.add(b.dataset.c); pp.cables = [...s]; cambio(); repintar(); });
+  box.querySelectorAll('[data-pp]').forEach(b => b.onclick = () => {
+    const [a, k] = b.dataset.pp.split('.'), clave = (pp.cables || []).slice().sort().join('|') || 'SIN CABLE', obj = k ? (pp.grupos[clave] = pp.grupos[clave] || {}) : pp, key = k || a;
+    obj[key] = Math.max(0, (obj[key] || 0) + +b.dataset.d); if(navigator.vibrate && +b.dataset.d > 0) navigator.vibrate(20); cambio(); repintar(); });
+  const bm = box.querySelector('#ppMetraje'); if(bm) bm.onclick = async () => { bm.disabled = true; bm.textContent = 'Calculando…';
+    try{ p.metraje = await calcularMetraje(p); cambio(); repintar(); }catch(e){ bm.disabled = false; bm.textContent = '📏 Calcular con el KMZ'; box.querySelector('#ppMetErr').textContent = e.message; } };
+  const pas = box.querySelector('#ppPasar'); if(pas) pas.onclick = () => { const c = calcPostes(pp, docsDeProy(p)); p.mat.val = {...(p.mat.val || {})};
+    Object.entries(c.items).forEach(([h, q]) => { p.mat.val[h] = String(q); });
+    if(p.metraje) [['FO 96', p.metraje.fo96], ['FO 24H', p.metraje.fo24], ['ACERO', p.metraje.acero]].forEach(([h, q]) => { if(q) p.mat.val[h] = String(q); }); sessionStorage.setItem('fo.tabMat', 'val'); sessionStorage.setItem('fo.proyTab', 'mat'); cambio(); toast('Material pasado a Validado'); pantallaProyecto(p.id); };
+}
+
 /* --- Lista de proyectos --- */
 function pantallaProyectos(sinBajar){
   if(!esAdmin()) return reemplazar('#');
@@ -1763,7 +1922,7 @@ function editarProyecto(p){
     <label>Cuadrillas que han participado</label><div class="chips" id="pCua">${(sel => [...new Set([...ubicaciones().filter(u => u !== ALMACEN), ...sel])].map(c => `<button type="button" class="chip ${sel.includes(c) ? 'on' : ''}" data-c="${esc(c)}">${esc(tecnicoDe(c))}</button>`).join('') || '<span class="hint">No hay cuadrillas dadas de alta.</span>')(String(p.cuadrillas || '').split(',').map(x => x.trim()).filter(Boolean))}</div>
     <label>KMZ del proyecto</label><select id="pCapa">${opciones(DOCS.capas.map(c => c.nombre), (DOCS.capas.find(c => c.id === p.capa) || {}).nombre, 'Sin KMZ')}</select>
     <label class="btn ghost sm" style="display:inline-block;margin-top:8px">⬆️ Cargar el KMZ de este proyecto<input type="file" id="pKmz" accept=".kmz,.kml,application/vnd.google-earth.kmz,application/vnd.google-earth.kml+xml,application/zip,application/octet-stream" hidden></label>
-    <div class="hint">Sus rutas se ven en el mapa de incidencias y sus 2N quedan pendientes en Documentación de 2N.</div>
+    <div class="hint">Sus rutas se ven en el mapa de incidencias y sus 2N quedan pendientes en Documentación.</div>
     <label>Notas</label><textarea id="pNot" rows="2">${esc(p.notas || '')}</textarea><div id="pErr" class="hint err"></div></div>`,
     `<button class="btn" id="pOk">${nuevo ? 'Crear proyecto' : 'Guardar'}</button>`);
   o.querySelectorAll('#pCua .chip').forEach(b => b.onclick = () => b.classList.toggle('on'));
@@ -1790,12 +1949,19 @@ function pantallaProyecto(id){
   const todas = incDe(p.id), filtro = sessionStorage.getItem('fo.filtroInc') || 'ABIERTA';
   const cuenta = e => todas.filter(i => i.estado === e).length;
   const vis = todas.filter(i => filtro === 'TODAS' || i.estado === filtro).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
-  const tab = sessionStorage.getItem('fo.tabMat') || 'lib';
+  const tab = sessionStorage.getItem('fo.tabMat') || 'lib', pt = sessionStorage.getItem('fo.proyTab') || 'rec', abiertas = cuenta('ABIERTA');
   $('#app').innerHTML = `
+   <div class="segm" id="pSeg">${[['rec', 'Recorrido'], ['inc', 'Incidencias' + (abiertas ? ' · ' + abiertas : '')], ['mat', 'Material'], ['act', 'Actas']].map(([k, t]) => `<button type="button" class="${pt === k ? 'on' : ''}" data-pt="${k}">${t}</button>`).join('')}</div>
+   <div data-ptab="rec" class="${pt === 'rec' ? '' : 'hidden'}">
    <div class="card"><div class="hint" style="margin:0 0 8px">${esc([p.cluster, p.proveedor, p.inicio ? 'desde ' + fmtFecha(p.inicio).slice(0, 10) : ''].filter(Boolean).join(' · '))}</div>
      <div class="chips" id="pEst">${ESTADOS_PROY.map(e => `<button type="button" class="chip ${p.estado === e ? 'on' : ''}" data-e="${e}">${e.charAt(0) + e.slice(1).toLowerCase()}</button>`).join('')}</div>
      <button class="btn ghost sm" id="pEdit" style="margin-top:10px">Editar datos</button></div>
-   <button class="accion" onclick="ir('#inc/nueva/${esc(p.id)}')"><span class="ic">📷</span><span>Nueva incidencia<small>Foto, tipo y ubicación</small></span></button>
+   <div class="row" style="gap:10px"><button class="accion" style="flex:1" onclick="ir('#inc/nueva/${esc(p.id)}')"><span class="ic">${icono('alerta', '#fff', 22)}</span><span>Incidencia<small>Foto, tipo y ubicación</small></span></button>
+     <button class="accion" style="flex:1" onclick="ir('#pdoc/${esc(p.id)}')"><span class="ic">${icono('pin', '#fff', 22)}</span><span>Documentar<small>2N, 1N o derivación</small></span></button></div>
+   ${(ds => ds.length ? `<div class="card"><h2>Cierres documentados · ${ds.length}</h2>${ds.slice(0, 6).map(x => `<div class="item" data-doc="${esc(x.id)}" style="cursor:pointer">${x.mini ? `<img src="${x.mini}" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:8px;flex:none">` : ''}<span class="nom">${textoDoc(x)}</span></div>`).join('')}
+     ${ds.length > 6 ? `<button class="btn ghost sm" onclick="ir('#docs')">Ver los ${ds.length} en Documentación</button>` : ''}</div>` : '')(docsDeProy(p).sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || ''))))}
+   ${tarjetaPostes(p)}</div>
+   <div data-ptab="inc" class="${pt === 'inc' ? '' : 'hidden'}"><button class="accion" onclick="ir('#inc/nueva/${esc(p.id)}')"><span class="ic">${icono('mas', '#fff', 22)}</span><span>Nueva incidencia<small>Foto, tipo y ubicación</small></span></button>
    <div class="card"><h2>Incidencias</h2>
      <div class="chips" id="pFil">${[['ABIERTA', 'Abiertas'], ['CORREGIDA', 'Corregidas'], ['CERRADA', 'Cerradas'], ['TODAS', 'Todas']].map(([k, t]) =>
        `<button type="button" class="chip ${filtro === k ? 'on' : ''}" data-f="${k}">${t} ${k === 'TODAS' ? todas.length : cuenta(k)}</button>`).join('')}</div>
@@ -1806,19 +1972,24 @@ function pantallaProyecto(id){
        : `<div class="vacio">${todas.length ? 'Nada en este filtro.' : 'Sin incidencias todavía.'}</div>`}</div>
      <div class="row" style="margin-top:10px"><button class="btn ghost sm" id="pMapa" style="flex:1">🗺️ Mapa</button><button class="btn ghost sm" id="pKmz" style="flex:1">⬇️ KMZ</button><button class="btn ghost sm" id="pWa" style="flex:1">📤 WhatsApp</button></div>
      <div class="hint">KMZ y WhatsApp llevan solo las incidencias abiertas: lo que el proveedor tiene que corregir.</div></div>
-   <div class="card"><h2>Material</h2>
+   </div><div data-ptab="mat" class="${pt === 'mat' ? '' : 'hidden'}"><div class="card"><h2>Material</h2>
      <div class="chips" id="pTab">${[['lib', 'Liberado'], ['rep', 'Reportado'], ['val', 'Validado']].map(([k, t]) => `<button type="button" class="chip ${tab === k ? 'on' : ''}" data-t="${k}">${t}</button>`).join('')}</div>
      <div class="hint" style="margin-top:6px">${{lib:'Lo que se le liberó al proveedor (reservas).', rep:'Lo que el proveedor dice que usó.', val:'Lo que tú constatas instalado en el recorrido.'}[tab]}</div>
-     <div id="pMat">${editorCantidades(p.mat[tab] || {})}</div>
+     ${tab === 'lib' ? `<button class="btn ghost sm" id="pSap" style="margin-top:8px">📋 Pegar reserva de SAP</button>${(p.reservas || []).length ? `<div class="hint">Reservas cargadas: ${esc(p.reservas.join(', '))}</div>` : ''}` : ''}
+     <div class="hint">Se muestran los materiales de: ${esc(((p.postes || {}).cables || ['FO 24H']).map(c => (CABLES.find(x => x[0] === c) || [, c])[1]).join(', ') || 'ningún cable')} (se cambia en "Cables en este tramo").</div>
+     <div id="pMat">${editorCantidadesProy(p.mat[tab] || {}, (p.postes || {}).cables || ['FO 24H'])}</div>
      <div id="pRes"></div></div>
-   <div class="card"><h2>Constancias</h2>
+   </div><div data-ptab="act" class="${pt === 'act' ? '' : 'hidden'}"><div class="card"><h2>Constancias</h2>
      ${p.actas.length ? p.actas.map(a => `<div class="item"><span class="nom">📎 ${a.url && a.url !== '#' ? `<a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.nombre)}</a>` : esc(a.nombre)}<small>${esc(fmtFecha(local(a.fecha)).slice(0, 10))}</small></span></div>`).join('') : '<div class="vacio">Sin documentos. Aquí guardas el acta que manda el proveedor.</div>'}
-     <label class="btn ghost" style="text-align:center;display:block">📎 Adjuntar acta (PDF o foto)<input type="file" id="pActa" hidden></label><div class="hint" id="pActaH"></div></div>`;
+     <label class="btn ghost" style="text-align:center;display:block">📎 Adjuntar acta (PDF o foto)<input type="file" id="pActa" hidden></label><div class="hint" id="pActaH"></div></div></div>`;
+  document.querySelectorAll('#pSeg button').forEach(b => b.onclick = () => { sessionStorage.setItem('fo.proyTab', b.dataset.pt);
+    document.querySelectorAll('#pSeg button').forEach(x => x.classList.toggle('on', x === b)); document.querySelectorAll('[data-ptab]').forEach(d => d.classList.toggle('hidden', d.dataset.ptab !== b.dataset.pt)); scrollTo(0, 0); });
   const cambio = () => { p.actualizado = new Date().toISOString(); guardarProy(); clearTimeout(pantallaProyecto._t); pantallaProyecto._t = setTimeout(subirProy, 3000); };
   document.querySelectorAll('#pEst .chip').forEach(b => b.onclick = () => { p.estado = b.dataset.e; document.querySelectorAll('#pEst .chip').forEach(x => x.classList.toggle('on', x === b)); cambio(); });
   $('#pEdit').onclick = () => editarProyecto(p);
   document.querySelectorAll('#pFil .chip').forEach(b => b.onclick = () => { sessionStorage.setItem('fo.filtroInc', b.dataset.f); pantallaProyecto(id); });
   document.querySelectorAll('#pInc [data-i]').forEach(el => el.onclick = () => ir('#inc/' + el.dataset.i));
+  document.querySelectorAll('[data-doc]').forEach(el => el.onclick = () => verDoc(el.dataset.doc));
   document.querySelectorAll('#pTab .chip').forEach(b => b.onclick = () => { sessionStorage.setItem('fo.tabMat', b.dataset.t); pantallaProyecto(id); });
   const resumen = () => {
     const filas = MATERIALES.filter(([h]) => ['lib', 'rep', 'val'].some(k => parseFloat((p.mat[k] || {})[h]) > 0));
@@ -1830,6 +2001,12 @@ function pantallaProyecto(id){
   };
   resumen();
   activarCantidades($('#pMat'), v => { p.mat[tab] = v; cambio(); resumen(); });
+  activarPostes(p, cambio);
+  const ps = $('#pSap'); if(ps) ps.onclick = () => pegarReservaSap(async x => { p.reservas = p.reservas || [];
+    if(x.reserva && p.reservas.includes(x.reserva) && !(await preguntar(`La reserva ${x.reserva} ya está cargada en este proyecto. ¿Sumarla otra vez?`, 'Sumar'))) return;
+    p.mat.lib = {...(p.mat.lib || {})}; Object.entries(x.items).forEach(([h, q]) => { p.mat.lib[h] = String((parseFloat(p.mat.lib[h]) || 0) + q); });
+    if(x.reserva && !p.reservas.includes(x.reserva)) p.reservas.push(x.reserva);
+    cambio(); toast('Reserva sumada a lo liberado'); pantallaProyecto(id); });
   if(tab !== 'lib') $('#pMat').addEventListener('change', e => { const i = e.target; if(!i.matches('[data-cant]')) return;
     const lib = parseFloat((p.mat.lib || {})[i.dataset.cant]) || 0, q = parseFloat(i.value) || 0, pasa = q > lib;
     i.closest('.item').classList.toggle('sinStock', pasa);
@@ -1851,6 +2028,15 @@ function pantallaProyecto(id){
   });
 }
 // Lista de cantidades por material (los más comunes arriba, el resto plegado)
+// En proyectos: solo lo que aplica a los cables que se están validando; lo demás queda en "Ver todo"
+const POCO_USADOS = ['ETIQUETAS ', 'ACOPLADORES', 'CINCHOS', 'HERRAJES TIPO "J"'];
+function editorCantidadesProy(v, cables){
+  const fuera = new Set(POCO_USADOS); CABLES.forEach(([fo, , pre]) => { if(!(cables || []).includes(fo)){ fuera.add(fo); fuera.add(pre); } });
+  const fila = ([h, nom, u]) => `<div class="item ${parseFloat(v[h]) > 0 ? 'con' : ''}"><span class="nom">${esc(nom)}<small>${u === 'm' ? 'metros' : 'piezas'}</small></span>
+    <div class="step ${u === 'm' ? 'm' : ''}"><button type="button" data-paso="${u === 'm' ? -10 : -1}">−</button><input inputmode="numeric" data-cant="${esc(h)}" value="${esc(v[h] || '')}" placeholder="0"><button type="button" data-paso="${u === 'm' ? 10 : 1}">＋</button></div></div>`;
+  const ver = MATERIALES.filter(([h]) => !fuera.has(h) || parseFloat(v[h]) > 0), resto = MATERIALES.filter(m => !ver.includes(m));
+  return `${ver.map(fila).join('')}${resto.length ? `<details><summary class="hint" style="padding:8px 0;cursor:pointer">＋ Ver todo (${resto.length} más)</summary>${resto.map(fila).join('')}</details>` : ''}`;
+}
 function editorCantidades(v){
   const fila = ([h, nom, u]) => `<div class="item ${parseFloat(v[h]) > 0 ? 'con' : ''}"><span class="nom">${esc(nom)}<small>${u === 'm' ? 'metros' : 'piezas'}</small></span>
     <div class="step ${u === 'm' ? 'm' : ''}"><button type="button" data-paso="${u === 'm' ? -10 : -1}">−</button><input inputmode="numeric" data-cant="${esc(h)}" value="${esc(v[h] || '')}" placeholder="0"><button type="button" data-paso="${u === 'm' ? 10 : 1}">+</button></div></div>`;
@@ -2163,10 +2349,11 @@ const leerFechaInv = (nuevo) => { const f = $('#iF').value, h = $('#iH').value |
   return new Date(`${f}T${h}`).toISOString(); };
 function tablaStock(u){
   const st = stockDe(u), min = minimosDe(u), filas = MAT_CLAVE.filter(m => (st.stock[m.k] || 0) !== 0 || min[m.k] > 0);
-  return filas.length ? filas.map(m => { const q = st.stock[m.k] || 0, bajo = !st.sinConteo && min[m.k] > 0 && q < min[m.k];
-    return `<div class="item"><span class="nom">${esc(m.n)}<small>${m.u === 'm' ? 'metros' : 'piezas'}${min[m.k] > 0 ? ' · mínimo ' + fmtQ(min[m.k]) : ''}</small></span>
-      ${bajo ? '<span class="estado error">bajo mínimo</span>' : ''}<b style="font-size:17px;min-width:56px;text-align:right;color:${q < 0 ? 'var(--err)' : bajo ? 'var(--err)' : 'var(--txt)'}">${fmtQ(q)}</b></div>`; }).join('')
+  const cuerpo = filas.length ? filas.map(m => { const q = st.stock[m.k] || 0, bajo = !st.sinConteo && min[m.k] > 0 && q < min[m.k];
+    return `<div class="matq ${bajo || q < 0 ? 'bajo' : ''}"><b>${Number(q).toLocaleString('es-MX')}</b><span>${esc(m.n)}${m.u === 'm' ? ' · m' : ''}</span>
+      <small>${bajo ? 'bajo mínimo · ' : ''}${min[m.k] > 0 ? 'mín. ' + fmtQ(min[m.k]) : ''}</small></div>`; }).join('')
     : '<div class="vacio">Sin material registrado.</div>';
+  return filas.length ? `<div class="matgrid">${cuerpo}</div>` : cuerpo;
 }
 const avisoPorConfirmar = u => { const t = resumenItems(stockDe(u).porConfirmar); return t ? `<div class="hint warn" style="margin-top:8px">Por confirmar: ${esc(t)}. No cuenta hasta que la cuadrilla confirme que lo recibió.</div>` : ''; };
 function filaMov(m){
@@ -2186,7 +2373,8 @@ function pantallaInventario(sinBajar){
   $('#app').innerHTML = `
    ${sinConteo.length ? `<div class="card"><h2>Conteo inicial</h2><div class="hint" style="margin:0">Falta contar: <b>${esc(sinConteo.map(nombreU).join(', '))}</b>. Elige cada una abajo y toca Contar; el stock empieza a moverse desde su conteo.</div></div>` : ''}
    ${al.length ? `<div class="card"><h2 style="color:var(--err)">${al.length} material(es) bajo mínimo</h2>${al.slice(0, 8).map(a => `<div class="item" data-ir="${esc(a.u)}" style="cursor:pointer"><span class="nom">${esc(a.m.n)}<small>${esc(nombreU(a.u))}</small></span><b style="color:var(--err)">${fmtQ(a.stock)}</b><span class="hint" style="margin:0">de ${fmtQ(a.min)}</span></div>`).join('')}
-      ${al.length > 8 ? `<div class="hint">y ${al.length - 8} más.</div>` : ''}</div>` : ''}
+      ${al.length > 8 ? `<div class="hint">y ${al.length - 8} más.</div>` : ''}
+      <button class="btn ghost sm" id="iAvisoWa" style="margin-top:8px">📤 Avisar por WhatsApp</button></div>` : ''}
    <div class="tira" id="iUb">${us.map(x => `<button type="button" class="chip ${x === u ? 'on' : ''}" data-u="${esc(x)}">${esc(cortoU(x))}${stockDe(x).sinConteo ? ' ·' : ''}</button>`).join('')}</div>
    <div class="card"><h2>${esc(nombreU(u))}</h2>
      <div class="hint ${st.sinConteo ? 'warn' : ''}" style="margin:0 0 6px">${st.sinConteo ? 'Sin conteo todavía.' : 'Último conteo: ' + esc(fmtFecha(local(st.conteo)).slice(0, 16))}</div>
@@ -2196,6 +2384,8 @@ function pantallaInventario(sinBajar){
      <a class="mi" onclick="ir('#inv/movs')"><span class="ic">🧾</span><span class="tx"><b>Movimientos</b><small>Entradas, entregas, traspasos, merma y conteos</small></span><span class="ch">›</span></a>
      <a class="mi" onclick="ir('#inv/minimos')"><span class="ic">⚠️</span><span class="tx"><b>Stock mínimo</b><small>Cuándo avisar que falta material</small></span><span class="ch">›</span></a>
      <a class="mi" id="iTodo"><span class="ic">📋</span><span class="tx"><b>Ver todo junto</b><small>Cada material en almacén y cuadrillas</small></span><span class="ch">›</span></a></div>`;
+  const bw = $('#iAvisoWa'); if(bw) bw.onclick = () => { const g = {}; al.forEach(a => (g[a.u] = g[a.u] || []).push(`• ${a.m.n}: hay ${fmtQ(a.stock)}, mínimo ${fmtQ(a.min)}`));
+    compartir(`⚠️ NODO · material bajo mínimo (${fmtFecha(ahoraLocal())})\n\n` + Object.keys(g).sort(ordenU).map(u => `*${nombreU(u)}*\n${g[u].join('\n')}`).join('\n\n')); };
   const elegir = x => { sessionStorage.setItem('fo.invU', x); pantallaInventario(true); };
   document.querySelectorAll('#iUb .chip').forEach(b => b.onclick = () => elegir(b.dataset.u));
   document.querySelectorAll('[data-ir]').forEach(b => b.onclick = () => elegir(b.dataset.ir));
@@ -2260,12 +2450,15 @@ function pantallaMov(id){
     <div class="card" id="vMat">${editorInv(m.items || {})}</div><div id="vErr" class="hint err"></div></div>`;
   const campos = () => {
     const t = m.tipo, de = cuas.includes(m.de) ? m.de : '', a = cuas.includes(m.a) ? m.a : '';
-    $('#vCampos').innerHTML = t === 'ENTRADA' ? `<label>Número de reserva</label><input id="vRes" inputmode="numeric" value="${esc(m.reserva || '')}" placeholder="Opcional"><div class="hint">Material que llega al almacén.</div>`
+    $('#vCampos').innerHTML = t === 'ENTRADA' ? `<label>Número de reserva</label><input id="vRes" inputmode="numeric" value="${esc(m.reserva || '')}" placeholder="Opcional"><button type="button" class="btn ghost sm" id="vSap" style="margin-top:8px">📋 Pegar reserva de SAP</button><div class="hint">Material que llega al almacén.</div>`
       : t === 'ENTREGA' ? sel('vA', 'Para la cuadrilla', cuas, a) + '<div class="hint">Sale del almacén. La cuadrilla confirma que lo recibió.</div>'
       : t === 'TRASPASO' ? `<div class="row">${sel('vDe', 'De', cuas, de)}${sel('vA', 'Para', cuas, a)}</div>`
       : t === 'DEVOLUCION' ? sel('vDe', 'De la cuadrilla', cuas, de) + '<div class="hint">Regresa al almacén.</div>'
       : sel('vDe', 'De dónde se da de baja', us, us.includes(m.de) ? m.de : '') + '<div class="hint">Material dañado, perdido o sobrante que ya no sirve. Escribe el motivo en la nota.</div>';
     ['vDe', 'vA'].forEach(k => { const e = $('#' + k); if(e) e.onchange = () => { m[k === 'vDe' ? 'de' : 'a'] = e.value; }; });
+    const sap = $('#vSap'); if(sap) sap.onclick = () => pegarReservaSap(x => { if(x.reserva) $('#vRes').value = x.reserva;
+      Object.entries(x.items).forEach(([h, q]) => { const i = document.querySelector(`#vMat [data-inv="${CSS.escape(invClave_(h))}"]`); if(i){ i.value = q; i.dispatchEvent(new Event('input', {bubbles:true})); } });
+      if(x.proyecto && !$('#vNota').value) $('#vNota').value = x.proyecto; toast('Cantidades de la reserva ' + (x.reserva || '') + ' cargadas'); });
   };
   campos();
   document.querySelectorAll('#vTipo .chip').forEach(b => b.onclick = () => { m.tipo = b.dataset.t; document.querySelectorAll('#vTipo .chip').forEach(x => x.classList.toggle('on', x === b)); campos(); });
@@ -2389,7 +2582,7 @@ const INC_PREV_BASE = ['GASA CAÍDA', 'GAZA EN LOOP', 'GAZA SIN DISPOSITIVO', 'C
 const incPrev = () => (CFG.listas && CFG.listas.INC_PREV && CFG.listas.INC_PREV.length) ? CFG.listas.INC_PREV : INC_PREV_BASE;
 const MAT_PREV = [['RAQUETAS ', 'Raquetas', 'pza'], ['ETIQUETAS ', 'Etiquetas', 'pza'], ['ACERO', 'Acero', 'm']];   // salen del almacén
 const FOTOS_PREV = [['antes', 'Antes'], ['durante', 'Durante'], ['despues', 'Después']];
-const ORIGEN_PREV = {RECORRIDO: 'Recorrido del mes', FUERA: 'Fuera del recorrido'};
+const ORIGEN_PREV = {RECORRIDO: 'Recorrido del mes', FUERA: 'Fuera del recorrido', IDR: 'IDR'};
 let PREV = LS.get('prev', {ots: [], t: ''});
 const guardarPrev = () => { memoInv = null; LS.set('prev', PREV); pintarPendientes(); };
 const prevPorSubir = () => USER ? PREV.ots.filter(o => o.subida !== o.actualizado && (veTodo() || o.cuadrilla === USER.cuadrilla)).length : 0;
@@ -2453,10 +2646,11 @@ function pantallaPrev(sinBajar){
   const porCua = {}; vis.forEach(o => { porCua[o.cuadrilla] = (porCua[o.cuadrilla] || 0) + 1; });
   $('#app').innerHTML = `${PREV_PUBLICO ? '' : '<div class="card"><div class="hint warn" style="margin:0">En construcción: por ahora solo tú ves esta sección.</div></div>'}
    <button class="accion" onclick="ir('#prev/nueva')"><span class="ic">＋</span><span>Nueva OT preventiva<small>Fotos, material y script para WhatsApp</small></span></button>
-   <div class="card"><div class="row" style="align-items:center"><select id="pvMes" style="flex:1">${meses.map(m => `<option value="${m}" ${m === mes ? 'selected' : ''}>${nomMes(m)}</option>`).join('')}</select>
+   ${tarjetaRecorrido(mes)}
+   <div class="card"><h2>OTs</h2><div class="row" style="align-items:center"><select id="pvMes" style="flex:1">${meses.map(m => `<option value="${m}" ${m === mes ? 'selected' : ''}>${nomMes(m)}</option>`).join('')}</select>
      <div style="flex:0 0 auto;text-align:right"><div class="big" style="font-size:26px">${vis.length}</div><div class="hint" style="margin:0">OTs</div></div></div>
      ${veTodo() && Object.keys(porCua).length > 1 ? `<div class="hint">${Object.entries(porCua).map(([c, n]) => esc(c) + ': ' + n).join(' · ')}</div>` : ''}
-     <div style="margin-top:8px">${vis.length ? vis.map(o => `<div class="item" data-o="${esc(o.id)}" style="cursor:pointer">
+     <div style="margin-top:8px">${vis.length ? vis.map(o => `<div class="item fr ${o.error ? 'f-err' : o.subida === o.actualizado ? 'f-ok' : 'f-pend'}" data-o="${esc(o.id)}" style="cursor:pointer">
          ${(o.minis || {}).despues ? `<img src="${o.minis.despues}" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:8px;flex:none">` : '<span style="width:52px;height:52px;border-radius:8px;background:var(--fondo);flex:none;display:flex;align-items:center;justify-content:center">🛠️</span>'}
          <span class="nom"><b>OT ${esc(o.ot)}</b> · ${esc(o.incidencia)}<small>${esc([o.brazo, fechaCorta(o.termino), veTodo() ? o.cuadrilla : ''].filter(Boolean).join(' · '))}</small></span>
          <span class="estado ${o.error ? 'error' : o.subida === o.actualizado ? 'enviado' : 'pendiente'}">${o.error ? 'Error' : o.subida === o.actualizado ? 'Enviada' : 'Por enviar'}</span></div>`).join('')
@@ -2465,7 +2659,8 @@ function pantallaPrev(sinBajar){
   $('#pvMes').onchange = e => { sessionStorage.setItem('fo.prevMes', e.target.value); pantallaPrev(true); };
   document.querySelectorAll('[data-o]').forEach(el => el.onclick = () => ir('#prev/ot/' + el.dataset.o));
   const bi = $('#pvInc'); if(bi) bi.onclick = editarIncPrev;
-  if(!sinBajar && (!PREV.t || Date.now() - new Date(PREV.t) > 60000)) bajarPrev().then(() => { if(location.hash === '#prev' && !MODALES.length) pantallaPrev(true); });
+  activarRecorrido(mes);
+  if(!sinBajar && (!PREV.t || Date.now() - new Date(PREV.t) > 60000)) Promise.all([bajarPrev(), sincRec()]).then(() => { if(location.hash === '#prev' && !MODALES.length) pantallaPrev(true); });
 }
 function editarIncPrev(){
   const {o, cerrar} = ventana('Incidencias de preventivo', `<div class="mbody"><div class="hint">Una por renglón. Salen como opciones en la OT y como "Tipo de falla" en el reporte semanal.</div>
@@ -2488,6 +2683,9 @@ function pantallaOtPrev(id){
   const o = previa ? structuredClone(previa) : {id: uuid(), ot: '', origen: 'RECORRIDO', asignacion: '', inicio: '', termino: '', incidencia: '', brazo: '', coords: '', ubicacion: '', cluster: '',
     cuadrilla: esPrev() ? USER.cuadrilla : (cuas[0] || ''), tecnico: '', auxiliar: '', noEmpleado: '', trabajo: '', comentarios: '', mat: {}, cinchos: '', minis: {}, _pend: {}, fotos: {}};
   o.minis = o.minis || {}; o._pend = o._pend || {}; o.fotos = o.fotos || {};
+  const idrId = !previa && sessionStorage.getItem('fo.idrOt'), deIdr = idrId ? IDR.lista.find(x => x.id === idrId) : null; sessionStorage.removeItem('fo.idrOt');
+  if(deIdr) Object.assign(o, {origen: 'IDR', idr: deIdr.id, incidencia: deIdr.tipo, brazo: deIdr.brazo || '', coords: coordsTexto([+deIdr.lat, +deIdr.lng]), lat: +deIdr.lat, lng: +deIdr.lng, cluster: deIdr.cluster || '',
+    asignacion: local(deIdr.fecha).slice(0, 16), cuadrilla: esPrev() ? USER.cuadrilla : (o.cuadrilla || '')});
   $('#titulo').textContent = previa ? 'OT ' + o.ot : 'Nueva OT preventiva';
   const gente = c => (CFG.usuarios || []).filter(u => u.cuadrilla === c && deCampo(u.rol));
   const ponerGente = () => { const g = gente(o.cuadrilla), t = g.find(u => u.rol === 'TECNICO') || g[0], a = g.find(u => u.rol === 'AUXILIAR');
@@ -2513,7 +2711,8 @@ function pantallaOtPrev(id){
    <div class="card"><h2>Ubicación</h2>
      <label>Coordenadas <span class="req">*</span></label><div class="row"><input id="pvCoord" inputmode="decimal" placeholder="Se toman de la foto o del GPS" value="${esc(o.coords)}"><button type="button" class="btn sm sec" id="pvGps" style="flex:0 0 auto">📍</button><button type="button" class="btn sm sec" id="pvMapa" style="flex:0 0 auto">🗺️</button></div>
      <div class="hint" id="pvCoH">${esc([o.cluster, o.ubicacion].filter(Boolean).join(' · '))}</div>
-     <label>Troncal secundaria (secundaria o brazo de distribución) <span class="req">*</span></label><input id="pvBrazo" value="${esc(o.brazo)}" placeholder="Ej. NVA-1-S-2" autocapitalize="characters"></div>
+     <label>Troncal secundaria (secundaria o brazo de distribución) <span class="req">*</span></label><input id="pvBrazo" list="dlBrazosRec" value="${esc(o.brazo)}" placeholder="Ej. NVA-1-S-2" autocapitalize="characters">
+     <datalist id="dlBrazosRec">${[...new Set(REC.lista.flatMap(x => x.brazos.map(b => b.n)))].map(n => `<option value="${esc(n)}">`).join('')}</datalist><div class="hint" id="pvBrazoH"></div></div>
    <div class="card"><h2>Fotos <span class="req">*</span></h2><div class="fotos3">${FOTOS_PREV.map(fotoSlot).join('')}</div>
      <div class="hint">Se les pone fecha, hora, coordenadas y la OT. Las coordenadas de la primera foto llenan la ubicación.</div></div>
    <div class="card"><h2>Trabajo realizado <span class="req">*</span></h2><textarea id="pvTrab" rows="3" placeholder="Ej. Se llega a sitio y se hace gaza">${esc(o.trabajo)}</textarea></div>
@@ -2526,6 +2725,8 @@ function pantallaOtPrev(id){
    <div id="pvErr" class="hint err"></div></div>`;
   $('#bar').classList.remove('hidden');
   $('#bar').innerHTML = `<button class="btn ghost" id="pvCanc" style="flex:.5">Cancelar</button><button class="btn verde" id="pvOk">${previa ? 'Guardar cambios' : 'Guardar y armar script'}</button>`;
+  setTimeout(() => { const fp = $('#fp'); if(!fp) return; const c = [...fp.querySelectorAll(':scope > .card')];
+    porPasos(fp, [['Datos', c.slice(0, 2)], ['Lugar', c.slice(2, 4)], ['Fotos', c.slice(4, 6)], ['Material', c.slice(6).concat([$('#pvErr')])]]); }, 0);
   const pintarGente = () => { const h = $('#pvGente'); if(h) h.textContent = o.tecnico ? `Técnico: ${o.tecnico}${o.auxiliar ? ' · Auxiliar: ' + o.auxiliar : ''}${o.noEmpleado ? ' · No. ' + o.noEmpleado : ''}` : 'Esta cuadrilla no tiene técnico registrado.'; };
   pintarGente();
   const sc = $('#pvCua'); if(sc) sc.onchange = () => { o.cuadrilla = sc.value; o.tecnico = ''; ponerGente(); pintarGente(); };
@@ -2543,6 +2744,11 @@ function pantallaOtPrev(id){
     o.coords = coordsTexto([la, lo]); $('#pvCoord').value = o.coords;
     const cl = clusterDe(la, lo); o.cluster = cl ? cl.cluster : ''; o.ubicacion = '';
     const h = $('#pvCoH'); h.className = 'hint'; h.textContent = [o.cluster || 'Fuera de los clusters conocidos', origen].filter(Boolean).join(' · ');
+    const bc = brazoCercano(la, lo), bh = $('#pvBrazoH');
+    if(bc && bh){ const cerca = bc.m <= 150;
+      if(cerca && !$('#pvBrazo').value) $('#pvBrazo').value = bc.b.n;
+      bh.textContent = cerca ? `Brazo más cercano: ${bc.b.n} (a ${Math.round(bc.m)} m).` : `Ningún brazo del recorrido cerca (el más cercano, ${bc.b.n}, está a ${Math.round(bc.m)} m): escribe a qué brazo pertenece.`;
+      if(!cerca && o.origen === 'RECORRIDO'){ o.origen = 'FUERA'; document.querySelectorAll('#pvOri .chip').forEach(x => x.classList.toggle('on', x.dataset.k === 'FUERA')); } }
     if(demo() || !navigator.onLine) return;
     try{ const j = await api('direccion', {coords: o.coords}); if(!$('#pvCoH')) return; o.ubicacion = j.direccion || ''; h.textContent = [o.cluster, o.ubicacion || 'Sin dirección', origen].filter(Boolean).join(' · '); }catch(e){}
   };
@@ -2586,6 +2792,7 @@ function pantallaOtPrev(id){
     o.fin = new Date(o.termino).toISOString(); o.proveedor = (CFG.listas.PROVEEDOR || ['GTB'])[0];
     o.actualizado = new Date().toISOString(); if(!previa){ o.creado = o.actualizado; o.usuario = USER.id; }
     const k = PREV.ots.findIndex(x => x.id === o.id); if(k >= 0) PREV.ots[k] = o; else PREV.ots.push(o);
+    if(o.idr){ const x = IDR.lista.find(y => y.id === o.idr); if(x){ Object.assign(x, {estado: 'ATENDIDO', ot: o.ot, atiende: o.cuadrilla, atendido: o.fin, actualizado: new Date().toISOString()}); guardarIdr(); subirIdr(); } }
     guardarPrev(); subirPrev();
     toast(demo() || navigator.onLine ? 'OT guardada. Enviando…' : 'OT guardada en el teléfono. Se enviará con señal.');
     reemplazar('#prev/ot/' + o.id);
@@ -2622,6 +2829,274 @@ function textoOtPrev(o){
     `TRONCAL SECUNDARIA (SECUNDARIA O BRAZO DE DISTRIBUCIÓN): `, o.brazo, '', `TRABAJO REALIZADO: ${o.trabajo || ''}`, '',
     `MATERIALES:`, ...(mats.length ? mats : ['Sin material']), '', `COMENTARIOS: ${o.comentarios || ''}`, '',
     `FECHA Y HORA DE TERMINO: ${fechaCorta(o.termino)}`, '', `NO. EMPLEADO TÉCNICO: ${o.noEmpleado || ''}`].join('\n');
+}
+
+/* ===== Recorrido mensual de preventivo =====
+   El administrador carga el KMZ de brazos del mes (para todas las cuadrillas de preventivo). Cada brazo muestra sus km,
+   las OTs hechas en él y su estado; la cuadrilla lo marca concluido. La OT sugiere el brazo más cercano a sus coordenadas. */
+let REC = LS.get('rec', {lista: [], marcas: [], t: ''});
+const guardarRec = () => { LS.set('rec', REC); pintarPendientes(); };
+const normBrazo = s => MAY(s).replace(/[\s-]/g, '');
+const recsDelMes = mes => REC.lista.filter(r => r.mes === mes);
+const otsDeBrazo = (b, mes) => PREV.ots.filter(o => o.origen !== 'IDR' && normBrazo(o.brazo) === normBrazo(b.n) && String(o.termino || '').startsWith(mes));
+const colorBrazo = (b, mes) => b.estado === 'CONCLUIDO' ? '#2bea5a' : otsDeBrazo(b, mes).length ? '#ffb020' : '#ff3b30';
+function metrosARuta(la, lo, c){               // distancia de un punto al trazo (por segmentos)
+  let m = Infinity; const k = Math.cos(la * Math.PI / 180) * 111320, y0 = la * 110540, x0 = lo * k;
+  for(let i = 1; i < c.length; i++){ const ax = c[i - 1][1] * k, ay = c[i - 1][0] * 110540, bx = c[i][1] * k, by = c[i][0] * 110540, dx = bx - ax, dy = by - ay;
+    const t = Math.max(0, Math.min(1, ((x0 - ax) * dx + (y0 - ay) * dy) / (dx * dx + dy * dy || 1))); m = Math.min(m, Math.hypot(x0 - ax - t * dx, y0 - ay - t * dy)); }
+  return m;
+}
+function brazoCercano(la, lo){
+  let mejor = null; REC.lista.forEach(r => r.brazos.forEach(b => { const m = metrosARuta(la, lo, b.c); if(!mejor || m < mejor.m) mejor = {b, r, m}; }));
+  return mejor;
+}
+async function apiRec(accion, datos){
+  if(!demo()) return api(accion, datos);
+  const s = LS.get('demoRec', {}), r = (() => {
+    if(accion === 'recorridos') return {lista: Object.values(s)};
+    if(accion === 'guardarRecorrido'){ s[datos.recorrido.id] = datos.recorrido; return {}; }
+    if(accion === 'marcarBrazo'){ const x = s[datos.id], b = x && x.brazos.find(y => y.n === datos.brazo); if(!b) throw new Error('Ese brazo no está en el recorrido.');
+      Object.assign(b, datos.estado === 'CONCLUIDO' ? {estado: 'CONCLUIDO', por: USER.cuadrilla || USER.nombre, cuando: datos.cuando} : {estado: 'PENDIENTE', por: '', cuando: ''}); x.actualizado = new Date().toISOString(); return {brazo: b}; }
+    if(accion === 'cierreRecorrido') return {xlsx: '', nombre: 'cierre'};
+    throw new Error('Acción desconocida'); })();
+  try{ LS.set('demoRec', s); }catch(e){}
+  return {ok: true, ...r};
+}
+let sincRecOcupado = false;
+async function sincRec(){
+  if(sincRecOcupado || !USER || (!demo() && !navigator.onLine)) return;
+  sincRecOcupado = true;
+  try{
+    while(REC.marcas.length){ const m = REC.marcas[0];
+      try{ await apiRec('marcarBrazo', m); }catch(e){ if(!/no está|No encontré|Solo/.test(e.message)) break; }
+      REC.marcas.shift(); guardarRec(); }
+    if(!REC.marcas.length){ const j = await apiRec('recorridos', {}); REC.lista = j.lista; REC.t = new Date().toISOString(); guardarRec(); }
+  }catch(e){ console.log('recorridos', e); } finally { sincRecOcupado = false; }
+}
+function marcarBrazo(r, b, estado){
+  const cuando = new Date().toISOString();
+  Object.assign(b, estado === 'CONCLUIDO' ? {estado, por: USER.cuadrilla || USER.nombre, cuando} : {estado: 'PENDIENTE', por: '', cuando: ''});
+  REC.marcas.push({id: r.id, brazo: b.n, estado, cuando}); guardarRec(); sincRec();
+}
+// Cargar el KMZ de brazos del mes (solo administrador)
+async function cargarRecorrido(file, alCargar){
+  let A; try{ const bytes = new Uint8Array(await file.arrayBuffer()); A = analizarKml(esZip(bytes) ? (await leerZip(bytes)).kml : new TextDecoder().decode(bytes)); }catch(e){ return toast(e.message || 'No se pudo leer el archivo'); }
+  if(!A.rutas.length) return toast('El KMZ no trae rutas (brazos).');
+  const largo = c => { let l = 0; for(let i = 1; i < c.length; i++) l += docMetros_(c[i - 1][0], c[i - 1][1], c[i][0], c[i][1]); return l; };
+  const armar = tol => A.rutas.map(r => { const c = []; r.c.forEach((p, i) => { const u = c[c.length - 1]; if(!u || i === r.c.length - 1 || docMetros_(u[0], u[1], p[0], p[1]) > tol) c.push([+p[0].toFixed(5), +p[1].toFixed(5)]); });
+    return {n: MAY(r.n).trim() || 'SIN NOMBRE', t: /PRIMARIA/i.test(r.f || '') ? 'TRONCAL PRIMARIA' : 'TRONCAL SECUNDARIA', km: Math.round(largo(r.c) / 10) / 100, c, estado: 'PENDIENTE', por: '', cuando: ''}; });
+  let tol = 8, brazos = armar(tol); while(JSON.stringify(brazos).length > 44000 && tol < 200){ tol *= 1.6; brazos = armar(tol); }
+  const km = t => brazos.filter(b => b.t === t).reduce((s, b) => s + b.km, 0).toFixed(1);
+  const {o, cerrar} = ventana('Recorrido del mes', `<div class="mbody"><label>Nombre</label><input id="rcNom" value="${esc(file.name.replace(/\.(kmz|kml)$/i, '').replace(/_/g, ' '))}">
+    <label>Mes</label><input type="month" id="rcMes" value="${hoyISO().slice(0, 7)}">
+    <div class="card" style="margin:10px 0 0"><b>${brazos.length} brazos</b><div class="hint">Primaria: ${brazos.filter(b => b.t === 'TRONCAL PRIMARIA').length} · ${km('TRONCAL PRIMARIA')} km<br>Secundaria: ${brazos.filter(b => b.t === 'TRONCAL SECUNDARIA').length} · ${km('TRONCAL SECUNDARIA')} km</div></div>
+    <div class="hint">Lo ven todas las cuadrillas de preventivo.</div><div id="rcErr" class="hint err"></div></div>`, '<button class="btn verde" id="rcOk">Cargar recorrido</button>');
+  o.querySelector('#rcOk').onclick = async () => { const b = o.querySelector('#rcOk'), nombre = o.querySelector('#rcNom').value.trim(), mes = o.querySelector('#rcMes').value;
+    if(!nombre || !mes){ o.querySelector('#rcErr').textContent = 'Falta el nombre o el mes.'; return; }
+    if(!demo() && !navigator.onLine){ o.querySelector('#rcErr').textContent = 'Necesitas señal para cargarlo.'; return; }
+    b.disabled = true; b.textContent = 'Cargando…';
+    const viejo = REC.lista.find(r => r.mes === mes && MAY(r.nombre) === MAY(nombre)), rec = {id: viejo ? viejo.id : uuid(), mes, nombre, brazos, actualizado: new Date().toISOString()};
+    if(viejo) rec.brazos.forEach(x => { const y = viejo.brazos.find(z => z.n === x.n); if(y && y.estado === 'CONCLUIDO') Object.assign(x, {estado: y.estado, por: y.por, cuando: y.cuando}); });
+    try{ await apiRec('guardarRecorrido', {recorrido: rec}); REC.lista = REC.lista.filter(r => r.id !== rec.id).concat(rec); guardarRec(); cerrar(); toast('Recorrido cargado'); if(alCargar) alCargar(rec); else router(); }
+    catch(e){ b.disabled = false; b.textContent = 'Cargar recorrido'; o.querySelector('#rcErr').textContent = e.message; } };
+}
+const NOM_MES = m => { const [y, n] = m.split('-'); return ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][+n - 1] + ' ' + y; };
+function tarjetaRecorrido(mes){
+  const rs = recsDelMes(mes);
+  if(!rs.length) return `<div class="card"><h2>Recorrido de ${NOM_MES(mes)}</h2><div class="hint" style="margin-top:0">${esAdmin() ? 'Carga el KMZ de brazos del mes.' : 'Aún no se carga el recorrido de este mes.'}</div>
+    ${esAdmin() ? '<label class="btn sec" style="text-align:center;display:block">⬆️ Cargar KMZ de brazos<input type="file" id="rcKmz" accept=".kmz,.kml,application/vnd.google-earth.kmz,application/zip,application/octet-stream" hidden></label>' : ''}</div>`;
+  return rs.map(r => { const hechos = r.brazos.filter(b => b.estado === 'CONCLUIDO'), kmT = r.brazos.reduce((s, b) => s + b.km, 0), kmH = hechos.reduce((s, b) => s + b.km, 0);
+    const grupo = t => { const bs = r.brazos.filter(b => b.t === t); return bs.length ? `<div class="seccion" style="margin:12px 0 2px">${t.charAt(0) + t.slice(1).toLowerCase()}</div>${bs.map(b => { const n = otsDeBrazo(b, mes).length;
+      return `<div class="item" data-rb="${esc(r.id)}|${esc(b.n)}" style="cursor:pointer"><span style="width:10px;height:10px;border-radius:50%;background:${colorBrazo(b, mes)};flex:none"></span>
+        <span class="nom"><b>${esc(b.n)}</b><small>${b.km} km · ${n} OT${n === 1 ? '' : 's'}${b.estado === 'CONCLUIDO' ? ' · ' + esc(b.por) : ''}</small></span>
+        <span class="estado ${b.estado === 'CONCLUIDO' ? 'enviado' : n ? 'pendiente' : ''}">${b.estado === 'CONCLUIDO' ? 'Concluido' : n ? 'En curso' : 'Pendiente'}</span></div>`; }).join('')}` : ''; };
+    return `<div class="card"><h2>${esc(r.nombre)}</h2>
+      <div style="height:8px;border-radius:4px;background:var(--fondo);overflow:hidden;margin:6px 0"><div style="height:100%;width:${Math.round(hechos.length / r.brazos.length * 100)}%;background:var(--ok)"></div></div>
+      <div class="hint" style="margin:0">${hechos.length} de ${r.brazos.length} brazos concluidos · ${kmH.toFixed(1)} de ${kmT.toFixed(1)} km${REC.marcas.length ? ' · ' + REC.marcas.length + ' por enviar' : ''}</div>
+      ${grupo('TRONCAL PRIMARIA')}${grupo('TRONCAL SECUNDARIA')}
+      <div class="row" style="margin-top:10px"><button class="btn ghost sm" data-rmapa="${esc(r.id)}" style="flex:1">🗺️ Mapa</button>${veTodo() ? `<button class="btn ghost sm" data-rxls="${esc(r.id)}" style="flex:1">⬇️ Excel</button><button class="btn ghost sm" data-rkmz="${esc(r.id)}" style="flex:1">⬇️ KMZ</button>` : ''}</div></div>`; }).join('')
+    + (esAdmin() ? '<label class="btn ghost sm" style="text-align:center;display:block;margin-bottom:12px">⬆️ Cargar otro KMZ de brazos<input type="file" id="rcKmz" accept=".kmz,.kml,application/vnd.google-earth.kmz,application/zip,application/octet-stream" hidden></label>' : '');
+}
+// KMZ de cierre del recorrido: brazos pintados por estado + las OTs del mes como puntos
+function kmlCierreRec(r, mes){
+  const EST = [['ok', 'Concluidos', 'ff5aea2b'], ['curso', 'En curso', 'ff20b0ff'], ['pend', 'Pendientes', 'ff303bff']];
+  const est = b => b.estado === 'CONCLUIDO' ? 'ok' : otsDeBrazo(b, mes).length ? 'curso' : 'pend', nomEst = k => EST.find(e => e[0] === k)[1].replace(/s$/, '');
+  const ots = PREV.ots.filter(o => String(o.termino || '').startsWith(mes) && +o.lat && +o.lng);
+  const brazo = b => { const n = otsDeBrazo(b, mes);
+    return `<Placemark><name>${esc(b.n)}</name><description><![CDATA[<b>${esc(b.n)}</b><br>${esc(b.t)} · ${b.km} km<br>Estado: ${nomEst(est(b))}${b.estado === 'CONCLUIDO' ? `<br>Concluyó: ${esc(b.por)} · ${esc(fmtFecha(local(b.cuando)).slice(0, 16))}` : ''}<br>OTs del mes: ${n.length}${n.length ? '<br>' + n.map(o => 'OT ' + esc(o.ot) + ' · ' + esc(o.incidencia)).join('<br>') : ''}]]></description><styleUrl>#b-${est(b)}</styleUrl><LineString><tessellate>1</tessellate><coordinates>${b.c.map(([la, lo]) => lo + ',' + la + ',0').join(' ')}</coordinates></LineString></Placemark>`; };
+  const punto = o => `<Placemark><name>OT ${esc(o.ot)}</name><description><![CDATA[<b>OT ${esc(o.ot)}</b><br>${esc(o.incidencia || '')}<br>Brazo: ${esc(o.brazo || '')}${o.cluster ? '<br>Cluster: ' + esc(o.cluster) : ''}<br>Término: ${esc(fechaCorta(o.termino))}<br>Cuadrilla: ${esc(o.cuadrilla || '')}${o.tecnico ? '<br>Técnico: ' + esc(o.tecnico) : ''}${o.trabajo ? '<br>Trabajo: ' + esc(o.trabajo) : ''}${o.origen === 'IDR' ? '<br>Origen: IDR' : o.origen === 'FUERA' ? '<br>Fuera del recorrido' : ''}${FOTOS_PREV.map(([k, t]) => (o.fotos || {})[k] && o.fotos[k].url && o.fotos[k].url !== '#' ? `<br><a href="${esc(o.fotos[k].url)}">Foto ${esc(t.toLowerCase())}</a>` : '').join('')}<br><a href="${mapsUrl(o.lat, o.lng)}">Abrir en Maps</a>]]></description><styleUrl>#ot</styleUrl><Point><coordinates>${+o.lng},${+o.lat},0</coordinates></Point></Placemark>`;
+  const hechos = r.brazos.filter(b => b.estado === 'CONCLUIDO');
+  return {ots: ots.length, sin: PREV.ots.filter(o => String(o.termino || '').startsWith(mes)).length - ots.length, kml: `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${esc(r.nombre)} · cierre</name>
+<description>${hechos.length} de ${r.brazos.length} brazos concluidos · ${ots.length} OTs · generado ${hoyISO()}</description>
+${EST.map(([k, , c]) => `<Style id="b-${k}"><LineStyle><color>${c}</color><width>4</width></LineStyle></Style>`).join('')}
+<Style id="ot"><IconStyle><scale>1.1</scale><Icon><href>http://maps.google.com/mapfiles/kml/paddle/blu-circle.png</href></Icon></IconStyle></Style>
+${['TRONCAL PRIMARIA', 'TRONCAL SECUNDARIA'].map(t => { const bs = r.brazos.filter(b => b.t === t); return bs.length ? `<Folder><name>${t}</name>${EST.map(([k, nom]) => { const g = bs.filter(b => est(b) === k); return g.length ? `<Folder><name>${nom} (${g.length})</name>${g.map(brazo).join('')}</Folder>` : ''; }).join('')}</Folder>` : ''; }).join('')}
+${ots.length ? `<Folder><name>OTs realizadas (${ots.length})</name>${ots.map(punto).join('')}</Folder>` : ''}
+</Document></kml>`};
+}
+function kmzCierreRec(r, mes){
+  if(!r) return;
+  const {o} = ventana('KMZ de cierre', '<div class="mbody"><div class="vacio" id="kEst">Armando el KMZ…</div></div>', '');
+  try{ const {kml, ots, sin} = kmlCierreRec(r, mes), k = new TextEncoder().encode(kml);
+    entregarArchivo(armarZip([{nombre: 'doc.kml', met: 0, crc: crc32(k), csz: k.length, usz: k.length, datos: k}]), `${r.nombre} cierre ${hoyISO()}.kmz`, o);
+    o.querySelector('.mbody').insertAdjacentHTML('beforeend', `<div class="hint">Verde: concluido · Naranja: en curso · Rojo: pendiente · ${ots} OT(s) como puntos azules.${sin ? ` ${sin} OT(s) sin coordenadas no aparecen.` : ''}</div>`);
+  }catch(e){ o.querySelector('#kEst').textContent = 'No se pudo armar el KMZ: ' + e.message; }
+}
+function activarRecorrido(mes){
+  const k = $('#rcKmz'); if(k) k.addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if(f) cargarRecorrido(f); });
+  const centro = r => { const ps = r.brazos.flatMap(b => b.c); return coordsTexto([ps.reduce((t, p) => t + p[0], 0) / ps.length, ps.reduce((t, p) => t + p[1], 0) / ps.length]); };
+  const mapa = r => abrirMapa(centro(r), null, {soloVer: true, titulo: r.nombre, hint: 'Verde: concluido · Naranja: en curso · Rojo: pendiente', lineas: r.brazos.map(b => ({n: b.n, color: colorBrazo(b, mes), c: b.c})),
+    puntos: PREV.ots.filter(o => String(o.termino || '').startsWith(mes) && o.lat).map(o => ({lat: +o.lat, lng: +o.lng, color: '#3d6bff', info: `<b>OT ${esc(o.ot)}</b> · ${esc(o.incidencia)} · ${esc(o.brazo)}`}))});
+  document.querySelectorAll('[data-rmapa]').forEach(b => b.onclick = () => mapa(REC.lista.find(r => r.id === b.dataset.rmapa)));
+  document.querySelectorAll('[data-rkmz]').forEach(b => b.onclick = () => kmzCierreRec(REC.lista.find(r => r.id === b.dataset.rkmz), mes));
+  document.querySelectorAll('[data-rxls]').forEach(b => b.onclick = async () => { if(demo()) return toast('En la demostración no se descarga el archivo.'); if(!navigator.onLine) return toast('Necesitas señal.');
+    b.disabled = true; const t = b.textContent; b.textContent = 'Generando…';
+    try{ const j = await api('cierreRecorrido', {id: b.dataset.rxls}), bytes = Uint8Array.from(atob(j.xlsx), ch => ch.charCodeAt(0)), a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([bytes], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})); a.download = j.nombre + '.xlsx'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); toast('Excel listo (también quedó en Drive)'); }
+    catch(e){ toast(e.message); } b.disabled = false; b.textContent = t; });
+  document.querySelectorAll('[data-rb]').forEach(el => el.onclick = () => { const [rid, bn] = el.dataset.rb.split('|'), r = REC.lista.find(x => x.id === rid), b = r.brazos.find(x => x.n === bn), ots = otsDeBrazo(b, mes), puede = esPrev() || veTodo();
+    const {o, cerrar} = ventana(b.n, `<div class="mbody"><div class="card" style="margin:0"><b>${esc(b.t.charAt(0) + b.t.slice(1).toLowerCase())}</b> · ${b.km} km
+        <div class="hint">${b.estado === 'CONCLUIDO' ? `Concluido por ${esc(b.por)} el ${esc(fmtFecha(local(b.cuando)).slice(0, 16))}` : 'Aún no se marca como concluido.'}</div>
+        ${ots.length ? ots.map(x => `<div class="item"><span class="nom"><b>OT ${esc(x.ot)}</b> · ${esc(x.incidencia)}<small>${esc(fechaCorta(x.termino))} · ${esc(x.cuadrilla)}</small></span></div>`).join('') : '<div class="hint">Sin OTs en este brazo este mes.</div>'}</div></div>`,
+      `<button class="btn ghost" id="rbMapa" style="flex:.6">🗺️ Mapa</button>${puede ? (b.estado === 'CONCLUIDO' ? '<button class="btn ghost" id="rbRe">Reabrir</button>' : '<button class="btn verde" id="rbOk">Marcar concluido</button>') : ''}`, true);
+    o.querySelector('#rbMapa').onclick = () => { cerrar(); setTimeout(() => abrirMapa(coordsTexto(b.c[Math.floor(b.c.length / 2)]), null, {soloVer: true, titulo: b.n, lineas: [{n: b.n, color: colorBrazo(b, mes), c: b.c}]}), 80); };
+    const ok = o.querySelector('#rbOk'), re = o.querySelector('#rbRe');
+    if(ok) ok.onclick = () => { marcarBrazo(r, b, 'CONCLUIDO'); cerrar(); toast(b.n + ' concluido'); setTimeout(router, 60); };
+    if(re) re.onclick = () => { marcarBrazo(r, b, 'PENDIENTE'); cerrar(); setTimeout(router, 60); }; });
+}
+
+/* ===== IDR (inspector de red) =====
+   Anomalías en la red que cualquiera de GTB, el supervisor o el administrador reporta (foto, tipo y ubicación) y que las
+   cuadrillas de preventivo atienden aparte de su recorrido. Plazo según prioridad: crítica 24 h, media 72 h, normal 1 semana.
+   Al atenderla se registra su OT (origen IDR). Por ahora visible igual que Preventivo (en construcción). */
+const PRIO_IDR = {CRITICA: ['Crítica', 24], MEDIA: ['Media', 72], NORMAL: ['Normal', 168]};
+const IDR_BASE = ['FIBRA HOLGADA|CRITICA', 'GAZA CAÍDA|MEDIA', 'MIGRACIÓN A POSTE NUEVO|MEDIA', 'FLEJAR|NORMAL'];
+const tiposIdr = () => ((CFG.listas && CFG.listas.IDR_TIPOS && CFG.listas.IDR_TIPOS.length) ? CFG.listas.IDR_TIPOS : IDR_BASE).map(x => { const [t, p] = String(x).split('|'); return [t.trim(), PRIO_IDR[p] ? p : 'NORMAL']; });
+const EST_IDR = {PENDIENTE: 'Pendiente', ATENCION: 'En atención', ATENDIDO: 'Atendido'};
+let IDR = LS.get('idr', {lista: [], t: ''});
+const guardarIdr = () => { LS.set('idr', IDR); pintarPendientes(); };
+const idrPorSubir = () => USER ? IDR.lista.filter(i => i.subida !== i.actualizado).length : 0;
+const idrAbiertos = () => IDR.lista.filter(i => i.estado !== 'ATENDIDO');
+const idrVencido = i => i.estado !== 'ATENDIDO' && Date.now() > new Date(i.limite).getTime();
+function plazoIdr(i){
+  if(i.estado === 'ATENDIDO') return 'Atendido' + (i.ot ? ' · OT ' + i.ot : '');
+  const h = Math.round((new Date(i.limite) - Date.now()) / 36e5), a = Math.abs(h), t = a >= 48 ? Math.round(a / 24) + ' días' : a + ' h';
+  return h < 0 ? 'Vencido hace ' + t : 'Quedan ' + t;
+}
+async function apiIdr(accion, datos){
+  if(!demo()) return api(accion, datos);
+  const s = LS.get('demoIdr', {}), r = (() => {
+    if(accion === 'idr') return {lista: Object.values(s)};
+    if(accion === 'guardarIdr'){ const i = {...datos.idr}; if(datos.foto && !i.foto) i.foto = {id: 'f', url: '#'}; const y = s[i.id]; if(!y || String(y.actualizado) <= String(i.actualizado)) s[i.id] = i; return {idr: {id: i.id, foto: i.foto || null}}; }
+    throw new Error('Acción desconocida'); })();
+  try{ LS.set('demoIdr', s); }catch(e){}
+  return {ok: true, ...r};
+}
+let subiendoIdr = false;
+async function subirIdr(){
+  if(subiendoIdr || !USER || (!demo() && !navigator.onLine)) return;
+  subiendoIdr = true; let cambio = false;
+  try{ for(const i of IDR.lista.filter(i => i.subida !== i.actualizado)){
+    try{ const v = i.actualizado, datos = {...i}; delete datos._fotoPend; delete datos.mini; delete datos.subida;
+      let foto; if(i._fotoPend){ const b = await IDB.traer(i._fotoPend); if(b) foto = await blobAb64(b); }
+      const j = await apiIdr('guardarIdr', {idr: datos, foto}); if(j.idr.foto){ i.foto = j.idr.foto; delete i._fotoPend; }
+      i.subida = v; cambio = true; }catch(e){ console.log('idr', e); } } }
+  finally { subiendoIdr = false; }
+  if(cambio){ guardarIdr(); if(/^#idr/.test(location.hash) && !enFormulario() && !MODALES.length) router(); }
+}
+async function bajarIdr(){
+  if(!USER || (!demo() && !navigator.onLine)) return;
+  try{ const j = await apiIdr('idr', {});
+    j.lista.forEach(r => { const k = IDR.lista.findIndex(x => x.id === r.id);
+      if(k < 0) IDR.lista.push({...r, subida: r.actualizado}); else if(String(r.actualizado) > String(IDR.lista[k].actualizado)) IDR.lista[k] = {...IDR.lista[k], ...r, subida: r.actualizado}; });
+    IDR.t = new Date().toISOString(); guardarIdr(); await subirIdr(); }catch(e){ console.log('idr', e); }
+}
+function pantallaIdr(sinBajar){
+  if(!prevVisible()) return reemplazar('#');
+  $('#titulo').textContent = 'IDR · Inspector de red';
+  const f = sessionStorage.getItem('fo.idrF') || 'ABIERTOS';
+  const vis = IDR.lista.filter(i => f === 'ABIERTOS' ? i.estado !== 'ATENDIDO' : i.estado === 'ATENDIDO').sort((a, b) => f === 'ABIERTOS' ? String(a.limite).localeCompare(String(b.limite)) : String(b.actualizado).localeCompare(String(a.actualizado)));
+  const venc = idrAbiertos().filter(idrVencido).length;
+  $('#app').innerHTML = `<button class="accion" onclick="ir('#idr/nuevo')"><span class="ic">📣</span><span>Reportar anomalía<small>Foto, tipo y ubicación</small></span></button>
+   <div class="card"><div class="chips" id="idF"><button type="button" class="chip ${f === 'ABIERTOS' ? 'on' : ''}" data-f="ABIERTOS">Por atender ${idrAbiertos().length}</button><button type="button" class="chip ${f !== 'ABIERTOS' ? 'on' : ''}" data-f="ATENDIDOS">Atendidos ${IDR.lista.length - idrAbiertos().length}</button></div>
+     ${venc && f === 'ABIERTOS' ? `<div class="hint err">${venc} fuera de plazo.</div>` : ''}
+     <div style="margin-top:6px">${vis.length ? vis.map(i => `<div class="item fr ${i.estado === 'ATENDIDO' ? 'f-ok' : i.prioridad === 'CRITICA' || idrVencido(i) ? 'f-err' : 'f-pend'}" data-i="${esc(i.id)}" style="cursor:pointer">
+        ${i.mini ? `<img src="${i.mini}" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:8px;flex:none">` : '<span style="width:52px;height:52px;border-radius:8px;background:var(--fondo);flex:none"></span>'}
+        <span class="nom"><b>${esc(i.tipo)}</b>${i.brazo ? ' · ' + esc(i.brazo) : ''}<small style="color:${idrVencido(i) ? 'var(--err)' : 'inherit'}">${esc(plazoIdr(i))}${i.atiende ? ' · ' + esc(i.atiende) : ''}${i.subida !== i.actualizado ? ' · por enviar' : ''}</small></span>
+        <span class="estado ${i.estado === 'ATENDIDO' ? 'enviado' : i.prioridad === 'CRITICA' || idrVencido(i) ? 'error' : 'pendiente'}">${i.estado === 'PENDIENTE' ? PRIO_IDR[i.prioridad][0] : EST_IDR[i.estado]}</span></div>`).join('') : '<div class="vacio">Nada aquí.</div>'}</div>
+     ${vis.length && f === 'ABIERTOS' ? '<button class="btn ghost sm" id="idMapa" style="margin-top:8px">🗺️ Ver en el mapa</button>' : ''}</div>
+   ${esAdmin() ? `<div class="card"><h2>Tipos de anomalía</h2><div class="hint">${esc(tiposIdr().map(([t, p]) => `${t} (${PRIO_IDR[p][0].toLowerCase()})`).join(', '))}</div><button class="btn ghost sm" id="idTipos">Editar lista</button></div>` : ''}`;
+  document.querySelectorAll('#idF .chip').forEach(b => b.onclick = () => { sessionStorage.setItem('fo.idrF', b.dataset.f); pantallaIdr(true); });
+  document.querySelectorAll('[data-i]').forEach(el => el.onclick = () => ir('#idr/ver/' + el.dataset.i));
+  const bm = $('#idMapa'); if(bm) bm.onclick = () => abrirMapa('', null, {soloVer: true, titulo: 'IDR por atender', puntos: vis.map(i => ({lat: +i.lat, lng: +i.lng, color: i.prioridad === 'CRITICA' || idrVencido(i) ? '#d93025' : '#e0a400',
+    info: `<b>${esc(i.tipo)}</b> · ${esc(plazoIdr(i))} <button class="btn sm" onclick="history.back();setTimeout(()=>ir('#idr/ver/${i.id}'),80)">Ver</button>`}))});
+  const bt = $('#idTipos'); if(bt) bt.onclick = () => { const {o, cerrar} = ventana('Tipos de anomalía', `<div class="mbody"><div class="hint">Una por renglón. Al final: |CRITICA (24 h), |MEDIA (72 h) o nada (una semana).</div>
+      <textarea id="itT" rows="9" autocapitalize="characters">${esc(tiposIdr().map(([t, p]) => t + (p === 'NORMAL' ? '' : '|' + p)).join('\n'))}</textarea><div class="hint err" id="itE"></div></div>`, '<button class="btn" id="itOk">Guardar</button>');
+    o.querySelector('#itOk').onclick = async () => { const v = [...new Set(o.querySelector('#itT').value.split('\n').map(x => MAY(x).trim().replace(/\s*\|\s*/, '|')).filter(Boolean))], b = o.querySelector('#itOk');
+      if(!v.length) return; b.disabled = true; b.textContent = 'Guardando…';
+      try{ await apiPrev('guardarLista', {clave: 'IDR_TIPOS', valores: v}); if(!demo()){ CFG.listas.IDR_TIPOS = v; await bajarConfig(); } cerrar(); toast('Lista guardada'); router(); }catch(e){ b.disabled = false; b.textContent = 'Guardar'; o.querySelector('#itE').textContent = e.message; } }; };
+  if(!sinBajar && (!IDR.t || Date.now() - new Date(IDR.t) > 60000)) bajarIdr().then(() => { if(location.hash === '#idr' && !MODALES.length) pantallaIdr(true); });
+}
+function pantallaIdrNuevo(){
+  if(!prevVisible()) return reemplazar('#');
+  $('#titulo').textContent = 'Reportar anomalía';
+  let foto = null, tipos = tiposIdr();
+  $('#app').innerHTML = `<div id="fi2">
+   <div class="card"><h2>Foto <span class="req">*</span></h2><div id="irPrev" class="vacio">Foto de la anomalía. Se le pone fecha, hora y coordenadas.</div>
+     <label class="btn" style="text-align:center;display:block">📷 Tomar foto<input type="file" id="irFoto" accept="image/*" capture="environment" hidden></label></div>
+   <div class="card"><h2>¿Qué es? <span class="req">*</span></h2><div class="chips" id="irTipo">${tipos.map(([t, p]) => `<button type="button" class="chip" data-t="${esc(t)}" data-p="${p}">${esc(t.charAt(0) + t.slice(1).toLowerCase())}</button>`).join('')}<button type="button" class="chip" data-t="" data-p="NORMAL">Otra</button></div>
+     <input id="irOtra" class="hidden" placeholder="¿Cuál?" autocapitalize="characters" style="margin-top:8px">
+     <label>Prioridad</label><div class="chips" id="irPrio">${Object.entries(PRIO_IDR).map(([k, [t, h]]) => `<button type="button" class="chip" data-p="${k}">${t} · ${h >= 48 ? h / 24 + ' días' : h + ' h'}</button>`).join('')}</div>
+     <label>Detalle</label><textarea id="irNota" rows="2" placeholder="Opcional: poste, calle, qué pasa"></textarea></div>
+   <div class="card"><h2>Ubicación <span class="req">*</span></h2><div class="row"><input id="irCoord" inputmode="decimal" placeholder="De la foto o del GPS"><button type="button" class="btn sm sec" id="irGps" style="flex:0 0 auto">📍</button><button type="button" class="btn sm sec" id="irMapa" style="flex:0 0 auto">🗺️</button></div><div class="hint" id="irCoH"></div>
+     <label>Brazo (si lo conoces)</label><input id="irBrazo" placeholder="Ej. NVA-1-S-2" autocapitalize="characters">
+     <label>Reportado por</label><input id="irQuien" value="${esc(USER.nombre)}" autocapitalize="characters"><div class="hint">Cámbialo si te lo avisó alguien sin la app.</div></div>
+   <div id="irErr" class="hint err"></div></div>`;
+  $('#bar').classList.remove('hidden');
+  $('#bar').innerHTML = `<button class="btn ghost" id="irCanc" style="flex:.5">Cancelar</button><button class="btn verde" id="irOk">Reportar</button>`;
+  $('#irCanc').onclick = () => volver('#idr');
+  const prio = p => document.querySelectorAll('#irPrio .chip').forEach(x => x.classList.toggle('on', x.dataset.p === p));
+  document.querySelectorAll('#irTipo .chip').forEach(b => b.onclick = () => { document.querySelectorAll('#irTipo .chip').forEach(x => x.classList.toggle('on', x === b)); $('#irOtra').classList.toggle('hidden', b.dataset.t !== ''); prio(b.dataset.p); });
+  document.querySelectorAll('#irPrio .chip').forEach(b => b.onclick = () => prio(b.dataset.p));
+  ['irOtra', 'irBrazo', 'irQuien'].forEach(k => $('#' + k).addEventListener('input', e => { const c = e.target.selectionStart; e.target.value = MAY(e.target.value); e.target.setSelectionRange(c, c); }));
+  const poner = (la, lo, de) => { $('#irCoord').value = coordsTexto([la, lo]); const cl = clusterDe(la, lo); $('#irCoH').textContent = [cl ? cl.cluster : '', de].filter(Boolean).join(' · '); };
+  $('#irGps').onclick = () => { $('#irCoH').textContent = 'Buscando GPS…'; navigator.geolocation && navigator.geolocation.getCurrentPosition(p => poner(p.coords.latitude, p.coords.longitude, `GPS ±${Math.round(p.coords.accuracy)} m`), () => { $('#irCoH').textContent = 'No se obtuvo el GPS; usa el mapa.'; }, {enableHighAccuracy: true, timeout: 15000}); };
+  $('#irMapa').onclick = () => abrirMapa($('#irCoord').value, (la, lo) => poner(la, lo, 'marcado en el mapa'), {titulo: 'Toca dónde está la anomalía'});
+  $('#irFoto').addEventListener('change', async e => { const f = e.target.files[0]; e.target.value = ''; if(!f) return;
+    $('#irPrev').textContent = 'Procesando…'; const ub = await ubicacionDeFoto(f); if(ub && !parseCoords($('#irCoord').value)) poner(ub.pos[0], ub.pos[1], 'de la foto');
+    const s = await sellarFoto(f, ub ? ub.pos : parseCoords($('#irCoord').value), ub ? ub.origen : '', ['IDR']); foto = s; if($('#irPrev')) $('#irPrev').innerHTML = `<img src="${s.mini}" alt="" class="fotoDoc">`; });
+  $('#irOk').onclick = async () => {
+    const t = document.querySelector('#irTipo .chip.on'), p = document.querySelector('#irPrio .chip.on'), c = parseCoords($('#irCoord').value), tipo = t ? (t.dataset.t || MAY($('#irOtra').value).trim()) : '';
+    const faltan = [!foto && 'foto', !tipo && 'tipo', !p && 'prioridad', !c && 'ubicación'].filter(Boolean);
+    if(faltan.length){ $('#irErr').textContent = 'Falta: ' + faltan.join(', '); toast($('#irErr').textContent); return; }
+    const id = uuid(), ahora = new Date(), cl = clusterDe(c[0], c[1]); await IDB.poner('idr-' + id, foto.blob);
+    IDR.lista.push({id, tipo, prioridad: p.dataset.p, estado: 'PENDIENTE', lat: c[0], lng: c[1], cluster: cl ? cl.cluster : '', brazo: MAY($('#irBrazo').value).trim(), nota: $('#irNota').value.trim(),
+      reporto: MAY($('#irQuien').value).trim() || USER.nombre, capturo: USER.id, atiende: '', ot: '', fecha: ahora.toISOString(), limite: new Date(ahora.getTime() + PRIO_IDR[p.dataset.p][1] * 36e5).toISOString(),
+      mini: foto.mini, _fotoPend: 'idr-' + id, actualizado: ahora.toISOString()});
+    guardarIdr(); subirIdr(); toast('Anomalía reportada'); volver('#idr');
+  };
+}
+function verIdr(id){
+  const i = IDR.lista.find(x => x.id === id); if(!i || !prevVisible()) return reemplazar('#idr');
+  $('#titulo').textContent = 'IDR';
+  const puedeAtender = esPrev() || veTodo(), cambio = () => { i.actualizado = new Date().toISOString(); guardarIdr(); subirIdr(); verIdr(id); };
+  $('#app').innerHTML = `${i.mini ? `<img src="${i.mini}" alt="" class="fotoDoc" style="margin-bottom:10px">` : ''}
+   <div class="card"><div class="row" style="align-items:center"><div style="flex:1"><b style="font-size:18px">${esc(i.tipo)}</b><div class="hint" style="margin:2px 0 0;color:${idrVencido(i) ? 'var(--err)' : ''}">${PRIO_IDR[i.prioridad][0]} · ${esc(plazoIdr(i))}</div></div>
+     <span class="estado ${i.estado === 'ATENDIDO' ? 'enviado' : idrVencido(i) ? 'error' : 'pendiente'}">${EST_IDR[i.estado]}</span></div>
+     ${i.nota ? `<div style="margin-top:8px">${esc(i.nota)}</div>` : ''}
+     <div class="hint">${esc([i.cluster, i.brazo, coordsTexto([+i.lat, +i.lng])].filter(Boolean).join(' · '))}<br>Reportó ${esc(i.reporto)} · ${esc(fmtFecha(local(i.fecha)).slice(0, 16))}${i.atiende ? '<br>Atiende: ' + esc(i.atiende) : ''}${i.ot ? ' · OT ' + esc(i.ot) : ''}</div>
+     <div class="row" style="margin-top:8px"><a class="btn ghost sm" style="flex:1;text-align:center;text-decoration:none" href="${mapsUrl(i.lat, i.lng)}" target="_blank" rel="noopener">🧭 Cómo llegar</a>
+       ${i.foto && i.foto.url !== '#' && esAdmin() ? `<a class="btn ghost sm" style="flex:1;text-align:center;text-decoration:none" href="${esc(i.foto.url)}" target="_blank" rel="noopener">📷 Foto</a>` : ''}</div></div>`;
+  $('#bar').classList.remove('hidden');
+  $('#bar').innerHTML = i.estado === 'ATENDIDO' ? `<button class="btn ghost" onclick="volver('#idr')">Regresar</button>${veTodo() ? '<button class="btn ghost" id="ivRe">Reabrir</button>' : ''}`
+    : !puedeAtender ? `<button class="btn ghost" onclick="volver('#idr')">Regresar</button>`
+    : i.estado === 'PENDIENTE' ? `<button class="btn ghost" onclick="volver('#idr')" style="flex:.5">Regresar</button><button class="btn" id="ivTomar">Lo atiendo</button>`
+    : `<button class="btn ghost" id="ivSoltar" style="flex:.6">Soltar</button><button class="btn verde" id="ivOt">Registrar OT</button>`;
+  const on = (k, f) => { const b = $('#' + k); if(b) b.onclick = f; };
+  on('ivTomar', () => { i.estado = 'ATENCION'; i.atiende = USER.cuadrilla || USER.nombre; cambio(); });
+  on('ivSoltar', () => { i.estado = 'PENDIENTE'; i.atiende = ''; cambio(); });
+  on('ivRe', () => { i.estado = 'PENDIENTE'; i.atiende = ''; i.ot = ''; cambio(); });
+  on('ivOt', () => { sessionStorage.setItem('fo.idrOt', i.id); ir('#prev/nueva'); });
 }
 
 /* ===== Reportes de problemas =====
@@ -2943,16 +3418,51 @@ async function pantallaCompartido(){
   if(!esKmz){ $('#app').innerHTML = `<div class="card"><h2>${esc(f.name)}</h2><div class="hint warn">NODO solo recibe archivos KMZ o KML.</div></div>`; olvidarCompartido(); return; }
   const activos = PROY.proyectos.filter(p => p.estado !== 'VALIDADO').sort((a, b) => String(b.actualizado).localeCompare(String(a.actualizado)));
   $('#app').innerHTML = `<div class="card"><h2>📎 ${esc(f.name)}</h2><div class="hint">${Math.max(1, Math.round(f.size / 1024))} KB · ¿qué hago con él?</div></div>
-    <div class="menu"><a class="mi" id="cmDoc"><span class="ic">📍</span><span class="tx"><b>Documentación de 2N</b><small>Sus 2N quedan pendientes en el mapa</small></span><span class="ch">›</span></a>
+    <div class="menu"><a class="mi" id="cmDoc"><span class="ic">📍</span><span class="tx"><b>Documentación</b><small>Sus 2N quedan pendientes en el mapa</small></span><span class="ch">›</span></a>
       <a class="mi" id="cmProy"><span class="ic">🏗️</span><span class="tx"><b>KMZ de un proyecto</b><small>${activos.length ? 'Se carga y se liga al proyecto que elijas' : 'No hay proyectos activos'}</small></span><span class="ch">›</span></a>
-      <a class="mi" style="opacity:.5"><span class="ic">🛠️</span><span class="tx"><b>Recorrido de preventivo</b><small>Próximamente</small></span></a></div>
+      <a class="mi" id="cmRec"><span class="ic">🛠️</span><span class="tx"><b>Recorrido de preventivo</b><small>Los brazos del mes para las cuadrillas</small></span><span class="ch">›</span></a></div>
     <button class="btn ghost" id="cmNo">Descartar</button>`;
   const listo = ruta => { olvidarCompartido(); setTimeout(() => reemplazar(ruta), 300); };
   $('#cmDoc').onclick = () => cargarKmz(f, () => listo('#docs'));
   $('#cmProy').onclick = () => { if(!activos.length) return toast('No hay proyectos activos: crea uno primero.');
     elegirDeLista('¿A qué proyecto?', activos.map(p => p.nombre), '', nom => { const p = activos.find(x => x.nombre === nom); if(!p) return;
       cargarKmz(f, capa => { p.capa = capa.id; p.actualizado = new Date().toISOString(); guardarProy(); subirProy(); toast('KMZ ligado a ' + p.nombre); listo('#proyecto/' + p.id); }); }); };
+  $('#cmRec').onclick = () => cargarRecorrido(f, () => listo('#prev'));
   $('#cmNo').onclick = () => { olvidarCompartido(); reemplazar('#'); };
+}
+
+/* ===== Reserva de SAP pegada como texto =====
+   La reserva llega como imagen: en la Galería del teléfono se copia el texto de la foto (botón "T") y se pega aquí.
+   El texto llega revuelto, pero cada cantidad ("37.000 TP09") va justo después de su descripción. */
+const SAP_MAT = [[/CAJA\s+AEREA|OPTI\s*TAP/i, 'CIERRE 2N'], [/ACERO/i, 'ACERO'], [/FIBRA.*\b96\b/i, 'FO 96'], [/FIBRA.*\b24\b/i, 'FO 24H'],
+  [/SPLITTER\s+N?1\b.*1\s*:\s*16|SPLITTER.*N1.*1:16/i, 'SP 1N 1:16'], [/SPLITTER\s+N?1\b/i, 'SP 1N 1:8'], [/SPLITTER\s+N?2\b.*1\s*:\s*16/i, 'SP  2N 1:16'], [/SPLITTER\s+N?2\b/i, 'SP  2N 1:8'],
+  [/CIERRE.*EMPALME.*(12|24)\s*F/i, 'CIERRE TIPO MINI MEXFO'], [/CIERRE.*EMPALME/i, 'CIERRE TIPO MEXFO'], [/ETIQUETA/i, 'ETIQUETAS '], [/RAQUETA/i, 'RAQUETAS '], [/ACOPLADOR/i, 'ACOPLADORES'],
+  [/PREFORMADO.*300/i, 'PREFORMADO 300mm'], [/PREFORMADO.*600/i, 'PREFORMADO 600mm'], [/PREFORMADO.*900/i, 'PREFORMADO 900mm'], [/FLEJE/i, 'FLEJE (METROS)'], [/HEBILLA/i, 'HEBILLAS'],
+  [/HERRAJE.*\bD\b/i, 'HERRAJES TIPO "D"'], [/HERRAJE.*\bJ\b/i, 'HERRAJES TIPO "J"'], [/HERRAJE.*TAN/i, 'HERRAJES TIPO "TANJENTE"'], [/CINCHO/i, 'CINCHOS']];
+function leerReservaSap(txt){
+  const lin = String(txt || '').split(/\n/).map(x => x.trim()).filter(Boolean), items = {}, desconocidos = [], leidos = [];
+  const res = (String(txt).match(/RESERVA\s*(\d{5,})/i) || String(txt).match(/\b(\d{7})\b/) || [])[1] || '';
+  const proyecto = (String(txt).match(/\b[A-Z]{2,4}-[A-Z]{2,4}-\d{2}-\d{3,5}\b/) || [])[0] || '';
+  const esCant = l => /^([\d,]+)\.(\d{3})\s*(TP|PLEX|$)/i.exec(l), ruido = l => /^\d{4,8}$/.test(l) || /^PLEX$/i.test(l) || /RESERVA/i.test(l);
+  lin.forEach((l, i) => { const c = esCant(l); if(!c) return;
+    let d = ''; for(let j = i - 1; j >= 0 && j >= i - 3; j--){ if(esCant(lin[j])) break; if(!ruido(lin[j])){ d = lin[j].replace(/^\d{4,8}\s+/, ''); break; } }
+    const q = Math.round(parseFloat(c[1].replace(/,/g, '') + '.' + c[2])); if(!d || !q) return;
+    const m = SAP_MAT.find(([re]) => re.test(d));
+    if(m){ items[m[1]] = (items[m[1]] || 0) + q; leidos.push([d, q, m[1]]); } else desconocidos.push(`${q} · ${d}`); });
+  return {reserva: res, proyecto, items, desconocidos, leidos};
+}
+function pegarReservaSap(alAceptar){
+  const {o, cerrar} = ventana('Pegar reserva de SAP', `<div class="mbody"><div class="hint" style="margin-top:0">En la Galería abre la imagen de la reserva, toca <b>T</b> (copiar texto), copia todo y pégalo aquí.</div>
+    <textarea id="spT" rows="7" placeholder="Pega aquí el texto de la reserva"></textarea><button type="button" class="btn sec" id="spLeer">Leer</button><div id="spR"></div></div>`, `<button class="btn verde" id="spOk" disabled>Usar estas cantidades</button>`);
+  let r = null;
+  const leer = () => { r = leerReservaSap(o.querySelector('#spT').value); const n = Object.keys(r.items).length;
+    o.querySelector('#spR').innerHTML = n || r.desconocidos.length ? `<div class="card" style="margin:10px 0 0"><b>Reserva ${esc(r.reserva || 'sin número')}</b>${r.proyecto ? ' · ' + esc(r.proyecto) : ''}
+      ${r.leidos.map(([d, q, h]) => `<div class="item"><span class="nom">${esc(nombreMat(invClave_(h)))}<small>${esc(d)}</small></span><b>${q}</b></div>`).join('')}
+      ${r.desconocidos.length ? `<div class="hint warn">No reconocí: ${esc(r.desconocidos.join('; '))}. Captúralo a mano.</div>` : ''}
+      <div class="hint">Revisa las cantidades contra la imagen antes de aceptar.</div></div>` : '<div class="hint err">No encontré cantidades en ese texto.</div>';
+    o.querySelector('#spOk').disabled = !n; };
+  o.querySelector('#spLeer').onclick = leer; o.querySelector('#spT').addEventListener('paste', () => setTimeout(leer, 50));
+  o.querySelector('#spOk').onclick = () => { cerrar(); setTimeout(() => alAceptar(r), 60); };
 }
 
 /* ===== Advertencias de material (no bloquean) ===== */
@@ -2978,6 +3488,42 @@ const otraVez = i => i.isConnected ? i : document.querySelector(`${i.dataset.mat
 document.addEventListener('change', e => { const i = e.target; if(i.matches && i.matches('#fp [data-mat],#lMat [data-c]')) setTimeout(() => { const j = otraVez(i); if(j) avisoStock(j); }, 30); }, true);
 document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-paso],[data-d]'); if(!b) return;
   setTimeout(() => { const i = b.parentElement.querySelector('input'); if(i && i.matches('#fp [data-mat],#lMat [data-c]')) avisoStock(i); }, 10); });
+
+/* ===== Formularios por pasos =====
+   Divide un formulario largo en pasos (una pantalla cada uno) con barra de avance. "Siguiente" revisa lo obligatorio
+   del paso (lo marcado con *). Se puede apagar en Ajustes > Formularios ("En una página"). */
+const usarPasos = () => { const v = LS.get('pasos', null); return v === null ? !navigator.webdriver : v === '1'; };
+function faltanEnPaso(els){
+  const f = [], vacio = c => !c || (c.matches('input,select,textarea') ? !String(c.value).trim() : c.matches('.fh') ? [...c.querySelectorAll('input')].some(i => !i.value) : c.matches('.chips') ? !c.querySelector('.chip.on')
+      : c.matches('.fotos3') ? c.querySelectorAll('img').length < c.querySelectorAll('.fslot').length : c.matches('.row') ? vacio(c.querySelector('.fh,input,select,textarea')) : false);
+  els.forEach(el => el.querySelectorAll('.req').forEach(q => { const lab = q.parentElement; if(lab.closest('.hidden')) return;
+    let c = lab.nextElementSibling; while(c && c.matches('.hint')) c = c.nextElementSibling;
+    if(c && vacio(c)) f.push(lab.textContent.replace('*', '').trim().toLowerCase()); }));
+  return f;
+}
+function porPasos(raiz, pasos){            // pasos: [[título, [elementos]], …]
+  if(!raiz || !usarPasos()) return;
+  pasos = pasos.map(([t, els]) => [t, els.filter(Boolean)]).filter(([, els]) => els.length); if(pasos.length < 2) return;
+  const bar = $('#bar'), orig = [...bar.children], cancelar = orig[0], guardar = orig[orig.length - 1]; let n = 0;
+  const cab = document.createElement('div'); cab.className = 'pasos'; raiz.prepend(cab);
+  const atras = document.createElement('button'), sig = document.createElement('button');
+  atras.type = sig.type = 'button'; atras.className = 'btn ghost'; atras.style.flex = '.5'; atras.textContent = 'Atrás'; sig.className = 'btn'; bar.prepend(atras); bar.append(sig);
+  const pintar = () => {
+    cab.innerHTML = pasos.map(([t], i) => `<button type="button" class="${i < n ? 'ok' : i === n ? 'on' : ''}" data-i="${i}"><i>${i < n ? '✓' : i + 1}</i><span>${t}</span></button>`).join('');
+    cab.querySelectorAll('button').forEach(b => b.onclick = () => { const i = +b.dataset.i; if(i <= n || !faltan()) { n = i; pintar(); } });
+    pasos.forEach(([, els], i) => els.forEach(el => { el.classList.toggle('hidden', i !== n); if(i === n && el.tagName === 'DETAILS') el.open = true; }));
+    const fin = n === pasos.length - 1;
+    orig.forEach(b => b.classList.toggle('hidden', b === cancelar ? n > 0 : !fin)); atras.classList.toggle('hidden', n === 0); sig.classList.toggle('hidden', fin);
+    if(!fin) sig.textContent = 'Siguiente: ' + pasos[n + 1][0];
+    scrollTo(0, 0);
+  };
+  const faltan = () => { const f = faltanEnPaso(pasos[n][1]); if(f.length) toast('Falta: ' + f.join(', ')); return f.length; };
+  atras.onclick = () => { n--; pintar(); };
+  sig.onclick = () => { if(!faltan()){ n++; pintar(); } };
+  // si al guardar falta algo de un paso anterior, se regresa a ese paso
+  guardar.addEventListener('click', () => setTimeout(() => { if(!raiz.isConnected) return; const i = pasos.findIndex(([, els]) => faltanEnPaso(els).length); if(i >= 0 && i !== n){ n = i; pintar(); } }, 50));
+  pintar();
+}
 
 /* ===== Selector de hora propio =====
    El reloj de Android se corta en algunas pantallas: los campos de hora (input[data-hora]) abren este selector.
@@ -3098,7 +3644,7 @@ function pantallaFolio(id){
     ${(n2 => `<label>¿Instalaste un 2N nuevo?</label><div class="chips" id="c2n"><button type="button" class="chip ${n2.nuevo ? '' : 'on'}" data-v="">No</button><button type="button" class="chip ${n2.nuevo ? 'on' : ''}" data-v="1">Sí, documentarlo</button></div>
     <div id="d2n" class="${n2.nuevo ? '' : 'hidden'}"><label>Capacidad de puertos</label><div class="chips" id="c2nCap">${CAPACIDADES_2N.map(c => `<button type="button" class="chip ${n2.capacidad === c ? 'on' : ''}" data-v="${c}">${c}</button>`).join('')}</div>
       <label>Sección (brazo)</label><input id="f2nBrazo" value="${esc(n2.brazo || '')}" placeholder="Ej. BRAZO 3" autocapitalize="characters" list="dl2n"><datalist id="dl2n">${[...new Set(vistaDocs().map(x => MAY(x.brazo).trim()).filter(Boolean))].sort().map(b => `<option value="${esc(b)}">`).join('')}</datalist>
-      <div class="hint">Se documenta con el QR y las coordenadas de este folio. Se puede ajustar después en Documentación de 2N.</div></div>`)(d._doc2n || {})}
+      <div class="hint">Se documenta con el QR y las coordenadas de este folio. Se puede ajustar después en Documentación.</div></div>`)(d._doc2n || {})}
     <label>Técnicos que atienden</label><div class="chips" id="cTec">${tecnicos.map(t=>`<button type="button" class="chip ${selTec.has(t)?'on':''}">${esc(t)}</button>`).join('')}</div>
     ${fijo('PROVEEDOR') && fijo('SUPERVISOR')
       ? `<div class="hint" style="margin-top:12px">Proveedor: <b>${esc(d['PROVEEDOR'])}</b> · Supervisor: <b>${esc(d['SUPERVISOR DISTRITO'])}</b></div>
@@ -3159,6 +3705,8 @@ function pantallaFolio(id){
   };
   const ponerCoords = (lat, lon, msg) => { $('#fCoord').value = `${lat.toFixed(6)}, ${lon.toFixed(6)}`; const h = $('#hCoord'); h.className='hint ok'; h.textContent = msg; detectar(); autosave(); };
   pintarOlt(false);
+  setTimeout(() => { const fo = $('#fo'); if(!fo) return; const d = [...fo.querySelectorAll(':scope > details.card')];
+    porPasos(fo, [['Datos', [d[0]]], ['Ubicación', [d[1]]], ['Atención', [d[2]]], ['Material', [d[3], d[4]]], ['Cierre', d.slice(5).concat([...fo.querySelectorAll(':scope > :not(details):not(.pasos)')])]]); }, 0);
   $('#fo').addEventListener('input', autosave);       // en #fo (se crea nuevo cada vez), no en #app
   $('#fo').addEventListener('change', autosave);
   $('#fCluster').onchange = () => { pintarOlt(true); $('#hCluster').textContent=''; autosave(); };
@@ -3414,7 +3962,7 @@ function textoWA(f){
   CONCEPTOS.forEach(([h]) => L.push(`${h.replace(/\s+/g,' ')}: ${v(h)}`));
   L.push(`QR SEGUNDO NIVEL: ${v('QR SEGUNDO NIVEL')}`, `TÉCNICO QUE ATIENDE: ${v('TECNICO QUE ATIENDE')}`, `PROVEEDOR: ${v('PROVEEDOR')}`,
    `SUPERVISOR TOTALPLAY: ${v('SUPERVISOR DISTRITO')}`, `TIPO DE MANTENIMINETO: ${v('TIPO DE MANTENIMIENTO')}`, 'MATERIAL UTILIZADO: ');
-  MATERIALES.forEach(([h]) => L.push(`${h.replace(/\s+/g,' ').trim().replace(/"/g,'')}: ${v(h)}`));
+  MAT_FOLIO.forEach(([h]) => L.push(`${h.replace(/\s+/g,' ').trim().replace(/"/g,'')}: ${v(h)}`));
   return L.join('\n');
 }
 
@@ -3485,7 +4033,7 @@ const AYUDA = {
     ['Sin señal', ['Captura igual: el folio queda "Por enviar" en el teléfono.', 'Se envía solo al volver la señal. El número junto a ⟳ es lo que falta por enviar.']],
     ['Corregir un folio', ['Entra a Folios de mi cuadrilla y toca el folio.', 'Toca Corregir. Tienes 48 horas; después lo corrige el supervisor.']],
     ['Material de mi cuadrilla', ['Ahí ves lo que traes según el último conteo y tus folios.', 'Cuando te entreguen material, revisa que coincida y toca Confirmar que lo recibí.', 'Para dar material a otra cuadrilla: Pasar material a otra cuadrilla.', 'Si algo no coincide, avisa al supervisor.']],
-    ['Documentar un 2N', ['Entra a Documentación de 2N y toca Documentar 2N.', 'Escanea el QR parado junto al 2N y espera a que el GPS sea preciso.', 'Elige la capacidad y el brazo, y guarda.', 'Si instalaste un 2N nuevo en un folio, marca "Sí, documentarlo" al cierre.']]],
+    ['Documentar un 2N', ['Entra a Documentación y toca Documentar cierre.', 'Escanea el QR parado junto al 2N y espera a que el GPS sea preciso.', 'Elige la capacidad y el brazo, y guarda.', 'Si instalaste un 2N nuevo en un folio, marca "Sí, documentarlo" al cierre.']]],
   externo: [['Documentar un 2N', ['Toca Documentar 2N.', 'Escanea el QR parado junto al 2N y espera a que el GPS sea preciso.', 'Si es un 2N del KMZ, la app lo reconoce; si no, queda como nuevo.', 'Elige la capacidad y el brazo, y guarda.', 'Sin señal se guarda en el teléfono y se envía después.']]],
   jefe: [['Inventario', ['Conteo inicial: elige almacén o cuadrilla y toca Contar.', '＋ Movimiento: entradas, entregas, traspasos, devoluciones y merma.', 'La entrega cuenta en la cuadrilla cuando confirma; si no puede, abre el movimiento y toca Marcar como recibido.', 'Para corregir o anular: Movimientos y toca el renglón.', 'Stock mínimo: define cuándo avisar.']],
     ['Reporte semanal', ['Entra a Reporte semanal de material, elige la semana y descarga el Excel.', 'Solo entran folios con hora final dentro de esa semana.']],
@@ -3513,7 +4061,8 @@ function pantallaAjustes(){
      <button class="btn ghost" id="btnSalir">Cerrar sesión</button></div>
    <div class="card"><h2>Apariencia</h2><label style="margin-top:0">Tema</label>${chips('aTema', 'tema', 'auto', [['auto', 'Automático'], ['claro', 'Claro'], ['oscuro', 'Oscuro']])}
      <div class="hint">Automático sigue al teléfono.</div>
-     <label>Tamaño de letra</label>${chips('aLetra', 'letra', 'normal', [['normal', 'Normal'], ['grande', 'Grande']])}</div>
+     <label>Tamaño de letra</label>${chips('aLetra', 'letra', 'normal', [['normal', 'Normal'], ['grande', 'Grande']])}
+     <label>Formularios (folio y OT)</label>${chips('aPasos', 'pasos', usarPasos() ? '1' : '0', [['1', 'Por pasos'], ['0', 'En una página']])}</div>
    <div class="card"><h2>Envío y datos</h2>
      <div class="hint" style="margin:0">${pend ? `<b style="color:var(--warn)">${pend} por enviar.</b> Se envían solos cuando hay señal.` : 'Todo está enviado.'}${navigator.onLine ? '' : ' Ahora no hay conexión.'}</div>
      <button class="btn sec" id="aEnviar">Enviar ahora</button>
@@ -3533,7 +4082,7 @@ function pantallaAjustes(){
   $('#btnSalir').onclick = cerrarSesion;
   const grupo = (id, clave) => document.querySelectorAll(`#${id} .chip`).forEach(b => b.onclick = () => { LS.set(clave, b.dataset.k); aplicarTema();
     document.querySelectorAll(`#${id} .chip`).forEach(x => x.classList.toggle('on', x === b)); });
-  grupo('aTema', 'tema'); grupo('aLetra', 'letra');
+  grupo('aTema', 'tema'); grupo('aLetra', 'letra'); grupo('aPasos', 'pasos');
   $('#aEnviar').onclick = async () => { await sincronizar(true); if(typeof sincInv === 'function') sincInv(); if(location.hash === '#ajustes') setTimeout(() => location.hash === '#ajustes' && pantallaAjustes(), 1500); };
   $('#aListas').onclick = async () => { if(demo()) return toast('Modo demo: no hay servidor'); if(!navigator.onLine) return toast('Necesitas señal');
     toast('Actualizando…'); await bajarConfig(); toast('Usuarios y listas actualizados'); };
