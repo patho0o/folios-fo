@@ -137,8 +137,11 @@ details.gr .cnt{margin-left:auto;font-weight:400;font-size:13px;color:var(--gris
 .modal.flot .mtop b{font-size:15px}
 .modal.flot .mv{flex:none;height:min(380px,52vh)}
 .modal.flot .mpie{border-top:0;padding-top:4px}
+.archivo{display:flex;align-items:center;gap:12px;padding:6px 2px}.arIc{flex:none;width:52px;height:52px;border-radius:12px;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;letter-spacing:.5px}
+.arTx{min-width:0}.arTx b{display:block;word-break:break-word;font-size:15px}.arTx small{color:var(--gris);font-size:12.5px}
 /* mapa (los mosaicos son claros: sus letreros se quedan en claro en los dos temas) */
-.mv{flex:1;position:relative;overflow:hidden;background:var(--mapa);touch-action:none;cursor:crosshair}
+.mv{flex:1;position:relative;overflow:hidden;background:var(--mapa);touch-action:none;cursor:crosshair;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.mv *{user-select:none;-webkit-user-select:none}
 .mv img{position:absolute;width:256px;height:256px;user-select:none;-webkit-user-drag:none;pointer-events:none}
 .mv svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .mv .pin{position:absolute;width:30px;height:40px;margin:-40px 0 0 -15px;pointer-events:none;z-index:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.3))}
@@ -228,7 +231,7 @@ button.ocupado::before{content:"";display:inline-block;width:14px;height:14px;ma
 <script>
 /* ===== Configuración ===== */
 const API_URL = 'https://script.google.com/macros/s/AKfycbzI9uNq8muKRdLWnrY6StHGs8bfSvacPbXsOTxjHJPNpU4ZHK_CaRrfD4PDAmNcbt-kHQ/exec';            // URL de la implementación de Apps Script (termina en /exec). Vacío = modo demo.
-const APP_VERSION = '0.35.0';
+const APP_VERSION = '0.35.1';
 const HORAS_EDICION = 48;      // horas que un técnico puede corregir su folio
 const CENTRO_MAPA = [20.66, -105.24];   // donde abre el mapa si aún no hay coordenadas
 const DIAS_HISTORIAL = 30;     // los folios ya enviados se borran del teléfono después de estos días (siguen en Sheets)
@@ -354,6 +357,8 @@ function preguntar(msg, si='Sí', no='Cancelar'){
     abrirModal(() => { o.remove(); res(r); });
   });
 }
+document.addEventListener('mousedown', e => { if(e.target.closest && e.target.closest('.mv') && !e.target.closest('input,textarea,select')) e.preventDefault(); });
+document.addEventListener('dragstart', e => { if(e.target.closest && e.target.closest('.mv')) e.preventDefault(); });
 function ventana(titulo, cuerpo, pie, flotante){
   const o = document.createElement('div'); o.className = flotante ? 'modal flot' : 'modal';
   const html = `<div class="mtop"><b>${esc(titulo)}</b><button data-cerrar>Cerrar</button></div>${cuerpo}${pie?`<div class="mpie">${pie}</div>`:''}`;
@@ -1213,7 +1218,7 @@ function ingAplicar_(lista, id, ing, user) {
 }
 function docMetros_(a, b, c, d) { const R = 6371000, r = Math.PI / 180, x = (d - b) * r * Math.cos((a + c) / 2 * r), y = (c - a) * r; return Math.sqrt(x * x + y * y) * R; }
 // Guarda una captura en la lista (objetos). Regresa el registro guardado o lanza un error con la explicación.
-function docAplicar_(lista, doc, user, ahora) {
+function docAplicar_(lista, doc, user, ahora, out) {
   if (!/^[\w-]{6,60}$/.test(String(doc.id || ''))) throw new Error('Registro incompleto');
   const qr = docNorm_(doc.qr), lat = Number(doc.lat), lng = Number(doc.lng), admin = user.rol === 'ADMIN';
   const tipo = ['1N', 'DERIVACION'].indexOf(String(doc.tipo || '')) >= 0 ? String(doc.tipo) : '2N';   // 1N y derivación no llevan QR
@@ -1224,7 +1229,22 @@ function docAplicar_(lista, doc, user, ahora) {
   if (otro && !(admin && doc.forzar)) throw new Error('El QR ' + qr + ' ya está documentado (' + (otro.quien || '') + ', ' + String(otro.fecha || '').slice(0, 10) + ').');
   if (r && r.estado === 'DOCUMENTADO' && !admin && r.registradoPor !== user.id && (r.empresa || '') !== (user.cuadrilla || '-'))
     throw new Error('Ese 2N ya lo documentó ' + r.quien + '. Solo el administrador puede cambiarlo.');
-  if (!r && doc.liga) { const p = lista.find(x => x.id === doc.liga && x.estado === 'PENDIENTE'); if (p) { r = p; r.id = doc.id; } }
+  const p = doc.liga ? lista.find(x => x.id === doc.liga && x.estado === 'PENDIENTE') : null;
+  if (!r && p) { r = p; r.id = doc.id; }
+  else if (r && p && p !== r) {                 // al corregir: se liga a ese 2N del KMZ y el pendiente sale de la lista
+    if (r.capa && r.pm !== '' && r.pm !== undefined) {      // estaba ligado a otro 2N del KMZ: ese regresa a pendiente en su lugar original
+      let kl = null, t = ''; try { const e = JSON.parse(r.extra || '{}'); kl = e.kl; t = e.t || ''; } catch (e) {}
+      const libre = { id: r.capa + '-' + Date.now().toString(36) + '-' + r.pm, qr: '', estado: 'PENDIENTE', capacidad: '', brazo: '', lat: kl ? kl[0] : r.lat, lng: kl ? kl[1] : r.lng,
+        cluster: r.cluster || '', origen: 'KMZ', capa: r.capa, pm: r.pm, nombreKmz: r.nombreKmz || '', carpeta: r.carpeta || '', registradoPor: '', quien: '', empresa: '', fecha: '',
+        actualizado: ahora, notas: '', tipo: t, extra: r.extra || '', pot: '', direccion: '' };
+      ING_CAMPOS_.forEach(k => { libre[k] = r[k] || ''; r[k] = ''; });
+      lista.push(libre); if (out) out.liberado = libre;
+    }
+    Object.assign(r, { capa: p.capa, pm: p.pm, nombreKmz: p.nombreKmz || '', carpeta: p.carpeta || '', extra: p.extra || '' });
+    ING_CAMPOS_.forEach(k => { if (p[k]) r[k] = p[k]; });
+    lista.splice(lista.indexOf(p), 1);
+    if (out) out.ligado = p.id;
+  }
   if (!r) { r = { id: doc.id, capa: '', pm: '', nombreKmz: '', carpeta: '' }; lista.push(r); }
   const nuevo = r.estado !== 'DOCUMENTADO', pot = doc.pot === undefined ? String(r.pot || '') : potNorm_(doc.pot);
   if (admin) ING_CAMPOS_.forEach(k => { if (doc[k] !== undefined) r[k] = String(doc[k] == null ? '' : doc[k]).trim().toUpperCase().slice(0, 80); });
@@ -1241,7 +1261,9 @@ function capaAplicar_(lista, capa, puntos, ahora) {
   libres.forEach(x => { x.pm = ''; });
   const usados = new Set(), pre = capa + '-' + Date.now().toString(36) + '-';
   let ligados = 0, pendientes = 0;
+  const conKl = (ex, p) => { let e = {}; try { e = JSON.parse(ex || '{}') || {}; } catch (er) {} e.kl = [p.lat, p.lng]; return JSON.stringify(e); };
   puntos.forEach(p => {
+    p.extra = conKl(p.extra, p);
     let mejor = null, dm = RADIO_CAPA_;
     libres.forEach(x => { if (usados.has(x)) return; const m = docMetros_(p.lat, p.lng, Number(x.lat), Number(x.lng)); if (m < dm) { dm = m; mejor = x; } });
     if (mejor) { usados.add(mejor); Object.assign(mejor, { capa: capa, pm: p.pm, nombreKmz: p.nombre || '', carpeta: p.carpeta || '', extra: p.extra || '' });
@@ -1272,8 +1294,11 @@ function vistaDocs(){
   const m = new Map(DOCS.lista.map(x => [x.id, {...x, lat:+x.lat, lng:+x.lng}]));
   for(const x of MIS_DOCS){
     let base = m.get(x.id);
-    if(!base && x.liga){ const p = m.get(x.liga); if(p && p.estado === 'PENDIENTE'){ base = p; m.delete(x.liga); } }
     if(x.subido) continue;                   // el servidor ya lo tiene (o ya lo borró el administrador)
+    const p = x.liga ? m.get(x.liga) : null;
+    if(p && p.estado === 'PENDIENTE' && p.id !== x.id){ m.delete(x.liga);
+      if(!base) base = p;
+      else { base = {...base, capa: p.capa, pm: p.pm, nombreKmz: p.nombreKmz, carpeta: p.carpeta, extra: p.extra}; ING_CAMPOS_.forEach(k => { if(p[k]) base[k] = p[k]; }); } }                   // el servidor ya lo tiene (o ya lo borró el administrador)
     m.set(x.id, {...(base||{}), ...x, lat:+x.lat, lng:+x.lng, estado:'DOCUMENTADO', _local: !x.subido});
   }
   ING_PEND.forEach(c => { const y = m.get(c.id); if(y) m.set(c.id, {...y, ...c.ing, _ingPend: true}); });
@@ -1300,7 +1325,7 @@ async function apiDoc(accion, datos){
       const c = s.capas.find(x => x.id === datos.capa); if(!c) throw new Error('No existe ese KMZ');
       s.archivos[c.id + '.rutas'] = datos.rutas; c.actualizado = ahora; return {capa: c}; }
     if(accion === 'guardarIng') return {doc: ingAplicar_(s.lista, datos.id, datos.ing, USER)};
-    if(accion === 'guardarDoc') return {doc: docAplicar_(s.lista, {...datos.doc, foto: datos.foto ? '#' : datos.doc.foto}, USER, ahora)};
+    if(accion === 'guardarDoc'){ const out = {}; const doc = docAplicar_(s.lista, {...datos.doc, foto: datos.foto ? '#' : datos.doc.foto}, USER, ahora, out); return {doc, liberado: out.liberado || null}; }
     if(accion === 'cargarCapa'){ if(!esAdmin()) throw new Error('Solo el administrador puede hacer esto.');
       let c = s.capas.find(x => MAY(x.nombre) === MAY(datos.nombre));
       if(!c){ c = {id:'K' + Math.random().toString(36).slice(2,8), nombre:datos.nombre}; s.capas.push(c); }
@@ -1335,7 +1360,7 @@ async function subirDocs(){
       const j = await apiDoc('guardarDoc', {doc, foto: fotoB64, _cred: x.usuario === USER.id ? undefined : {id:x.usuario, pin}});
       if(_fotoPend){ IDB.quitar(_fotoPend).catch(() => {}); delete x._fotoPend; }
       x.subido = true; x.error = ''; n++;
-      DOCS.lista = DOCS.lista.filter(y => y.id !== j.doc.id && y.id !== x.liga); DOCS.lista.push(j.doc); LS.set('docs', DOCS);
+      DOCS.lista = DOCS.lista.filter(y => y.id !== j.doc.id && y.id !== x.liga); DOCS.lista.push(j.doc); if(j.liberado) DOCS.lista.push(j.liberado); LS.set('docs', DOCS);
     }catch(e){ x.error = String(e.message || e); if(/ya está documentado|ya lo documentó/.test(x.error)) x.rechazado = true; }
   }
   for(const c of [...ING_PEND]){
@@ -1534,22 +1559,49 @@ async function editorRutas(capa){
     if(b('#rGuardar')) b('#rGuardar').onclick = guardar;
   }
   function datosNueva(){
-    const carpetas = [...new Set(rutas.map(r => r.f).concat(docsCapa.map(x => x.carpeta)).filter(Boolean))].sort();
-    const v = ventana('Ruta nueva', `<div class="mbody"><label>Nombre</label><input id="nrN" autocapitalize="characters" placeholder="Ej. NVA-5-S-2-6">
-      <label>Tipo de cable</label><div class="chips" id="nrC">${CABLES_RUTA.map(([t, c], i) => `<button type="button" class="chip ${i ? '' : 'on'}" data-c="${c}"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c};border:1px solid #999;margin-right:5px"></span>${t}</button>`).join('')}</div>
-      <label>Carpeta</label><select id="nrF">${carpetas.map(f => `<option value="${esc(f)}">${esc(f.split(' / ').slice(-2).join(' / '))}</option>`).join('')}<option value="">+ Carpeta nueva…</option></select>
-      <div id="nrNueva" class="${carpetas.length ? 'hidden' : ''}"><label>Dentro de</label><select id="nrP"><option value="">(raíz del KMZ)</option>${[...new Set(carpetas.flatMap(f => f.split(' / ').map((_, i, a) => a.slice(0, i + 1).join(' / '))))].sort().map(f => `<option value="${esc(f)}">${esc(f.split(' / ').slice(-2).join(' / '))}</option>`).join('')}</select>
+    // solo carpetas de fibra (donde ya hay rutas); la de 2N, gazas y postes no
+    const carpetas = [...new Set(rutas.filter(r => !r.borrada).map(r => r.f).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es', {numeric: true}));
+    const padres = [...new Set(carpetas.flatMap(f => f.split(' / ').map((_, i, a) => a.slice(0, i + 1).join(' / '))))].sort();
+    const distrib = padres.find(f => /DISTRIBUCI[OÓ]N$/i.test(f)), secund = carpetas.find(f => /TRONCAL\s+SECUNDARIA$/i.test(f)), prim = carpetas.find(f => /TRONCAL\s+PRIMARIA$/i.test(f));
+    const ultimo = f => f.split(' / ').pop(), esBrazo = f => !/TRONCAL|DISTRIBUCI|CONSTRUC|FIBRA/i.test(ultimo(f));
+    const corto = f => f.split(' / ').slice(-2).join(' / ');
+    const AZUL = '#0000ff', ROJO = '#ff0000', BLANCO = '#ffffff';
+    const color0 = distrib ? AZUL : CABLES_RUTA[0][1];
+    const v = ventana('Ruta nueva', `<div class="mbody">
+      <label>Tipo de cable</label><div class="chips" id="nrC">${CABLES_RUTA.map(([t, c]) => `<button type="button" class="chip ${c === color0 ? 'on' : ''}" data-c="${c}"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c};border:1px solid #999;margin-right:5px"></span>${t}</button>`).join('')}</div>
+      <label>Nombre</label><input id="nrN" autocapitalize="characters" placeholder="Ej. NVA-5-S-2-6">
+      <label>Carpeta</label><select id="nrF">${carpetas.map(f => `<option value="${esc(f)}">${esc(corto(f))}</option>`).join('')}<option value="">+ Carpeta nueva…</option></select>
+      <div id="nrNueva" class="${carpetas.length ? 'hidden' : ''}"><label>Dentro de</label><select id="nrP"><option value="">(raíz del KMZ)</option>${padres.map(f => `<option value="${esc(f)}" ${f === distrib ? 'selected' : ''}>${esc(corto(f))}</option>`).join('')}</select>
         <label>Nombre de la carpeta nueva</label><input id="nrFN" autocapitalize="characters" placeholder="Ej. NVA-5-S-2-6"></div>
+      <div class="hint" id="nrH"></div>
       <div class="hint">${nueva.length} puntos · ${Math.round(largo(nueva))} m</div><div id="nrE" class="hint err"></div></div>`, '<button class="btn verde" id="nrOk">Agregar ruta</button>', true);
-    const q = s => v.o.querySelector(s);
-    q('#nrF').onchange = () => q('#nrNueva').classList.toggle('hidden', q('#nrF').value !== '');
-    v.o.querySelectorAll('#nrC .chip').forEach(c => c.onclick = () => v.o.querySelectorAll('#nrC .chip').forEach(x => x.classList.toggle('on', x === c)));
-    [q('#nrN'), q('#nrFN')].forEach(e => e.addEventListener('input', () => { e.value = e.value.toUpperCase(); }));
+    const q = s => v.o.querySelector(s), color = () => v.o.querySelector('#nrC .chip.on').dataset.c;
+    const ponerCarpeta = (f, nuevaEn, nombreNueva) => { q('#nrF').value = f || ''; q('#nrNueva').classList.toggle('hidden', !!f);
+      if(!f){ if(nuevaEn !== undefined) q('#nrP').value = nuevaEn; if(nombreNueva !== undefined) q('#nrFN').value = nombreNueva; } };
+    // siguiente nombre libre del brazo: NVA-5-S-2-6, NVA-5-S-2-6/1, /2…
+    const libre = base => { const usados = new Set(rutas.filter(r => !r.borrada).map(r => MAY(r.n))); if(!usados.has(base)) return base; let k = 1; while(usados.has(base + '/' + k)) k++; return base + '/' + k; };
+    let nombreTocado = false;
+    const sugerir = desde => {
+      const c = color(), n = MAY(q('#nrN').value).trim(), base = n.replace(/\/\d+$/, '');
+      if(c === ROJO && secund) ponerCarpeta(secund);
+      else if(c === BLANCO && prim) ponerCarpeta(prim);
+      else if(c === AZUL && base){ const f = carpetas.find(x => esBrazo(x) && MAY(ultimo(x)) === base);
+        if(f) ponerCarpeta(f); else if(distrib) ponerCarpeta('', distrib, base); }
+      if(desde === 'carpeta' && !nombreTocado){ const f = q('#nrF').value; if(f && esBrazo(f)) q('#nrN').value = libre(MAY(ultimo(f))); }
+      const f = q('#nrF').value || [q('#nrP').value, MAY(q('#nrFN').value).trim()].filter(Boolean).join(' / ');
+      q('#nrH').textContent = f ? 'Se guarda en: ' + f : '';
+    };
+    q('#nrF').onchange = () => { q('#nrNueva').classList.toggle('hidden', q('#nrF').value !== ''); sugerir('carpeta'); };
+    v.o.querySelectorAll('#nrC .chip').forEach(c => c.onclick = () => { v.o.querySelectorAll('#nrC .chip').forEach(x => x.classList.toggle('on', x === c)); sugerir('cable'); });
+    q('#nrN').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); nombreTocado = !!e.target.value; sugerir('nombre'); });
+    q('#nrFN').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); sugerir('x'); });
+    q('#nrP').onchange = () => sugerir('x');
+    sugerir('cable');
     q('#nrOk').onclick = () => {
       const n = MAY(q('#nrN').value).trim(), f = q('#nrF').value || [q('#nrP').value, MAY(q('#nrFN').value).trim()].filter(Boolean).join(' / ');
       if(!n){ q('#nrE').textContent = 'Escribe el nombre.'; return; }
       if(!f || (!q('#nrF').value && !MAY(q('#nrFN').value).trim())){ q('#nrE').textContent = 'Elige la carpeta o escribe el nombre de la nueva.'; return; }
-      snap(); rutas.push({n, f, color: v.o.querySelector('#nrC .chip.on').dataset.c, c: nueva.map(([la, lo]) => [+la.toFixed(6), +lo.toFixed(6)]), nueva: true});
+      snap(); rutas.push({n, f, color: color(), c: nueva.map(([la, lo]) => [+la.toFixed(6), +lo.toFixed(6)]), nueva: true});
       modo = 'ver'; nueva = []; sel = rutas.length - 1; guardaBorrador(); v.cerrar(); setTimeout(() => { pintar(); ui(); }, 60);
     };
   }
@@ -1694,6 +1746,7 @@ function pantallaDoc2n(id, proyId){
   d.tipo = d.tipo || '2N';
   let foto = null;                               // {clave, mini} de la foto nueva (la anterior queda si no se cambia)
   let ligaManual = !!prev;                      // al corregir no se vuelve a ligar solo
+  let esNuevo = false;                           // eligió a propósito "Es nuevo, no está en el KMZ"
   const brazos = [...new Set(vistaDocs().flatMap(x => [x.brazo, (x.carpeta || '').split(' / ').pop()]).map(b => MAY(b).trim()).filter(Boolean))].sort();
   const otraCap = d.capacidad && !CAPACIDADES_2N.includes(d.capacidad);
   $('#app').innerHTML = `<div id="fd">
@@ -1755,7 +1808,7 @@ function pantallaDoc2n(id, proyId){
     box.innerHTML = `<div class="sug" style="margin-top:10px">${sel ? `Es el 2N del KMZ <b>${esc(sel.nombreKmz || 'sin nombre')}</b>${sel.carpeta ? ' · ' + esc(sel.carpeta) : ''} · a ${Math.round(sel.m)} m${sel.m > 15 ? '. Queda en el punto donde estás (su ubicación real).' : ''}` : `Se registra como 2N nuevo. Si es uno del KMZ que se movió, elígelo abajo (el más cercano está a ${Math.round(cand[0].m)} m).`}</div>
       <label>¿Cuál 2N del KMZ es?</label><select id="dLigaSel"><option value="">Es nuevo, no está en el KMZ</option>
       ${cand.map(x => `<option value="${esc(x.id)}" ${x.id === d.liga ? 'selected' : ''}>${esc(x.nombreKmz || 'sin nombre')} · ${Math.round(x.m)} m${x.carpeta ? ' · ' + esc(x.carpeta) : ''}</option>`).join('')}</select>`;
-    $('#dLigaSel').onchange = e => { d.liga = e.target.value; ligaManual = true; pintarLiga(); };
+    $('#dLigaSel').onchange = e => { d.liga = e.target.value; ligaManual = true; esNuevo = !e.target.value; pintarLiga(); };
     const b = $('#dBrazo'); if(sel && !b.value && sel.carpeta) b.value = MAY(sel.carpeta.split(' / ').pop());
   };
   co.addEventListener('change', pintarLiga);
@@ -1783,7 +1836,7 @@ function pantallaDoc2n(id, proyId){
   if(!prev){ gps(false); if(!DOCS.t || Date.now() - new Date(DOCS.t) > 60000) bajarDocs(); setTimeout(() => { if($('#fd') && !qr.value && d.tipo === '2N') $('#dEsc').click(); }, 300); }
   else pintarLiga();
 
-  $('#dGuardar').onclick = () => {
+  $('#dGuardar').onclick = async () => {
     const err = $('#derr'); err.textContent = '';
     const cOn = document.querySelector('#dCap .chip.on'), c = parseCoords(co.value);
     d.qr = docNorm_(qr.value); d.capacidad = cOn ? (cOn.dataset.v || $('#dCapOtra').value.trim().toLowerCase()) : '';
@@ -1795,6 +1848,10 @@ function pantallaDoc2n(id, proyId){
     if(faltan.length){ err.textContent = 'Falta: ' + faltan.join(', '); toast(err.textContent); return; }
     const dup = d.qr && vistaDocs().find(x => x.estado === 'DOCUMENTADO' && x.id !== d.id && docNorm_(x.qr) === d.qr);
     if(dup){ err.textContent = `El QR ${d.qr} ya está documentado (${dup.quien || ''}${dup.brazo ? ', ' + dup.brazo : ''}).`; toast(err.textContent); return; }
+    if(!d.liga && !esNuevo && !(prev && prev.capa)){        // hay un 2N del KMZ cerca pero no se ligó solo: se pregunta
+      const p = pendientesCerca(c[0], c[1], 300)[0];
+      if(p){ const si = await preguntar(`¿Es el ${p.tipo === '1N' ? '1N' : p.tipo === 'DERIVACION' ? 'cierre' : '2N'} del KMZ ${tituloDoc(p) || p.nombreKmz || 'sin nombre'}, a ${Math.round(p.m)} m?`, 'Sí, es ese', 'Es nuevo');
+        if(si) d.liga = p.id; else esNuevo = true; } }
     parar();
     const r = clusterDe(c[0], c[1]);
     const x = {id:d.id, tipo:d.tipo, proyecto: d.proyecto || '', qr:d.qr, pot:d.pot || '', capacidad:d.capacidad, brazo:d.brazo, foto: d.foto || '', mini: foto ? foto.mini : d.mini, _fotoPend: foto ? foto.clave : d._fotoPend, lat:c[0], lng:c[1], cluster: r ? r.cluster : '', origen: d.origen || (d.proyecto ? 'PROYECTO' : 'DOCUMENTACIÓN'),
@@ -1984,7 +2041,7 @@ function elegirDescarga(){
   const {o} = ventana('Descargar KMZ', `<div class="mbody">
     ${DOCS.capas.map(c => `<button class="btn sec" data-c="${esc(c.id)}">${esc(c.nombre)}<div class="hint">El mismo KMZ con cada 2N documentado escrito en él</div></button>`).join('')}
     <button class="btn ghost" data-c="">Solo lo documentado (KMZ nuevo)<div class="hint">Todos los 2N documentados, por cluster y brazo</div></button>
-    <div id="eErr" class="hint err"></div></div>`, '');
+    <div id="eErr" class="hint err"></div></div>`, '', true);
   o.querySelectorAll('[data-c]').forEach(b => b.onclick = async () => {
     if(!demo() && !navigator.onLine){ o.querySelector('#eErr').textContent = 'Necesitas señal.'; return; }
     const t = b.innerHTML; b.disabled = true; b.textContent = 'Preparando…';
@@ -2122,16 +2179,19 @@ function filasQr(lista){
 function excelQr(lista){
   const filas = filasQr(lista);
   if(!filas.length) return toast('Aún no hay 2N documentados con QR.');
-  const {o} = ventana('Excel de QR', '<div class="mbody"><div class="vacio">Armando el Excel…</div></div>', '');
+  const {o} = ventana('Excel de QR', '<div class="mbody"><div class="vacio">Armando el Excel…</div></div>', '', true);
   const nombre = `QR 2N ${hoyISO()}.xlsx`;
   entregarArchivo(xlsxSimple('QR 2N', ['QR', 'BRAZO', 'ID DEL 2N', 'CAPACIDAD', 'COORDENADAS', 'PLUS CODE'], filas, [14, 18, 16, 12, 26, 36]), nombre, o,
     {t: 'Excel listo', h: `${filas.length} 2N con QR · ábrelo con Excel o Google Sheets`});
 }
 function entregarArchivo(blob, nombre, o, txt){   // muestra el archivo listo dentro de la misma ventana
   const url = URL.createObjectURL(blob), file = new File([blob], nombre, {type: blob.type}), t = txt || {t: 'KMZ listo', h: 'ábrelo con Google Earth'};
-  o.querySelector('.mbody').innerHTML = `<div class="card" style="margin:0"><h2>${esc(t.t)}</h2><b>${esc(nombre)}</b><div class="hint">${Math.ceil(blob.size / 1024)} KB · ${esc(t.h)}</div></div>`;
+  const xls = /\.xlsx$/i.test(nombre), kb = blob.size / 1024, tam = kb >= 1024 ? (kb / 1024).toFixed(1) + ' MB' : Math.ceil(kb) + ' KB';
+  o.querySelector('.mbody').innerHTML = `<div class="archivo"><span class="arIc" style="background:${xls ? '#1f8a4c' : '#3d6bff'}">${xls ? 'XLSX' : 'KMZ'}</span>
+    <div class="arTx"><b>${esc(nombre)}</b><small>${tam} · ${esc(t.h)}</small></div></div>`;
+  const tit = o.querySelector('.mtop b'); if(tit) tit.textContent = t.t;
   let pie = o.querySelector('.mpie'); if(!pie){ pie = document.createElement('div'); pie.className = 'mpie'; o.appendChild(pie); }
-  pie.innerHTML = `<a class="btn ghost" href="${url}" download="${esc(nombre)}" style="text-align:center;text-decoration:none">Descargar</a>${navigator.canShare && navigator.canShare({files:[file]}) ? '<button class="btn verde" id="aComp">Compartir</button>' : ''}`;
+  pie.innerHTML = `<div class="row" style="width:100%"><a class="btn ${navigator.canShare && navigator.canShare({files:[file]}) ? 'ghost' : 'verde'}" href="${url}" download="${esc(nombre)}" style="text-align:center;text-decoration:none">⬇️ Descargar</a>${navigator.canShare && navigator.canShare({files:[file]}) ? '<button class="btn verde" id="aComp">📤 Compartir</button>' : ''}</div>`;
   const c = o.querySelector('#aComp'); if(c) c.onclick = () => navigator.share({files:[file], title:nombre}).catch(() => {});
   o.addEventListener('cerrar', () => setTimeout(() => URL.revokeObjectURL(url), 5000));
 }
@@ -2603,7 +2663,7 @@ async function mapaIncidencias(p){
 async function kmzCorrecciones(p){
   const ab = incDe(p.id).filter(i => i.estado === 'ABIERTA');
   if(!ab.length) return toast('No hay incidencias abiertas');
-  const {o} = ventana('KMZ de correcciones', `<div class="mbody"><div class="vacio" id="kEst">Preparando ${ab.length} incidencia(s) con sus fotos…</div></div>`, '');
+  const {o} = ventana('KMZ de correcciones', `<div class="mbody"><div class="vacio" id="kEst">Preparando ${ab.length} incidencia(s) con sus fotos…</div></div>`, '', true);
   try{
     const fotos = [];
     for(const [n, i] of ab.entries()){ const b = await fotoDeInc(i, false); if(b) fotos.push({n, i, datos: new Uint8Array(await b.arrayBuffer())}); }
@@ -3343,7 +3403,7 @@ ${ots.length ? `<Folder><name>OTs realizadas (${ots.length})</name>${ots.map(pun
 }
 function kmzCierreRec(r, mes){
   if(!r) return;
-  const {o} = ventana('KMZ de cierre', '<div class="mbody"><div class="vacio" id="kEst">Armando el KMZ…</div></div>', '');
+  const {o} = ventana('KMZ de cierre', '<div class="mbody"><div class="vacio" id="kEst">Armando el KMZ…</div></div>', '', true);
   try{ const {kml, ots, sin} = kmlCierreRec(r, mes), k = new TextEncoder().encode(kml);
     entregarArchivo(armarZip([{nombre: 'doc.kml', met: 0, crc: crc32(k), csz: k.length, usz: k.length, datos: k}]), `${r.nombre} cierre ${hoyISO()}.kmz`, o);
     o.querySelector('.mbody').insertAdjacentHTML('beforeend', `<div class="hint">Verde: concluido · Naranja: en curso · Rojo: pendiente · ${ots} OT(s) como puntos azules.${sin ? ` ${sin} OT(s) sin coordenadas no aparecen.` : ''}</div>`);
@@ -3658,7 +3718,7 @@ ${Object.entries(CONEX_LEV).map(([k, [, c]]) => `<Style id="cx_${k}"><LineStyle>
 ${Object.keys(TIPOS_LEV).map(t => { const ps = L.puntos.filter(p => p.tipo === t && p.lat); return ps.length ? `<Folder><name>${TIPOS_LEV[t][0].toUpperCase()}S (${ps.length})</name>${ps.map(p => `<Placemark><name>${esc(p.et)}</name><description>${esc(ficha(p))}</description><styleUrl>#lev_${t}</styleUrl><Point><coordinates>${p.lng},${p.lat},0</coordinates></Point></Placemark>`).join('')}</Folder>` : ''; }).join('')}
 ${L.conex.length ? `<Folder><name>CONEXIONES (${L.conex.length})</name>${Object.keys(CONEX_LEV).map(k => { const cs = L.conex.filter(c => c.tipo === k && P(c.a) && P(c.b)); return cs.length ? `<Folder><name>${CONEX_LEV[k][0].toUpperCase()}</name>${cs.map(c => `<Placemark><name>${esc(P(c.a).et)} - ${esc(P(c.b).et)}</name><description>${CONEX_LEV[k][0]} · ${metrosConex(L, c)} m</description><styleUrl>#cx_${k}</styleUrl><LineString><tessellate>1</tessellate><coordinates>${P(c.a).lng},${P(c.a).lat},0 ${P(c.b).lng},${P(c.b).lat},0</coordinates></LineString></Placemark>`).join('')}</Folder>` : ''; }).join('')}</Folder>` : ''}
 </Document></kml>`;
-  const k = new TextEncoder().encode(kml), {o} = ventana('KMZ del levantamiento', '<div class="mbody"><div class="vacio">Armando…</div></div>', '');
+  const k = new TextEncoder().encode(kml), {o} = ventana('KMZ del levantamiento', '<div class="mbody"><div class="vacio">Armando…</div></div>', '', true);
   entregarArchivo(armarZip([{nombre: 'doc.kml', met: 0, crc: crc32(k), csz: k.length, usz: k.length, datos: k}]), `${L.nombre} levantamiento ${hoy}.kmz`, o);
 }
 function excelLev(L){
@@ -3667,7 +3727,7 @@ function excelLev(L){
   const puntos = L.puntos.filter(p => p.lat).map(p => [p.et, TIPOS_LEV[p.tipo][0].toUpperCase(), `${(+p.lat).toFixed(6)}, ${(+p.lng).toFixed(6)}`, olcGoogle(+p.lat, +p.lng), ...campos.map(([k]) => p[k] || ''),
     L.conex.filter(c => c.a === p.id || c.b === p.id).map(c => (P(c.a === p.id ? c.b : c.a) || {}).et).filter(Boolean).join(', '), p.notas || '', p.foto && p.foto.url && p.foto.url !== '#' ? p.foto.url : '', fmtFecha(local(p.fecha)).slice(0, 16)]);
   const conex = L.conex.filter(c => P(c.a) && P(c.b)).map(c => [P(c.a).et, P(c.b).et, CONEX_LEV[c.tipo][0].toUpperCase(), String(metrosConex(L, c))]);
-  const {o} = ventana('Excel del levantamiento', '<div class="mbody"><div class="vacio">Armando…</div></div>', '');
+  const {o} = ventana('Excel del levantamiento', '<div class="mbody"><div class="vacio">Armando…</div></div>', '', true);
   entregarArchivo(xlsxLibro([{hoja: 'Puntos', cab: ['ETIQUETA', 'TIPO', 'COORDENADAS', 'PLUS CODE', ...campos.map(c => c[1]), 'CONECTA CON', 'NOTAS', 'FOTO', 'FECHA'], filas: puntos, anchos: [10, 11, 24, 34, 13, 10, 10, 10, 13, 11, 18, 26, 30, 16]},
     {hoja: 'Conexiones', cab: ['DE', 'A', 'TIPO', 'METROS'], filas: conex, anchos: [10, 10, 14, 10]}]), `${L.nombre} levantamiento ${hoy}.xlsx`, o,
     {t: 'Excel listo', h: `${puntos.length} puntos y ${conex.length} conexiones · ábrelo con Excel o Google Sheets`});
