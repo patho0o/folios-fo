@@ -228,7 +228,7 @@ button.ocupado::before{content:"";display:inline-block;width:14px;height:14px;ma
 <script>
 /* ===== Configuración ===== */
 const API_URL = 'https://script.google.com/macros/s/AKfycbzI9uNq8muKRdLWnrY6StHGs8bfSvacPbXsOTxjHJPNpU4ZHK_CaRrfD4PDAmNcbt-kHQ/exec';            // URL de la implementación de Apps Script (termina en /exec). Vacío = modo demo.
-const APP_VERSION = '0.32.0';
+const APP_VERSION = '0.35.0';
 const HORAS_EDICION = 48;      // horas que un técnico puede corregir su folio
 const CENTRO_MAPA = [20.66, -105.24];   // donde abre el mapa si aún no hay coordenadas
 const DIAS_HISTORIAL = 30;     // los folios ya enviados se borran del teléfono después de estos días (siguen en Sheets)
@@ -404,10 +404,28 @@ function clusterDe(lat, lon){
 }
 /* Plus Codes de Google ("MQRJ+V4F" o "75FCMQRJ+V4F"). Los cortos se completan con la zona de trabajo (Puerto Vallarta). */
 const OLC = '23456789CFGHJMPQRVWX', OLC_RES = [20, 1, 0.05, 0.0025, 0.000125];
-function olcCodificar(la, lo){
-  let a = Math.min(Math.max(la, -90), 89.9999999) + 90, b = ((lo + 180) % 360 + 360) % 360, c = '';
-  OLC_RES.forEach(r => { const x = Math.floor(a / r), y = Math.floor(b / r); a -= x * r; b -= y * r; c += OLC[x] + OLC[y]; });
-  return c.slice(0, 8) + '+' + c.slice(8);
+function olcLargo(la, lo){                     // código de 11 dígitos, "75GPMPRG+GH5"
+  la = Math.min(Math.max(la, -90), 90); lo = ((lo + 180) % 360 + 360) % 360 - 180;
+  let a = Math.floor(Math.round((la + 90) * 2.5e7 * 1e6) / 1e6), b = Math.floor(Math.round((lo + 180) * 8.192e6 * 1e6) / 1e6);
+  if(a >= 180 * 2.5e7) a = 180 * 2.5e7 - 1;
+  a = Math.floor(a / 625); b = Math.floor(b / 256);              // deja solo el primer dígito de rejilla
+  const g = OLC[(a % 5) * 4 + (b % 4)]; a = Math.floor(a / 5); b = Math.floor(b / 4);
+  let c = ''; for(let i = 0; i < 5; i++){ c = OLC[a % 20] + OLC[b % 20] + c; a = Math.floor(a / 20); b = Math.floor(b / 20); }
+  return c.slice(0, 8) + '+' + c.slice(8) + g;
+}
+const olcCodificar = (la, lo) => olcLargo(la, lo).slice(0, 11);
+// Estilo Google: "MQ39+Q5C Puerto Vallarta, Jalisco". La localidad es la más cercana de esta lista (puntos confirmados con Google Maps).
+const OLC_LUGARES = [
+  [20.6544, -105.2321, 'Puerto Vallarta, Jalisco'], [20.6950, -105.2300, 'Puerto Vallarta, Jalisco'], [20.6070, -105.2340, 'Puerto Vallarta, Jalisco'],
+  [20.6370, -105.2300, 'Puerto Vallarta, Jalisco'], [20.6680, -105.2500, 'Puerto Vallarta, Jalisco'], [20.5600, -105.2500, 'Puerto Vallarta, Jalisco'],
+  [20.7000, -105.2500, 'Las Juntas, Jalisco'], [20.7020, -105.2100, 'Ixtapa, Jalisco'], [20.7150, -105.2250, 'Ixtapa, Jalisco'], [20.7300, -105.2050, 'Getsemaní, Jalisco'],
+  [20.6913, -105.2735, 'Las Jarretaderas, Nayarit'], [20.7100, -105.2600, 'Las Jarretaderas, Nayarit'], [20.6850, -105.2850, 'Nuevo Nayarit, Nayarit'],
+  [20.7000, -105.3000, 'Nuevo Nayarit, Nayarit'], [20.8050, -105.2480, 'Valle de Banderas, Nayarit'], [20.7570, -105.3340, 'Bucerías, Nayarit'],
+  [20.7490, -105.3780, 'La Cruz de Huanacaxtle, Nayarit'], [20.7680, -105.5190, 'Punta de Mita, Nayarit'], [20.8690, -105.4410, 'Sayulita, Nayarit']];
+function olcGoogle(la, lo){
+  const largo = olcLargo(la, lo);
+  let mejor = null; OLC_LUGARES.forEach(([y, x, n]) => { const d = Math.max(Math.abs(y - la), Math.abs(x - lo)); if(!mejor || d < mejor.d) mejor = {d, n}; });
+  return mejor && mejor.d < 0.25 ? largo.slice(4) + ' ' + mejor.n : largo;
 }
 function olcDecodificar(code){                  // código completo → centro de su cuadro
   const d = code.replace('+', '').replace(/0+$/, ''); let la = -90, lo = -180, ra = 20, rb = 20;
@@ -490,6 +508,7 @@ async function sincronizar(manual, conErrores = true){
   if(repPorSubir()) sincRep();
   if(prevPorSubir()) subirPrev();
   if(idrPorSubir()) subirIdr();
+  if(levPorSubir()) subirLev();
   if(REC.marcas.length) sincRec();
   const pend = FOLIOS.filter(f => f.estado === 'pendiente' || (conErrores && f.estado === 'error'));
   if(!navigator.onLine || sincronizando || !pend.length){ if(manual && !pend.length && !docsPorEnviar()) toast('Todo está enviado'); return; }
@@ -517,7 +536,7 @@ async function sincronizar(manual, conErrores = true){
 }
 function pintarPendientes(){
   let n = USER ? FOLIOS.filter(f => f.estado !== 'enviado' && esMio(f)).length : 0;
-  try{ n += USER ? docsPorEnviar() : 0; if(USER && esAdmin()) n += proyPorSubir(); if(USER) n += invPorSubir() + repPorSubir() + prevPorSubir() + idrPorSubir() + REC.marcas.length; }catch(e){}
+  try{ n += USER ? docsPorEnviar() : 0; if(USER && esAdmin()) n += proyPorSubir(); if(USER) n += invPorSubir() + repPorSubir() + prevPorSubir() + idrPorSubir() + levPorSubir() + REC.marcas.length; }catch(e){}
   $('#pend').textContent = n;
   $('#btnSync').style.background = n ? 'rgba(255,190,60,.45)' : '';
   $('#bOff').classList.toggle('hidden', navigator.onLine);
@@ -528,7 +547,7 @@ setInterval(()=>sincronizar(false, false), 60000);
 
 // Botón ‹ del encabezado: regresa a la pantalla anterior (o a la que le corresponde si se abrió directo)
 function padreDe(h){
-  return h.startsWith('#idr/') ? '#idr' : h.startsWith('#pdoc/') ? '#proyecto/' + h.slice(6) : h.startsWith('#prev/') ? '#prev' : h.startsWith('#inv/') ? '#inventario' : h.startsWith('#inc/') || h.startsWith('#proyecto/') ? '#proyectos' : h.startsWith('#doc2n') ? '#docs'
+  return h.startsWith('#idr/') ? '#idr' : h.startsWith('#lev/') ? '#lev' : h.startsWith('#pdoc/') ? '#proyecto/' + h.slice(6) : h.startsWith('#prev/') ? '#prev' : h.startsWith('#inv/') ? '#inventario' : h.startsWith('#inc/') || h.startsWith('#proyecto/') ? '#proyectos' : h.startsWith('#doc2n') ? '#docs'
     : h.startsWith('#masiva/') ? '#masivas' : h.startsWith('#ver/') || h.startsWith('#editar/') ? '#folios' : USER && USER.rol === 'EXTERNO' ? '#docs' : '#';
 }
 $('#btnAtras').onclick = () => volver(padreDe(location.hash));
@@ -569,6 +588,8 @@ function router(){
   if(h.startsWith('#inv/conteo/')) return pantallaConteo(decodeURIComponent(h.slice(12)));
   if(h.startsWith('#inv/mov/')) return pantallaMov(h.slice(9));
   if(h === '#compartido') return pantallaCompartido();
+  if(h === '#lev') return pantallaLevs();
+  if(h.startsWith('#lev/')) return pantallaLev(h.slice(5));
   if(h === '#idr') return pantallaIdr();
   if(h === '#idr/nuevo') return pantallaIdrNuevo();
   if(h.startsWith('#idr/ver/')) return verIdr(h.slice(9));
@@ -661,13 +682,13 @@ function pantallaLogin(){
 /* Íconos propios (línea, 24×24): se ven igual en cualquier teléfono */
 const ICONOS = {
   alerta: 'M12 4l9 16H3z M12 10v4 M12 17v.5', obra: 'M8 4h8v3H8z M8 5.500H5v15h14v-15h-3 M9 14l2 2 4-4', pin: 'M12 21c-5-5-7-8-7-11a7 7 0 0 1 14 0c0 3-2 6-7 11z M12 12.500a2.500 2.500 0 1 0 0-5 2.500 2.500 0 0 0 0 5z',
-  caja: 'M4 8l8-4 8 4v8l-8 4-8-4z M4 8l8 4 8-4 M12 12v8', doc: 'M7 3h7l4 4v14H7z M14 3v4h4 M10 12h5 M10 16h5', barras: 'M5 20V10 M12 20V4 M19 20v-7', mas: 'M12 5v14 M5 12h14',
+  caja: 'M4 8l8-4 8 4v8l-8 4-8-4z M4 8l8 4 8-4 M12 12v8', poste: 'M12 3v18 M7 6h10 M8 9h8 M9 21h6 M7 6l-2 3 M17 6l2 3', doc: 'M7 3h7l4 4v14H7z M14 3v4h4 M10 12h5 M10 16h5', barras: 'M5 20V10 M12 20V4 M19 20v-7', mas: 'M12 5v14 M5 12h14',
   llave: 'M15 4a4.500 4.500 0 0 0-4 6l-7 7 3 3 7-7a4.500 4.500 0 0 0 6-4l-3 2-2-2z', mega: 'M4 10v4h3l7 4V6l-7 4z M17.500 9a4 4 0 0 1 0 6', gente: 'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M3 20c0-3 3-5 6-5s6 2 6 5 M16 5.500a3 3 0 0 1 0 5.500 M17.500 15c2 .500 3.500 2 3.500 5',
   chat: 'M4 5h16v11H9l-5 4z', casa: 'M4 11l8-7 8 7v9H4z M10 20v-6h4v6', mapa: 'M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z M9 4v14 M15 6v14',
   ajustes: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M12 3v3 M12 18v3 M3 12h3 M18 12h3 M5.600 5.600l2.100 2.100 M16.300 16.300l2.100 2.100 M5.600 18.400l2.100-2.100 M16.300 7.700l2.100-2.100'};
 const icono = (k, color = 'currentColor', t = 26) => `<svg class="ico" width="${t}" height="${t}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONOS[k] || ICONOS.doc}"/></svg>`;
 const ICO_TABLERO = {'🚨': ['alerta', '#ff3b30'], '🏗️': ['obra', '#e0a400'], '📍': ['pin', '#1fa855'], '📦': ['caja', '#3d6bff'], '📄': ['doc', 'var(--txt)'], '📊': ['barras', '#8b5cf6'],
-  '＋': ['mas', 'var(--azul)'], '🛠️': ['llave', '#1fa855'], '📣': ['mega', '#ff3b30'], '👥': ['gente', 'var(--gris)'], '💬': ['chat', 'var(--gris)']};
+  '＋': ['mas', 'var(--azul)'], '🛠️': ['llave', '#1fa855'], '📣': ['mega', '#ff3b30'], '👥': ['gente', 'var(--gris)'], '💬': ['chat', 'var(--gris)'], '📐': ['poste', '#0ea5a4']};
 function pantallaInicio(){
   $('#titulo').textContent = 'NODO';
   const hoy = hoyISO(), mios = FOLIOS.filter(esMio), pend = mios.filter(f=>f.estado!=='enviado').length;
@@ -696,7 +717,7 @@ function pantallaInicio(){
       <div class="seccion">Operación</div><div class="tablero">${inventario}${folios}${reporte}${mi('#nuevo', '＋', 'Nuevo folio', 'Capturar un folio')}</div>
       ${prevVisible() ? `<div class="seccion">Preventivo${PREV_PUBLICO ? '' : ' · en construcción'}</div><div class="tablero">${mi('#prev', '🛠️', 'OTs de preventivo', (n => n + ' OT(s) este mes')(PREV.ots.filter(o => String(o.termino || '').startsWith(hoyISO().slice(0, 7))).length))}
         ${mi('#idr', '📣', 'IDR · Inspector de red', (v => v ? `<span style="color:var(--err)">${v} fuera de plazo</span>` : idrAbiertos().length + ' por atender')(idrAbiertos().filter(idrVencido).length), num(idrAbiertos().length))}</div>` : ''}
-      <div class="seccion">Administración</div><div class="tablero">${mi('#usuarios', '👥', 'Usuarios', 'Altas, PIN y cuadrillas')}
+      <div class="seccion">Administración</div><div class="tablero">${mi('#lev', '📐', 'Levantamientos', (n => n ? n + ' levantamiento(s)' : 'Postes, registros y conexiones')(LEV.lista.length))}${mi('#usuarios', '👥', 'Usuarios', 'Altas, PIN y cuadrillas')}
         ${mi('#reportes', '💬', 'Reportes', (n => n ? `<span style="color:var(--err)">${n} nuevo(s) por revisar</span>` : 'Problemas que avisan desde la app')(repNuevos()), num(repNuevos()))}</div>`;
   } else if(rol === 'SUPERVISOR'){
     cuerpo = `<div class="tablero">${inventario}${reporte}</div>
@@ -1174,6 +1195,22 @@ const ROLES_DOC = ['ADMIN','SUPERVISOR','TECNICO','AUXILIAR','EXTERNO'];
 /* ---- Documentación de 2N: reglas compartidas (las usa el servidor y el modo demo de la app) ---- */
 const RADIO_CAPA_ = 20;    // m: al cargar un KMZ, un 2N ya documentado a esta distancia de un 2N del KMZ se liga a él
 function docNorm_(s) { return String(s || '').toUpperCase().replace(/[\s-]/g, ''); }
+// Ingeniería de cada cierre (la llena el administrador o viene en el KMZ)
+const ING_CAMPOS_ = ['titulo', 'ingenieria', 'olt', 'frame', 'slot', 'puerto', 'core', 'pos', 'fibra', 'cap1n'];
+function potNorm_(v) {
+  const t = String(v == null ? '' : v).trim().replace(',', '.').replace(/\s*dbm?$/i, '');
+  if (t === '') return '';
+  if (!/^[-+]?\d{1,2}(\.\d{1,2})?$/.test(t) || Number(t) < -50 || Number(t) > 10) throw new Error('La potencia (POT) no es válida: escribe los dBm, por ejemplo -19.');
+  return String(Number(t));
+}
+function ingAplicar_(lista, id, ing, user) {
+  if (user.rol !== 'ADMIN') throw new Error('Solo el administrador puede hacer esto.');
+  const r = lista.find(x => x.id === String(id));
+  if (!r) throw new Error('No encontré ese cierre; recarga la lista.');
+  ING_CAMPOS_.forEach(k => { if (ing && ing[k] !== undefined) r[k] = String(ing[k] == null ? '' : ing[k]).trim().toUpperCase().slice(0, 80); });
+  if (r.cap1n && ['8', '16'].indexOf(r.cap1n) < 0) r.cap1n = '';
+  return r;
+}
 function docMetros_(a, b, c, d) { const R = 6371000, r = Math.PI / 180, x = (d - b) * r * Math.cos((a + c) / 2 * r), y = (c - a) * r; return Math.sqrt(x * x + y * y) * R; }
 // Guarda una captura en la lista (objetos). Regresa el registro guardado o lanza un error con la explicación.
 function docAplicar_(lista, doc, user, ahora) {
@@ -1189,8 +1226,9 @@ function docAplicar_(lista, doc, user, ahora) {
     throw new Error('Ese 2N ya lo documentó ' + r.quien + '. Solo el administrador puede cambiarlo.');
   if (!r && doc.liga) { const p = lista.find(x => x.id === doc.liga && x.estado === 'PENDIENTE'); if (p) { r = p; r.id = doc.id; } }
   if (!r) { r = { id: doc.id, capa: '', pm: '', nombreKmz: '', carpeta: '' }; lista.push(r); }
-  const nuevo = r.estado !== 'DOCUMENTADO';
-  Object.assign(r, { qr: qr, estado: 'DOCUMENTADO', capacidad: String(doc.capacidad || ''), brazo: String(doc.brazo || '').toUpperCase().trim(),
+  const nuevo = r.estado !== 'DOCUMENTADO', pot = doc.pot === undefined ? String(r.pot || '') : potNorm_(doc.pot);
+  if (admin) ING_CAMPOS_.forEach(k => { if (doc[k] !== undefined) r[k] = String(doc[k] == null ? '' : doc[k]).trim().toUpperCase().slice(0, 80); });
+  Object.assign(r, { pot: pot, qr: qr, estado: 'DOCUMENTADO', capacidad: String(doc.capacidad || ''), brazo: String(doc.brazo || '').toUpperCase().trim(),
     lat: lat, lng: lng, cluster: String(doc.cluster || ''), origen: String(doc.origen || 'DOCUMENTACIÓN'), notas: String(doc.notas || ''), actualizado: ahora,
     tipo: tipo, foto: String(doc.foto || r.foto || ''), proyecto: String(doc.proyecto || r.proyecto || '') });
   if (nuevo) { r.registradoPor = user.id; r.quien = user.nombre; r.empresa = user.cuadrilla || user.rol; r.fecha = ahora; }
@@ -1206,10 +1244,13 @@ function capaAplicar_(lista, capa, puntos, ahora) {
   puntos.forEach(p => {
     let mejor = null, dm = RADIO_CAPA_;
     libres.forEach(x => { if (usados.has(x)) return; const m = docMetros_(p.lat, p.lng, Number(x.lat), Number(x.lng)); if (m < dm) { dm = m; mejor = x; } });
-    if (mejor) { usados.add(mejor); Object.assign(mejor, { capa: capa, pm: p.pm, nombreKmz: p.nombre || '', carpeta: p.carpeta || '' }); ligados++; }
+    if (mejor) { usados.add(mejor); Object.assign(mejor, { capa: capa, pm: p.pm, nombreKmz: p.nombre || '', carpeta: p.carpeta || '', extra: p.extra || '' });
+      ING_CAMPOS_.forEach(k => { if (!mejor[k] && p[k]) mejor[k] = p[k]; }); ligados++; }
     else {
-      quedan.push({ id: pre + p.pm, qr: '', estado: 'PENDIENTE', capacidad: '', brazo: '', lat: p.lat, lng: p.lng, cluster: p.cluster || '', origen: 'KMZ',
-        capa: capa, pm: p.pm, nombreKmz: p.nombre || '', carpeta: p.carpeta || '', registradoPor: '', quien: '', empresa: '', fecha: '', actualizado: ahora, notas: '' });
+      const n = { id: pre + p.pm, qr: '', estado: 'PENDIENTE', capacidad: p.capacidad || '', brazo: '', lat: p.lat, lng: p.lng, cluster: p.cluster || '', origen: 'KMZ',
+        capa: capa, pm: p.pm, nombreKmz: p.nombre || '', carpeta: p.carpeta || '', registradoPor: '', quien: '', empresa: '', fecha: '', actualizado: ahora, notas: '', tipo: p.tipo || '', extra: p.extra || '' };
+      ING_CAMPOS_.forEach(k => { n[k] = p[k] || ''; });
+      quedan.push(n);
       pendientes++;
     }
   });
@@ -1224,6 +1265,8 @@ const guardarMisDocs = () => { LS.set('misDocs', MIS_DOCS); pintarPendientes(); 
 const puedeDoc = () => !!USER && ROLES_DOC.includes(USER.rol);
 const docsPorEnviar = () => MIS_DOCS.filter(x => !x.subido && x.usuario === (USER && USER.id)).length;
 
+let ING_PEND = LS.get('ingPend', []);          // cambios de ingeniería del administrador que aún no llegan al servidor
+const extraDoc = x => { try{ return JSON.parse(x.extra || '{}') || {}; }catch(e){ return {}; } };
 // Lo del servidor + lo capturado aquí que aún no confirma
 function vistaDocs(){
   const m = new Map(DOCS.lista.map(x => [x.id, {...x, lat:+x.lat, lng:+x.lng}]));
@@ -1233,6 +1276,7 @@ function vistaDocs(){
     if(x.subido) continue;                   // el servidor ya lo tiene (o ya lo borró el administrador)
     m.set(x.id, {...(base||{}), ...x, lat:+x.lat, lng:+x.lng, estado:'DOCUMENTADO', _local: !x.subido});
   }
+  ING_PEND.forEach(c => { const y = m.get(c.id); if(y) m.set(c.id, {...y, ...c.ing, _ingPend: true}); });
   return [...m.values()];
 }
 function pendientesCerca(lat, lng, radio){
@@ -1250,8 +1294,12 @@ async function apiDoc(accion, datos){
       return {rutas: s.archivos[c.id + '.rutas'] || [], archivo: datos.archivo ? s.archivos[c.id] : undefined, tipo: c.tipo}; }
     if(accion === 'borrarDoc'){ if(!esAdmin()) throw new Error('Solo el administrador puede hacer esto.');
       const i = s.lista.findIndex(x => x.id === datos.id); if(i < 0) return {doc: null}; const x = s.lista[i];
-      if(x.capa && x.pm !== '' && x.estado === 'DOCUMENTADO'){ Object.assign(x, {qr:'', estado:'PENDIENTE', capacidad:'', brazo:'', origen:'KMZ', registradoPor:'', quien:'', fecha:'', notas:'', tipo:'', foto:'', actualizado: ahora}); return {doc: x}; }
+      if(x.capa && x.pm !== '' && x.estado === 'DOCUMENTADO'){ Object.assign(x, {qr:'', estado:'PENDIENTE', capacidad:'', brazo:'', origen:'KMZ', registradoPor:'', quien:'', fecha:'', notas:'', tipo: extraDoc(x).t || '', foto:'', pot:'', actualizado: ahora}); return {doc: x}; }
       s.lista.splice(i, 1); return {doc: null}; }
+    if(accion === 'guardarRutas'){ if(!esAdmin()) throw new Error('Solo el administrador puede hacer esto.');
+      const c = s.capas.find(x => x.id === datos.capa); if(!c) throw new Error('No existe ese KMZ');
+      s.archivos[c.id + '.rutas'] = datos.rutas; c.actualizado = ahora; return {capa: c}; }
+    if(accion === 'guardarIng') return {doc: ingAplicar_(s.lista, datos.id, datos.ing, USER)};
     if(accion === 'guardarDoc') return {doc: docAplicar_(s.lista, {...datos.doc, foto: datos.foto ? '#' : datos.doc.foto}, USER, ahora)};
     if(accion === 'cargarCapa'){ if(!esAdmin()) throw new Error('Solo el administrador puede hacer esto.');
       let c = s.capas.find(x => MAY(x.nombre) === MAY(datos.nombre));
@@ -1290,6 +1338,12 @@ async function subirDocs(){
       DOCS.lista = DOCS.lista.filter(y => y.id !== j.doc.id && y.id !== x.liga); DOCS.lista.push(j.doc); LS.set('docs', DOCS);
     }catch(e){ x.error = String(e.message || e); if(/ya está documentado|ya lo documentó/.test(x.error)) x.rechazado = true; }
   }
+  for(const c of [...ING_PEND]){
+    try{ const j = await apiDoc('guardarIng', {id: c.id, ing: c.ing}); ING_PEND = ING_PEND.filter(y => y !== c);
+      DOCS.lista = DOCS.lista.filter(y => y.id !== j.doc.id); DOCS.lista.push(j.doc); LS.set('docs', DOCS); n++; }
+    catch(e){ if(/No encontré/.test(e.message) && !MIS_DOCS.some(y => y.id === c.id && !y.subido)) ING_PEND = ING_PEND.filter(y => y !== c); }
+  }
+  LS.set('ingPend', ING_PEND);
   guardarMisDocs(); subiendoDocs = false;
   if(n && /^#doc/.test(location.hash) && !enFormulario() && !MODALES.length) router();
   return n;
@@ -1307,7 +1361,30 @@ function docDeFolio(fid, d){
 }
 const TIPOS_CIERRE = [['2N', '2N (con QR)'], ['1N', '1N'], ['DERIVACION', 'Cierre de derivación']];
 const nomCierre = x => x.tipo === '1N' ? '1N' : x.tipo === 'DERIVACION' ? 'Derivación' : '';
-const textoDoc = x => `<b>${esc(x.qr || nomCierre(x) || x.nombreKmz || '2N del KMZ')}</b>${x.qr && nomCierre(x) ? ' · ' + nomCierre(x) : ''}${x.capacidad ? ' · ' + esc(x.capacidad) : ''}${x.brazo ? ' · ' + esc(x.brazo) : ''}
+// Ingeniería: "NVA-5-25/1-1-1" = cluster NVA · troncal (DIR. CORE) 5 · fibra de la OLT (POS) 25 / derivación 1 · salida del 1N 1 · fibra que conecta 1
+function parseIng(s){
+  const m = /^([A-Z]{2,6})[\s-]*([0-9A-Z]{1,3})-(\d+)\/(\d+)(?:-(\d+)-(\d+))?/.exec(MAY(s).trim());
+  return m ? {cl: m[1], core: m[2], pos: +m[3], der: +m[4], sal: m[5] ? +m[5] : null, fib: m[6] ? +m[6] : null} : null;
+}
+const brazoDoc = x => MAY(x.brazo || (x.carpeta || '').split(' / ').filter(c => !/GAZA|NIVEL|CONSTRUC/i.test(c)).pop() || '').trim();
+// Derivación: su ingeniería es la del 1N que alimenta su brazo (se toma de un 2N del mismo brazo)
+function ingDe(x, lista){
+  if(x.ingenieria || x.tipo !== 'DERIVACION') return x.ingenieria || '';
+  const b = docNorm_(brazoDoc(x)), y = b && (lista || DOCS.lista).find(z => z.tipo !== '1N' && z.tipo !== 'DERIVACION' && docNorm_(brazoDoc(z)) === b && /\//.test(z.ingenieria || ''));
+  const m = y && /^.*?\/\d+/.exec(y.ingenieria); return m ? m[0] : '';
+}
+// Título: 2N = cluster-troncal-(posiciones del 1N × POS − (posiciones del 1N − salida)); 1N = cluster-troncal-POS + N; derivación = CD
+function tituloDoc(x, lista){
+  if(x.titulo) return x.titulo;
+  if(x.tipo === 'DERIVACION') return 'CD';
+  const i = parseIng(x.ingenieria); if(!i) return '';
+  if(x.tipo === '1N') return `${i.cl}-${i.core}-${i.pos}N`;
+  if(i.sal == null) return '';
+  const n1 = (lista || DOCS.lista).find(z => z.tipo === '1N' && z.cap1n && (q => q && q.cl === i.cl && q.core === i.core && q.pos === i.pos)(parseIng(z.ingenieria)));
+  const cap = n1 ? +n1.cap1n : 8;
+  return `${i.cl}-${i.core}-${cap * i.pos - (cap - i.sal)}`;
+}
+const textoDoc = x => `<b>${esc(x.qr || tituloDoc(x) || nomCierre(x) || x.nombreKmz || '2N del KMZ')}</b>${x.qr && tituloDoc(x) ? ' · ' + esc(tituloDoc(x)) : ''}${(x.qr || tituloDoc(x)) && nomCierre(x) ? ' · ' + nomCierre(x) : ''}${x.capacidad ? ' · ' + esc(x.capacidad) : ''}${x.brazo ? ' · ' + esc(x.brazo) : ''}
   <div class="hint">${x.estado === 'PENDIENTE' ? 'Pendiente de documentar' + (x.carpeta ? ' · ' + esc(x.carpeta) : '')
     : esc([x.cluster, x.quien, fmtFecha(local(x.fecha || x.actualizado || new Date())).slice(0,10), x.origen].filter(Boolean).join(' · '))}</div>`;
 
@@ -1323,7 +1400,8 @@ function pantallaDocs(sinBajar){
    <button class="btn sec" id="dMapa">🗺️ Ver mapa</button>
    ${admin ? `<div class="card"><h2>KMZ del proyecto</h2>
       ${DOCS.capas.length ? DOCS.capas.map(c => { const p = v.filter(x => x.capa === c.id), h = p.filter(x => x.estado === 'DOCUMENTADO').length;
-          return `<div class="item"><span class="nom">${esc(c.nombre)}<small>${h} de ${p.length} documentados · cargado ${esc(fmtFecha(local(c.actualizado)).slice(0,10))}</small></span></div>`; }).join('')
+          return `<div class="item"><span class="nom">${esc(c.nombre)}<small>${h} de ${p.length} documentados · cambio ${esc(fmtFecha(local(c.actualizado)).slice(0,10))}</small></span>
+            <button class="btn ghost sm" data-erutas="${esc(c.id)}" style="flex:0 0 auto;width:auto">✏️ Rutas</button></div>`; }).join('')
         : '<div class="hint">Carga el KMZ con las rutas y los 2N del proyecto. Sus 2N aparecen como pendientes en el mapa de todos.</div>'}
       <label class="btn sec" style="text-align:center;display:block;margin-top:10px">⬆️ Cargar KMZ<input type="file" id="dKmz" accept=".kmz,.kml,application/vnd.google-earth.kmz,application/vnd.google-earth.kml+xml,application/zip,application/octet-stream" hidden></label>
       <button class="btn sec" id="dBajar">⬇️ Descargar KMZ actualizado</button>
@@ -1356,6 +1434,7 @@ function pantallaDocs(sinBajar){
   $('#dMapa').onclick = () => mapaDocs();
   if(admin){
     $('#dXlsQr').onclick = () => excelQr(v);
+    document.querySelectorAll('[data-erutas]').forEach(b => b.onclick = () => editorRutas(DOCS.capas.find(c => c.id === b.dataset.erutas)));
     $('#dKmz').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if(f) cargarKmz(f); });
     $('#dBajar').onclick = () => elegirDescarga();
   }
@@ -1370,13 +1449,195 @@ function verDoc(id){
      <div class="card" style="margin:0">${textoDoc(x)}
        <div class="hint" style="margin-top:6px">${x.lat.toFixed(6)}, ${x.lng.toFixed(6)}${x.nombreKmz ? ' · en el KMZ: ' + esc(x.nombreKmz) : x.capa === '' ? ' · nuevo (no estaba en el KMZ)' : ''}</div>
        ${x.notas ? `<div style="margin-top:6px">${esc(x.notas)}</div>` : ''}
+       ${x.pot ? `<div class="hint" style="margin-top:6px">POT ${esc(x.pot)} dBm</div>` : ''}
+       ${(x.ingenieria || ingDe(x) || x.olt) ? `<div class="hint" style="margin-top:6px">🔧 ${esc([ingDe(x), x.olt && 'OLT ' + x.olt, x.puerto && 'puerto ' + x.puerto].filter(Boolean).join(' · '))}${x._ingPend ? ' · por enviar' : ''}</div>` : ''}
        ${x.error ? `<div class="hint err" style="margin-top:6px">${esc(x.error)}</div>` : ''}</div></div>`,
-    `${puedeBorrar ? '<button class="btn ghost" id="vBorrar" style="flex:.7;color:var(--err)">Borrar</button>' : ''}<button class="btn ghost" id="vMapa">🗺️ Mapa</button>${puede ? '<button class="btn" id="vEdit">Corregir</button>' : ''}`);
+    `${puedeBorrar ? '<button class="btn ghost" id="vBorrar" style="flex:.7;color:var(--err)">Borrar</button>' : ''}<button class="btn ghost" id="vMapa">🗺️ Mapa</button>${esAdmin() ? '<button class="btn ghost" id="vIng">🔧 Ingeniería</button>' : ''}${puede ? '<button class="btn" id="vEdit">Corregir</button>' : ''}`);
+  const vi = o.querySelector('#vIng'); if(vi) vi.onclick = () => { cerrar(); setTimeout(() => editarIng(x), 60); };
   o.querySelector('#vMapa').onclick = () => mapaDocs(x);
   const vb = o.querySelector('#vBorrar'); if(vb) vb.onclick = () => { cerrar(); setTimeout(() => borrarDoc(x), 60); };
   const e = o.querySelector('#vEdit'); if(e) e.onclick = () => { cerrar(); setTimeout(() => ir('#doc2n/' + encodeURIComponent(id)), 50); };
 }
 
+/* --- Editor de rutas del KMZ (solo administrador) ---
+   Toca una ruta para elegirla: arrastra sus puntos, toca un punto para borrarlo, toca un "+" para agregar uno en medio.
+   "Nueva ruta": toca el mapa punto por punto y termina con su nombre, carpeta y tipo de cable.
+   Los cambios se guardan como borrador en el teléfono y se escriben en el KMZ que se descarga. */
+const CABLES_RUTA = [['FO 96', '#ffffff'], ['FO 24H (rojo)', '#ff0000'], ['FO 24H (azul)', '#0000ff'], ['ACERO / OTRO', '#7a5cc4']];
+async function editorRutas(capa){
+  if(!capa) return;
+  if(!demo() && !navigator.onLine) return toast('Necesitas señal para abrir las rutas.');
+  let base; try{ base = (await apiDoc('capaDatos', {capa: capa.id})).rutas || []; }catch(e){ return toast(e.message); }
+  const kb = 'rutasBorrador.' + capa.id, borr = LS.get(kb, null);
+  let rutas = (borr && borr.base === capa.actualizado ? borr.rutas : base).map((r, k) => ({...r, o: r.nueva ? undefined : (r.o != null ? r.o : k)}));
+  let sucio = !!(borr && borr.base === capa.actualizado), sel = -1, modo = 'ver', nueva = [], hist = [];
+  const guardaBorrador = () => { sucio = true; try{ LS.set(kb, {base: capa.actualizado, rutas}); }catch(e){} };
+  const snap = () => { hist.push(JSON.stringify(rutas)); if(hist.length > 40) hist.shift(); };
+  const largo = c => { let l = 0; for(let i = 1; i < c.length; i++) l += docMetros_(c[i - 1][0], c[i - 1][1], c[i][0], c[i][1]); return l; };
+  const S = z => 256 * 2 ** z, wx = (lon, z) => (lon + 180) / 360 * S(z);
+  const wy = (lat, z) => { const s = Math.sin(lat * Math.PI / 180); return (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * S(z); };
+  const ilon = (x, z) => x / S(z) * 360 - 180, ilat = (y, z) => { const n = Math.PI - 2 * Math.PI * y / S(z); return 180 / Math.PI * Math.atan(Math.sinh(n)); };
+  const todos = rutas.flatMap(r => r.c || []);
+  let z = 17, c0 = CENTRO_MAPA;
+  if(todos.length){ const la = todos.map(p => p[0]), lo = todos.map(p => p[1]), a = Math.min(...la), b = Math.max(...la), c = Math.min(...lo), d = Math.max(...lo);
+    c0 = [(a + b) / 2, (c + d) / 2]; while(z > 10 && (wx(d, z) - wx(c, z) > 340 || wy(a, z) - wy(b, z) > 420)) z--; }
+  let cx = wx(c0[1], z), cy = wy(c0[0], z);
+  const docsCapa = vistaDocs().filter(x => x.capa === capa.id && isFinite(x.lat));
+  const {o, cerrar} = ventana('Rutas · ' + capa.nombre, `<div class="mv" id="mv"><div id="mt"></div><svg id="ms"><g id="mg"></g></svg>
+      <div class="mhint" id="mhint"></div>
+      <div class="mzoom"><button id="mzi" aria-label="Acercar">+</button><button id="mzo" aria-label="Alejar">−</button></div><div class="mattr">© OpenStreetMap</div></div>
+    <div class="minfo" id="minf"></div>`, '<div id="rPie" style="display:flex;gap:8px;width:100%"></div>');
+  const mv = o.querySelector('#mv'), mt = o.querySelector('#mt'), mg = o.querySelector('#mg'), tiles = new Map();
+  const X = (lo) => wx(lo, z) - cx + mv.clientWidth / 2, Y = (la) => wy(la, z) - cy + mv.clientHeight / 2;
+  const path = c => 'M' + c.map(([la, lo]) => X(lo).toFixed(1) + ' ' + Y(la).toFixed(1)).join('L');
+  function pintar(){
+    const W = mv.clientWidth, H = mv.clientHeight, x0 = cx - W / 2, y0 = cy - H / 2, n = 2 ** z, vistos = new Set();
+    for(let tx = Math.floor(x0 / 256); tx <= Math.floor((x0 + W) / 256); tx++) for(let ty = Math.floor(y0 / 256); ty <= Math.floor((y0 + H) / 256); ty++){
+      if(ty < 0 || ty >= n) continue; const k = `${z}/${((tx % n) + n) % n}/${ty}`; vistos.add(k + '@' + tx);
+      let im = tiles.get(k + '@' + tx); if(!im){ im = new Image(); im.alt = ''; im.onerror = () => { im.style.visibility = 'hidden'; }; im.src = `https://tile.openstreetmap.org/${k}.png`; tiles.set(k + '@' + tx, im); mt.appendChild(im); }
+      im.style.left = (tx * 256 - x0) + 'px'; im.style.top = (ty * 256 - y0) + 'px'; }
+    for(const [k, im] of tiles) if(!vistos.has(k)){ im.remove(); tiles.delete(k); }
+    mg.removeAttribute('transform');
+    let h = rutas.map((r, i) => r.borrada || i === sel ? '' : `<path d="${path(r.c)}" fill="none" stroke="${r.color || '#7a5cc4'}" stroke-width="3" stroke-opacity="${sel >= 0 || modo === 'nueva' ? .45 : .9}" stroke-linecap="round"/>`).join('');
+    h += docsCapa.map(x => `<circle cx="${X(x.lng).toFixed(1)}" cy="${Y(x.lat).toFixed(1)}" r="4" fill="${x.estado === 'DOCUMENTADO' ? '#1f8a4c' : '#d93025'}" stroke="#fff" stroke-width="1.5"/>`).join('');
+    if(sel >= 0){ const c = rutas[sel].c;
+      h += `<path d="${path(c)}" fill="none" stroke="#111" stroke-width="7" stroke-opacity=".35"/><path d="${path(c)}" fill="none" stroke="${rutas[sel].color || '#7a5cc4'}" stroke-width="4"/>`;
+      for(let i = 1; i < c.length; i++) h += `<g><circle cx="${((X(c[i - 1][1]) + X(c[i][1])) / 2).toFixed(1)}" cy="${((Y(c[i - 1][0]) + Y(c[i][0])) / 2).toFixed(1)}" r="8" fill="#fff" stroke="#2c3440" stroke-width="1.5"/><text x="${((X(c[i - 1][1]) + X(c[i][1])) / 2).toFixed(1)}" y="${((Y(c[i - 1][0]) + Y(c[i][0])) / 2 + 4.5).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="700" fill="#2c3440">+</text></g>`;
+      h += c.map(([la, lo]) => `<circle cx="${X(lo).toFixed(1)}" cy="${Y(la).toFixed(1)}" r="9" fill="#2c3440" stroke="#fff" stroke-width="2.5"/>`).join(''); }
+    if(modo === 'nueva' && nueva.length){ h += `<path d="${path(nueva)}" fill="none" stroke="#e8710a" stroke-width="4" stroke-dasharray="8 5"/>` + nueva.map(([la, lo]) => `<circle cx="${X(lo).toFixed(1)}" cy="${Y(la).toFixed(1)}" r="7" fill="#e8710a" stroke="#fff" stroke-width="2"/>`).join(''); }
+    mg.innerHTML = h;
+  }
+  function ui(){
+    const pie = o.querySelector('#rPie'), inf = o.querySelector('#minf'), hint = o.querySelector('#mhint');
+    if(modo === 'nueva'){
+      hint.textContent = 'Toca el mapa punto por punto para trazar la ruta.';
+      inf.innerHTML = `<b>Ruta nueva</b> · ${nueva.length} punto(s) · ${Math.round(largo(nueva))} m`;
+      pie.innerHTML = '<button class="btn ghost" id="rUndo" style="flex:.7">↶</button><button class="btn ghost" id="rCan">Cancelar</button><button class="btn verde" id="rFin">Terminar</button>';
+    } else if(sel >= 0){ const r = rutas[sel];
+      hint.textContent = 'Arrastra un punto para moverlo · tócalo para borrarlo · toca un + para agregar uno.';
+      inf.innerHTML = `<b>${esc(r.n || 'Ruta')}</b>${r.nueva ? ' · nueva' : r.ed ? ' · editada' : ''}<div class="hint" style="margin:0">${esc(r.f || '')} · ${r.c.length} puntos · ${Math.round(largo(r.c))} m</div>`;
+      pie.innerHTML = '<button class="btn ghost" id="rUndo" style="flex:.6">↶</button><button class="btn ghost" id="rBorra" style="color:var(--err)">Borrar ruta</button><button class="btn" id="rListo">Listo</button>';
+    } else {
+      const ed = rutas.filter(r => r.ed || r.borrada || r.nueva).length;
+      hint.textContent = 'Toca una ruta para editarla.';
+      inf.innerHTML = `${rutas.filter(r => !r.borrada).length} rutas${ed ? ` · <b>${ed} con cambios</b>` : ''}${sucio ? ' · <span style="color:var(--warn)">sin guardar</span>' : ''}`;
+      pie.innerHTML = `<button class="btn ghost" id="rUndo" style="flex:.6" ${hist.length ? '' : 'disabled'}>↶</button><button class="btn ghost" id="rNueva">➕ Nueva ruta</button><button class="btn verde" id="rGuardar" ${sucio ? '' : 'disabled'}>Guardar</button>`;
+    }
+    const b = id => o.querySelector(id);
+    if(b('#rUndo')) b('#rUndo').onclick = () => { if(modo === 'nueva'){ nueva.pop(); } else if(hist.length){ rutas = JSON.parse(hist.pop()); if(sel >= rutas.length || (sel >= 0 && rutas[sel].borrada)) sel = -1; guardaBorrador(); } pintar(); ui(); };
+    if(b('#rCan')) b('#rCan').onclick = () => { modo = 'ver'; nueva = []; pintar(); ui(); };
+    if(b('#rFin')) b('#rFin').onclick = () => { if(nueva.length < 2) return toast('Marca al menos 2 puntos.'); datosNueva(); };
+    if(b('#rListo')) b('#rListo').onclick = () => { sel = -1; pintar(); ui(); };
+    if(b('#rBorra')) b('#rBorra').onclick = async () => { if(!await preguntar(`¿Borrar la ruta ${rutas[sel].n || ''} del KMZ?`, 'Borrar', 'Cancelar')) return;
+      snap(); if(rutas[sel].nueva) rutas.splice(sel, 1); else rutas[sel] = {...rutas[sel], borrada: true}; sel = -1; guardaBorrador(); pintar(); ui(); };
+    if(b('#rNueva')) b('#rNueva').onclick = () => { modo = 'nueva'; nueva = []; sel = -1; pintar(); ui(); };
+    if(b('#rGuardar')) b('#rGuardar').onclick = guardar;
+  }
+  function datosNueva(){
+    const carpetas = [...new Set(rutas.map(r => r.f).concat(docsCapa.map(x => x.carpeta)).filter(Boolean))].sort();
+    const v = ventana('Ruta nueva', `<div class="mbody"><label>Nombre</label><input id="nrN" autocapitalize="characters" placeholder="Ej. NVA-5-S-2-6">
+      <label>Tipo de cable</label><div class="chips" id="nrC">${CABLES_RUTA.map(([t, c], i) => `<button type="button" class="chip ${i ? '' : 'on'}" data-c="${c}"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c};border:1px solid #999;margin-right:5px"></span>${t}</button>`).join('')}</div>
+      <label>Carpeta</label><select id="nrF">${carpetas.map(f => `<option value="${esc(f)}">${esc(f.split(' / ').slice(-2).join(' / '))}</option>`).join('')}<option value="">+ Carpeta nueva…</option></select>
+      <div id="nrNueva" class="${carpetas.length ? 'hidden' : ''}"><label>Dentro de</label><select id="nrP"><option value="">(raíz del KMZ)</option>${[...new Set(carpetas.flatMap(f => f.split(' / ').map((_, i, a) => a.slice(0, i + 1).join(' / '))))].sort().map(f => `<option value="${esc(f)}">${esc(f.split(' / ').slice(-2).join(' / '))}</option>`).join('')}</select>
+        <label>Nombre de la carpeta nueva</label><input id="nrFN" autocapitalize="characters" placeholder="Ej. NVA-5-S-2-6"></div>
+      <div class="hint">${nueva.length} puntos · ${Math.round(largo(nueva))} m</div><div id="nrE" class="hint err"></div></div>`, '<button class="btn verde" id="nrOk">Agregar ruta</button>', true);
+    const q = s => v.o.querySelector(s);
+    q('#nrF').onchange = () => q('#nrNueva').classList.toggle('hidden', q('#nrF').value !== '');
+    v.o.querySelectorAll('#nrC .chip').forEach(c => c.onclick = () => v.o.querySelectorAll('#nrC .chip').forEach(x => x.classList.toggle('on', x === c)));
+    [q('#nrN'), q('#nrFN')].forEach(e => e.addEventListener('input', () => { e.value = e.value.toUpperCase(); }));
+    q('#nrOk').onclick = () => {
+      const n = MAY(q('#nrN').value).trim(), f = q('#nrF').value || [q('#nrP').value, MAY(q('#nrFN').value).trim()].filter(Boolean).join(' / ');
+      if(!n){ q('#nrE').textContent = 'Escribe el nombre.'; return; }
+      if(!f || (!q('#nrF').value && !MAY(q('#nrFN').value).trim())){ q('#nrE').textContent = 'Elige la carpeta o escribe el nombre de la nueva.'; return; }
+      snap(); rutas.push({n, f, color: v.o.querySelector('#nrC .chip.on').dataset.c, c: nueva.map(([la, lo]) => [+la.toFixed(6), +lo.toFixed(6)]), nueva: true});
+      modo = 'ver'; nueva = []; sel = rutas.length - 1; guardaBorrador(); v.cerrar(); setTimeout(() => { pintar(); ui(); }, 60);
+    };
+  }
+  async function guardar(){
+    if(!demo() && !navigator.onLine) return toast('Sin señal: el borrador queda en el teléfono; guarda cuando tengas señal.');
+    const b = o.querySelector('#rGuardar'); b.disabled = true; b.textContent = 'Guardando…';
+    try{
+      const j = await apiDoc('guardarRutas', {capa: capa.id, rutas});
+      const c = DOCS.capas.find(x => x.id === capa.id); if(c) Object.assign(c, j.capa); Object.assign(capa, j.capa); LS.set('docs', DOCS);
+      LS.set('rutas.' + capa.id, {t: capa.actualizado, r: rutas}); LS.del(kb); sucio = false; hist = []; toast('Rutas guardadas. Se escriben en el KMZ al descargarlo.'); ui();
+    }catch(e){ toast(e.message); b.disabled = false; b.textContent = 'Guardar'; }
+  }
+  function zoom(dz){ const nz = Math.max(10, Math.min(20, z + dz)); if(nz === z) return; const la = ilat(cy, z), lo = ilon(cx, z); z = nz; cx = wx(lo, z); cy = wy(la, z); pintar(); }
+  // toques: punto (arrastrar / borrar), "+" (agregar), ruta (elegir), mapa (mover o trazar)
+  const ptrs = new Map(); let ini = null, pinch = null, arr = null;
+  const alPunto = (ex, ey) => { const r = mv.getBoundingClientRect(); return [ex - r.left, ey - r.top]; };
+  const golpe = (px, py) => {
+    if(sel >= 0){ const c = rutas[sel].c;
+      for(let i = 0; i < c.length; i++) if(Math.hypot(X(c[i][1]) - px, Y(c[i][0]) - py) < 16) return {t: 'v', i};
+      for(let i = 1; i < c.length; i++) if(Math.hypot((X(c[i - 1][1]) + X(c[i][1])) / 2 - px, (Y(c[i - 1][0]) + Y(c[i][0])) / 2 - py) < 14) return {t: 'm', i}; }
+    return null; };
+  mv.addEventListener('pointerdown', e => { if(e.target.closest('.mzoom,.mhint')) return; mv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+    if(ptrs.size === 1){ const [px, py] = alPunto(e.clientX, e.clientY), g = modo === 'ver' ? golpe(px, py) : null;
+      if(g){ snap(); if(g.t === 'm'){ const c = rutas[sel].c, a = c[g.i - 1], b = c[g.i]; c.splice(g.i, 0, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]); arr = {i: g.i, mov: true, nuevo: true}; pintar(); }
+        else arr = {i: g.i, mov: false, x: e.clientX, y: e.clientY}; ini = null; return; }
+      ini = {x: e.clientX, y: e.clientY, cx, cy, mov: false}; }
+    if(ptrs.size === 2){ const [a, b] = [...ptrs.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); if(ini) ini.mov = true; if(arr){ arr = null; hist.pop(); } } });
+  mv.addEventListener('pointermove', e => { if(!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+    if(ptrs.size === 2 && pinch){ const [a, b] = [...ptrs.values()], dd = Math.hypot(a[0] - b[0], a[1] - b[1]); if(dd / pinch > 1.5){ zoom(1); pinch = dd; } else if(dd / pinch < .67){ zoom(-1); pinch = dd; } return; }
+    if(arr){ if(!arr.mov && Math.hypot(e.clientX - arr.x, e.clientY - arr.y) > 6) arr.mov = true;
+      if(arr.mov){ const [px, py] = alPunto(e.clientX, e.clientY), r = rutas[sel]; r.c[arr.i] = [+ilat(cy - mv.clientHeight / 2 + py, z).toFixed(6), +ilon(cx - mv.clientWidth / 2 + px, z).toFixed(6)]; pintar(); } return; }
+    if(!ini) return; const dx = e.clientX - ini.x, dy = e.clientY - ini.y; if(Math.abs(dx) + Math.abs(dy) > 8) ini.mov = true;
+    if(ini.mov){ cx = ini.cx - dx; cy = ini.cy - dy; pintar(); } });
+  const fin = async e => { if(!ptrs.has(e.pointerId)) return; ptrs.delete(e.pointerId);
+    if(ptrs.size === 1){ const [q] = [...ptrs.values()]; ini = {x: q[0], y: q[1], cx, cy, mov: true}; pinch = null; return; }
+    if(ptrs.size) return;
+    if(arr){ const a = arr; arr = null; const r = rutas[sel];
+      if(a.mov){ if(!r.nueva) r.ed = true; guardaBorrador(); ui(); return; }
+      hist.pop();
+      if(r.c.length <= 2) return toast('Una ruta necesita al menos 2 puntos. Para quitarla usa "Borrar ruta".');
+      if(await preguntar('¿Borrar este punto de la ruta?', 'Borrar punto', 'Cancelar')){ snap(); r.c.splice(a.i, 1); if(!r.nueva) r.ed = true; guardaBorrador(); pintar(); ui(); }
+      return; }
+    if(ini && !ini.mov && e.type === 'pointerup'){ const [px, py] = alPunto(e.clientX, e.clientY), la = ilat(cy - mv.clientHeight / 2 + py, z), lo = ilon(cx - mv.clientWidth / 2 + px, z);
+      if(modo === 'nueva'){ nueva.push([la, lo]); pintar(); ui(); }
+      else { let mejor = -1, dmin = 18;           // ruta más cercana al toque
+        rutas.forEach((r, i) => { if(r.borrada) return; for(let k = 1; k < r.c.length; k++){ const ax = X(r.c[k - 1][1]), ay = Y(r.c[k - 1][0]), bx = X(r.c[k][1]), by = Y(r.c[k][0]), dx = bx - ax, dy = by - ay;
+          const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy || 1))), d = Math.hypot(px - ax - t * dx, py - ay - t * dy); if(d < dmin){ dmin = d; mejor = i; } } });
+        sel = mejor; pintar(); ui(); } }
+    ini = null; pinch = null; };
+  mv.addEventListener('pointerup', fin); mv.addEventListener('pointercancel', fin);
+  mv.addEventListener('wheel', e => { e.preventDefault(); zoom(e.deltaY < 0 ? 1 : -1); }, {passive: false});
+  o.querySelector('#mzi').onclick = () => zoom(1); o.querySelector('#mzo').onclick = () => zoom(-1);
+  addEventListener('resize', pintar); o.addEventListener('cerrar', () => { removeEventListener('resize', pintar); if(sucio) toast('Los cambios sin guardar quedan como borrador en este teléfono.'); });
+  const ro = new ResizeObserver(() => pintar()); ro.observe(mv); o.addEventListener('cerrar', () => ro.disconnect());
+  requestAnimationFrame(() => { ui(); pintar(); if(sucio) toast('Recuperé tus cambios sin guardar de la vez pasada.'); });
+}
+// Ingeniería de un cierre (solo administrador): se escribe en el KMZ que se descarga
+function editarIng(x){
+  const todos = vistaDocs(), auto = tituloDoc({...x, titulo: ''}, todos), i = parseIng(x.ingenieria), cap = x.cap1n || '';
+  const campo = (k, t, ph) => `<label>${t}</label><input data-ing="${k}" value="${esc(x[k] || '')}" placeholder="${esc(ph || '')}" autocapitalize="characters">`;
+  const {o, cerrar} = ventana('Ingeniería', `<div class="mbody"><div class="card" style="margin:0 0 10px">${textoDoc(x)}</div>
+    ${x.tipo === 'DERIVACION' ? `<div class="hint" style="margin-top:0">La derivación lleva de título CD; su ingeniería es la del 1N que alimenta su brazo${ingDe(x, todos) ? ': <b>' + esc(ingDe(x, todos)) + '</b>' : ''}.</div>` : ''}
+    ${campo('ingenieria', 'Ingeniería', x.tipo === '1N' ? 'Ej. NVA-5-25/1' : x.tipo === 'DERIVACION' ? ingDe(x, todos) || 'Ej. NVA-5-25/1' : 'Ej. NVA-5-25/1-1-1')}
+    ${x.tipo === 'DERIVACION' ? '' : campo('titulo', 'Título', auto ? auto + ' (calculado)' : 'Se calcula con la ingeniería')}
+    ${x.tipo === '1N' ? `<label>Posiciones del 1N</label><div class="chips" id="iCap"><button type="button" class="chip ${cap !== '16' ? 'on' : ''}" data-v="8">1:8</button><button type="button" class="chip ${cap === '16' ? 'on' : ''}" data-v="16">1:16</button></div>
+      <div class="hint">Se usa para numerar los 2N que cuelgan de este 1N.</div>` : ''}
+    ${x.tipo === 'DERIVACION' ? '' : `<div class="seccion" style="margin:12px 0 0">OLT</div>${campo('olt', 'OLT', 'Ej. MEZCALES_2_NAY')}
+    <div class="row">${['frame', 'slot', 'puerto'].map(k => `<div style="flex:1"><label>${k === 'frame' ? 'Frame' : k === 'slot' ? 'Slot' : 'Puerto'}</label><input data-ing="${k}" inputmode="numeric" value="${esc(x[k] || '')}"></div>`).join('')}</div>
+    <div class="row">${[['core', 'Dir. core', i && i.core], ['pos', 'POS', i && i.pos], ['fibra', 'Fibra que conecta', i && (i.fib != null ? i.fib : i.der)]].map(([k, t, ph]) => `<div style="flex:1"><label>${t}</label><input data-ing="${k}" inputmode="numeric" value="${esc(x[k] || '')}" placeholder="${ph != null && ph !== false ? esc(String(ph)) : ''}"></div>`).join('')}</div>
+    <div class="hint">Dir. core, POS y fibra que conecta se toman de la ingeniería si los dejas vacíos.</div>`}
+    <div id="iErr" class="hint err"></div></div>`, `<button class="btn verde" id="iOk">Guardar</button>`);
+  o.querySelectorAll('#iCap .chip').forEach(b => b.onclick = () => o.querySelectorAll('#iCap .chip').forEach(c => c.classList.toggle('on', c === b)));
+  o.querySelectorAll('[data-ing]').forEach(e => e.addEventListener('input', () => { const p = e.selectionStart; e.value = e.value.toUpperCase(); try{ e.setSelectionRange(p, p); }catch(er){} }));
+  o.querySelector('#iOk').onclick = async () => {
+    const ing = {}; o.querySelectorAll('[data-ing]').forEach(e => { ing[e.dataset.ing] = MAY(e.value).trim(); });
+    const c = o.querySelector('#iCap .chip.on'); if(c) ing.cap1n = c.dataset.v;
+    const q = parseIng(ing.ingenieria);
+    if(ing.ingenieria && !q && x.tipo !== 'DERIVACION'){ o.querySelector('#iErr').textContent = 'La ingeniería no se entiende. Ejemplo: NVA-5-25/1-1-1 (2N) o NVA-5-25/1 (1N).'; return; }
+    if(q){ if(ing.core === '' || ing.core === undefined) ing.core = q.core; if(!ing.pos) ing.pos = String(q.pos); if(!ing.fibra) ing.fibra = String(q.fib != null ? q.fib : q.der); }
+    const b = o.querySelector('#iOk'); b.disabled = true; b.textContent = 'Guardando…';
+    if(!demo() && !navigator.onLine || x._local){
+      ING_PEND = ING_PEND.filter(y => y.id !== x.id).concat({id: x.id, ing}); LS.set('ingPend', ING_PEND);
+      cerrar(); toast('Guardado en el teléfono. Se enviará con señal.'); setTimeout(() => router(), 60); return; }
+    try{ const j = await apiDoc('guardarIng', {id: x.id, ing}); DOCS.lista = DOCS.lista.filter(y => y.id !== j.doc.id); DOCS.lista.push(j.doc); LS.set('docs', DOCS);
+      cerrar(); toast('Ingeniería guardada'); setTimeout(() => router(), 60); }
+    catch(e){ o.querySelector('#iErr').textContent = e.message; b.disabled = false; b.textContent = 'Guardar'; }
+  };
+}
 // Borrar un cierre: el administrador cualquiera (con motivo); quien lo capturó, solo mientras no se haya enviado
 function borrarDoc(x){
   const soloLocal = x._local && !esAdmin(), kmz = !!x.nombreKmz;
@@ -1401,10 +1662,11 @@ function borrarDoc(x){
 
 async function rutasDe(c){
   const k = 'rutas.' + c.id, g = LS.get(k, null);
-  if(g && g.t === c.actualizado) return g.r;
-  if(!demo() && !navigator.onLine) return g ? g.r : [];
-  try{ const j = await apiDoc('capaDatos', {capa:c.id}); try{ localStorage.setItem('fo.' + k, JSON.stringify({t:c.actualizado, r:j.rutas})); }catch(e){} return j.rutas || []; }
-  catch(e){ return g ? g.r : []; }
+  const vivas = r => (r || []).filter(x => !x.borrada);
+  if(g && g.t === c.actualizado) return vivas(g.r);
+  if(!demo() && !navigator.onLine) return vivas(g ? g.r : []);
+  try{ const j = await apiDoc('capaDatos', {capa:c.id}); try{ localStorage.setItem('fo.' + k, JSON.stringify({t:c.actualizado, r:j.rutas})); }catch(e){} return vivas(j.rutas); }
+  catch(e){ return vivas(g ? g.r : []); }
 }
 async function capasMapa(){
   const lineas = [];
@@ -1447,17 +1709,20 @@ function pantallaDoc2n(id, proyId){
      <label>Capacidad de puertos <span class="req">*</span></label>
      <div class="chips" id="dCap">${CAPACIDADES_2N.map(c => `<button type="button" class="chip ${d.capacidad === c ? 'on' : ''}" data-v="${c}">${c}</button>`).join('')}<button type="button" class="chip ${otraCap ? 'on' : ''}" data-v="">Otra</button></div>
      <input id="dCapOtra" class="${otraCap ? '' : 'hidden'}" value="${otraCap ? esc(d.capacidad) : ''}" placeholder="Ej. 1x32" style="margin-top:8px">
+     <div id="dPotB"><label>Potencia (POT, dBm) <span class="req">*</span></label><input id="dPot" inputmode="decimal" value="${esc(d.pot || '')}" placeholder="Ej. -19">
+       <div class="hint" style="margin-top:4px">Si tu teclado no tiene el signo menos, escribe solo el número: se guarda en negativo.</div></div>
      <label>Sección (brazo) <span class="req">*</span></label><input id="dBrazo" list="dlBrazos" value="${esc(d.brazo)}" placeholder="Ej. BRAZO 3" autocapitalize="characters">
      <datalist id="dlBrazos">${brazos.map(b => `<option value="${esc(b)}">`).join('')}</datalist>
      <label>Notas</label><textarea id="dNotas" rows="2" placeholder="Opcional">${esc(d.notas)}</textarea></div>
-   <div class="card"><h2>Foto del cierre <span class="req">*</span></h2>
+   <div class="card"><h2>Foto del cierre ${admin ? '<span class="hint" style="font-weight:400">(opcional)</span>' : '<span class="req">*</span>'}</h2>
      <div id="dFotoV">${d.mini ? `<img src="${d.mini}" alt="" class="fotoDoc">` : d.foto && d.foto !== '#' ? `<div class="hint"><a href="${esc(d.foto)}" target="_blank" rel="noopener">Ver la foto guardada</a></div>` : '<div class="vacio" style="padding:10px">Referencia visual del cierre. Se le pone fecha, hora y coordenadas.</div>'}</div>
-     <label class="btn sec" style="text-align:center;display:block">📷 ${d.mini || d.foto ? 'Cambiar foto' : 'Tomar foto'}<input type="file" id="dFoto" accept="image/*" capture="environment" hidden></label></div>
+     <div class="row"><label class="btn sec" style="text-align:center;flex:1">📷 ${d.mini || d.foto ? 'Cambiar foto' : 'Tomar foto'}<input type="file" id="dFoto" accept="image/*" capture="environment" hidden></label>
+       <label class="btn ghost" style="text-align:center;flex:1">🖼️ De archivos<input type="file" id="dFotoArch" accept="image/*" hidden></label></div></div>
    <div id="derr" class="hint err"></div></div>`;
   $('#bar').classList.remove('hidden');
   $('#bar').innerHTML = `<button class="btn ghost" id="dCanc" style="flex:.5">Cancelar</button><button class="btn verde" id="dGuardar">Guardar</button>`;
   const tipoUI = () => { const es2n = d.tipo === '2N';
-    $('#dQrCard').classList.toggle('hidden', !es2n); $('#dCap').previousElementSibling.innerHTML = 'Capacidad de puertos' + (es2n ? ' <span class="req">*</span>' : ' (opcional)');
+    $('#dQrCard').classList.toggle('hidden', !es2n); $('#dPotB').classList.toggle('hidden', !es2n); $('#dCap').previousElementSibling.innerHTML = 'Capacidad de puertos' + (es2n ? ' <span class="req">*</span>' : ' (opcional)');
     $('#dTipoH').textContent = es2n ? 'Lleva QR de segundo nivel.' : 'Sin QR: se identifica por su foto, brazo y ubicación.'; };
   document.querySelectorAll('#dTipo .chip').forEach(b => b.onclick = () => { d.tipo = b.dataset.k; document.querySelectorAll('#dTipo .chip').forEach(x => x.classList.toggle('on', x === b)); tipoUI(); });
   tipoUI();
@@ -1469,7 +1734,7 @@ function pantallaDoc2n(id, proyId){
     const clave = 'doc-' + d.id; await IDB.poner(clave, sf.blob); foto = {clave, mini: sf.mini};
     if($('#dFotoV')) $('#dFotoV').innerHTML = `<img src="${sf.mini}" alt="" class="fotoDoc">`;
   };
-  $('#dFoto').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if(f) ponerFoto(f); });
+  ['#dFoto', '#dFotoArch'].forEach(k => $(k).addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if(f) ponerFoto(f); }));
   $('#dCanc').onclick = () => volver(regreso);
   const qr = $('#dQr'), co = $('#dCoord');
   qr.addEventListener('input', () => { const p = qr.selectionStart; qr.value = qr.value.toUpperCase(); qr.setSelectionRange(p, p); });
@@ -1524,13 +1789,15 @@ function pantallaDoc2n(id, proyId){
     d.qr = docNorm_(qr.value); d.capacidad = cOn ? (cOn.dataset.v || $('#dCapOtra').value.trim().toLowerCase()) : '';
     d.brazo = MAY($('#dBrazo').value).trim(); d.notas = $('#dNotas').value.trim();
     if(d.tipo !== '2N') d.qr = '';
-    const faltan = [d.tipo === '2N' && !d.qr && 'QR', !c && 'ubicación', d.tipo === '2N' && !d.capacidad && 'capacidad', !d.brazo && 'brazo', !foto && !d.foto && !d.mini && 'foto'].filter(Boolean);
+    let potTxt = $('#dPot').value.trim().replace(',', '.'); if(/^\d/.test(potTxt)) potTxt = '-' + potTxt;
+    try{ d.pot = d.tipo === '2N' ? potNorm_(potTxt) : (d.pot || ''); }catch(e){ err.textContent = e.message; toast(e.message); return; }
+    const faltan = [d.tipo === '2N' && !d.qr && 'QR', !c && 'ubicación', d.tipo === '2N' && !d.capacidad && 'capacidad', !d.brazo && 'brazo', d.tipo === '2N' && !d.pot && 'potencia (POT)', !admin && !foto && !d.foto && !d.mini && 'foto'].filter(Boolean);
     if(faltan.length){ err.textContent = 'Falta: ' + faltan.join(', '); toast(err.textContent); return; }
     const dup = d.qr && vistaDocs().find(x => x.estado === 'DOCUMENTADO' && x.id !== d.id && docNorm_(x.qr) === d.qr);
     if(dup){ err.textContent = `El QR ${d.qr} ya está documentado (${dup.quien || ''}${dup.brazo ? ', ' + dup.brazo : ''}).`; toast(err.textContent); return; }
     parar();
     const r = clusterDe(c[0], c[1]);
-    const x = {id:d.id, tipo:d.tipo, proyecto: d.proyecto || '', qr:d.qr, capacidad:d.capacidad, brazo:d.brazo, foto: d.foto || '', mini: foto ? foto.mini : d.mini, _fotoPend: foto ? foto.clave : d._fotoPend, lat:c[0], lng:c[1], cluster: r ? r.cluster : '', origen: d.origen || (d.proyecto ? 'PROYECTO' : 'DOCUMENTACIÓN'),
+    const x = {id:d.id, tipo:d.tipo, proyecto: d.proyecto || '', qr:d.qr, pot:d.pot || '', capacidad:d.capacidad, brazo:d.brazo, foto: d.foto || '', mini: foto ? foto.mini : d.mini, _fotoPend: foto ? foto.clave : d._fotoPend, lat:c[0], lng:c[1], cluster: r ? r.cluster : '', origen: d.origen || (d.proyecto ? 'PROYECTO' : 'DOCUMENTACIÓN'),
       notas:d.notas, liga:d.liga || '', usuario: USER.id, quien: d.quien || USER.nombre, registradoPor: d.registradoPor || USER.id,
       fecha: d.fecha || new Date().toISOString(), subido:false, error:'', rechazado:false};
     const i = MIS_DOCS.findIndex(y => y.id === d.id); if(i >= 0) MIS_DOCS[i] = {...MIS_DOCS[i], ...x}; else MIS_DOCS.push(x);
@@ -1597,22 +1864,85 @@ function analizarKml(txt){
     const par = [...s.children].find(p => p.localName === 'Pair' && textoKml(p, 'key') === 'normal'); if(id && par) estilos['#' + id] = estilos[textoKml(par, 'styleUrl')] || ''; });
   const color = pm => { const s = hijoKml(pm, 'Style'), c = (s && textoKml(hijoKml(s, 'LineStyle'), 'color')) || estilos[textoKml(pm, 'styleUrl')] || '';
     return /^[0-9a-f]{8}$/i.test(c) ? '#' + c.slice(6, 8) + c.slice(4, 6) + c.slice(2, 4) : ''; };
+  const iconos = {};                             // estilo → {href, color} del ícono
+  const icoDe = st => { const is = hijoKml(st, 'IconStyle'); return is ? {href: textoKml(hijoKml(is, 'Icon'), 'href'), color: textoKml(is, 'color')} : null; };
+  [...x.getElementsByTagNameNS('*', 'Style')].forEach(s => { const id = s.getAttribute('id'), ic = icoDe(s); if(id && ic) iconos['#' + id] = ic; });
+  [...x.getElementsByTagNameNS('*', 'StyleMap')].forEach(s => { const id = s.getAttribute('id');
+    const par = [...s.children].find(p => p.localName === 'Pair' && textoKml(p, 'key') === 'normal'); if(id && par && iconos[textoKml(par, 'styleUrl')]) iconos['#' + id] = iconos[textoKml(par, 'styleUrl')]; });
   const pms = [...x.getElementsByTagNameNS('*', 'Placemark')], puntos = [], rutas = [];
   pms.forEach((pm, i) => {
     const nombre = textoKml(pm, 'name'), carpetas = [];
     for(let a = pm.parentElement; a; a = a.parentElement) if(a.localName === 'Folder') carpetas.unshift(textoKml(a, 'name'));
     const carpeta = carpetas.join(' / ');
     const pt = pm.getElementsByTagNameNS('*', 'Point')[0];
-    if(pt){ const c = coordsKml(textoKml(pt, 'coordinates'))[0]; if(c) puntos.push({pm:i, nombre, carpeta, lat:c[0], lng:c[1]}); }
-    [...pm.getElementsByTagNameNS('*', 'LineString')].forEach(l => {
+    if(pt){ const c = coordsKml(textoKml(pt, 'coordinates'))[0];
+      const ic = icoDe(hijoKml(pm, 'Style')) || iconos[textoKml(pm, 'styleUrl')] || {};
+      if(c) puntos.push({pm:i, nombre, carpeta, lat:c[0], lng:c[1], icono: ic.href || '', colorIcono: ic.color || '', desc: textoKml(pm, 'description')}); }
+    [...pm.getElementsByTagNameNS('*', 'LineString')].forEach((l, li) => {
       const c = [], todos = coordsKml(textoKml(l, 'coordinates'));
       todos.forEach((p, j) => { const u = c[c.length - 1]; if(!u || j === todos.length - 1 || docMetros_(u[0], u[1], p[0], p[1]) > 4) c.push([+p[0].toFixed(6), +p[1].toFixed(6)]); });
-      if(c.length > 1) rutas.push({n:nombre, color:color(pm), c, f:carpeta});
+      if(c.length > 1) rutas.push({n:nombre, color:color(pm), c, f:carpeta, pm:i, li});
     });
   });
   return {x, pms, puntos, rutas};
 }
-const ES_2N = /\b2\s*N\b|SEGUNDO\s+NIVEL|SPLITTER|\bNAP\b|\bSP\b/i;
+const ES_2N = /\b2\s*N\b|SEGUNDO\s+NIVEL|PRIMERO?S?\s+NIVEL|SPLITTER|\bNAP\b|\bSP\b/i;
+// Lee lo que trae cada cierre del KMZ: nombre (título o ingeniería), descripción con el formato de la ficha, y su ícono
+function fichaKmz(p){
+  const txt = String(p.desc || '').replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|tr|li)>/gi, '\n').replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+  const L = txt.split(/\r?\n/).map(l => l.trim()), f = {}, cli = [];
+  const CL = [[/^OLT$/, 'olt'], [/^FRAME$/, 'frame'], [/^SLOT$/, 'slot'], [/^PUERTO$/, 'puerto'], [/^DIR\.?\s*CORE$/, 'core'], [/^POS$/, 'pos'], [/^FIBRA QUE CONECTA$/, 'fibra'],
+    [/^QR$/, 'qr'], [/^POT$/, 'pot'], [/^ELABOR[OÓ]$/, 'elaboro'], [/^DISPONIBLES$/, 'disp'], [/FECHA DE ACTUALIZACI[OÓ]N$/, 'fecha']];
+  for(let n = 0; n < L.length; n++){
+    const m = /^([^:]{2,40}):\s*(.*)$/.exec(L[n]); if(!m) continue;
+    const k = MAY(m[1]).trim(), v = m[2].trim(), pn = /^POS\s*(\d{1,2})$/.exec(k);
+    if(pn){ cli[+pn[1] - 1] = v; continue; }
+    if(k === 'NOTAS'){ const nt = [v]; while(n + 1 < L.length && !/^-{5,}/.test(L[n + 1])) nt.push(L[++n]); f.notas = nt.join('\n').trim(); continue; }
+    const c = CL.find(([r]) => r.test(k)); if(c) f[c[1]] = v;
+  }
+  const primera = L.find(l => l) || '', nombre = MAY(p.nombre).trim();
+  const ingenieria = /\//.test(nombre) ? nombre : (/\//.test(primera) && !/:/.test(primera) ? MAY(primera) : '');
+  const tipo = /DIAMOND/i.test(p.icono || '') ? 'DERIVACION'
+    : /PRIMERO?S?\s+NIVEL/i.test(p.carpeta || '') || /\dN$/.test(nombre) || (parseIng(ingenieria) && parseIng(ingenieria).sal == null) ? '1N' : '2N';
+  const nPos = cli.length, col = String(p.colorIcono || '').toLowerCase();
+  const capacidad = tipo !== '2N' ? '' : nPos >= 16 ? '1x16' : nPos >= 8 ? '1x8' : col === 'ff00aaff' ? '1x16' : col === 'ffffff55' ? '1x8' : '';
+  const i = parseIng(ingenieria);
+  const r = {tipo, capacidad, ingenieria, titulo: /\//.test(nombre) ? '' : nombre,
+    olt: MAY(f.olt || ''), frame: f.frame || '', slot: f.slot || '', puerto: f.puerto || '', core: f.core || (i ? i.core : ''), pos: f.pos || (i ? String(i.pos) : ''),
+    fibra: f.fibra || (i ? String(i.fib != null ? i.fib : i.der) : ''), cap1n: ''};
+  const ex = {t: tipo}; ['qr', 'pot', 'elaboro', 'fecha', 'disp', 'notas'].forEach(k => { if(f[k]) ex[k] = f[k]; });
+  if(cli.length) ex.cli = Array.from({length: cli.length}, (_, n) => cli[n] || '');
+  r.extra = JSON.stringify(ex).slice(0, 4000);
+  return r;
+}
+// Texto de la ficha, igual al formato de los KMZ de ingeniería (la primera línea del globo es el título)
+const fechaDMY = v => /^\d{4}-\d{2}-\d{2}/.test(String(v || '')) ? fmtFecha(local(v)).slice(0, 10) : '';
+function fichaTexto(x, lista){
+  const E = extraDoc(x), hecho = x.estado === 'DOCUMENTADO', tipo = x.tipo || E.t || '2N';
+  const ubic = `UBICACIÓN: ${x.direccion || ''}\n${(+x.lat).toFixed(6)}°,${(+x.lng).toFixed(6)}°`, R = '------------------------------';
+  if(tipo === 'DERIVACION') return `${ingDe(x, lista)}\n\n${ubic}\n${R}\nBRAZO: ${brazoDoc(x)}`;
+  const olt = `OLT: ${x.olt || ''}\nFRAME: ${x.frame || ''}\nSLOT: ${x.slot || ''}\nPUERTO: ${x.puerto || ''}\nDIR. CORE: ${x.core || ''}\nPOS: ${x.pos || ''}\nFIBRA QUE CONECTA: ${x.fibra || ''}`;
+  const fecha = hecho ? fechaDMY(x.actualizado || x.fecha) : (E.fecha || '');
+  if(tipo === '1N') return `${x.ingenieria || ''}\n\n${ubic}\n${R}\n${olt}\n${R}\n\nÚltima fecha de actualización: ${fecha}`;
+  const cap = parseInt(String(x.capacidad || '').split('x')[1]) || Math.max((E.cli || []).length, 8), cli = E.cli || [];
+  const disp = hecho ? cap - cli.slice(0, cap).filter(v => String(v || '').trim()).length : (E.disp || '');
+  const notas = [E.notas, x.notas].filter(Boolean).filter((v, n, a) => a.indexOf(v) === n).join('\n');
+  return `${x.ingenieria || ''}\n\n${ubic}\n-----------------------------\nÚltima fecha de actualización: ${fecha}\n\nDisponibles: ${disp}\n${R}\n${olt}\n${R}\n`
+    + `QR: ${hecho ? x.qr : (E.qr || '')}\nPOT: ${x.pot || E.pot || ''}\nELABORÓ: ${hecho ? (x.quien || '') : (E.elaboro || '')}\n${R}\nNOTAS: ${notas}\n\n---------------------------------\n`
+    + Array.from({length: cap}, (_, n) => `POS${n + 1}: ${cli[n] || ''}`).join('\n');
+}
+// Íconos: triángulo rojo sin documentar; documentado naranja 1:16, cyan 1:8, verde 1N; rombo para derivación
+const ICO_TRI = 'http://maps.google.com/mapfiles/kml/shapes/triangle.png', ICO_ROMBO = 'http://maps.google.com/mapfiles/kml/shapes/open-diamond.png';
+const ESTILO_2N = [['nodo_rojo', ICO_TRI, 'ff0000ff'], ['nodo_2n16', ICO_TRI, 'ff00aaff'], ['nodo_2n8', ICO_TRI, 'ffffff55'], ['nodo_1n', ICO_TRI, 'ff00ff00'],
+  ['nodo_der', ICO_ROMBO, 'ffffffff'], ['nodo_der_rojo', ICO_ROMBO, 'ff0000ff']].map(([id, h, c]) => `<Style id="${id}"><IconStyle><color>${c}</color><Icon><href>${h}</href></Icon></IconStyle></Style>`).join('');
+function estiloDoc(x){
+  const tipo = x.tipo || extraDoc(x).t || '2N', hecho = x.estado === 'DOCUMENTADO';
+  if(tipo === 'DERIVACION') return hecho ? '#nodo_der' : '#nodo_der_rojo';
+  if(!hecho) return '#nodo_rojo';
+  if(tipo === '1N') return '#nodo_1n';
+  return (parseInt(String(x.capacidad || '').split('x')[1]) || 8) >= 16 ? '#nodo_2n16' : '#nodo_2n8';
+}
 async function cargarKmz(file, alCargar){
   let bytes, A, kml;
   try{
@@ -1621,24 +1951,27 @@ async function cargarKmz(file, alCargar){
     A = analizarKml(kml);
   }catch(e){ return toast(e.message || 'No se pudo leer el archivo'); }
   if(!A.puntos.length && !A.rutas.length) return toast('El archivo no trae puntos ni rutas.');
-  const grupos = {}; A.puntos.forEach(p => (grupos[p.carpeta || '(sin carpeta)'] = grupos[p.carpeta || '(sin carpeta)'] || []).push(p));
-  const nombres = Object.keys(grupos), es2n = g => ES_2N.test(g) || grupos[g].filter(p => ES_2N.test(p.nombre)).length >= grupos[g].length / 2;
+  const esGaza = p => /TARGET|DONUT/i.test(p.icono) || /^GAZA/i.test(p.nombre);
+  const grupos = {}; A.puntos.filter(p => !esGaza(p)).forEach(p => (grupos[p.carpeta || '(sin carpeta)'] = grupos[p.carpeta || '(sin carpeta)'] || []).push(p));
+  const cierre = p => /TRIANGLE|DIAMOND/i.test(p.icono);
+  const nombres = Object.keys(grupos), es2n = g => ES_2N.test(g) || grupos[g].filter(p => ES_2N.test(p.nombre) || cierre(p)).length >= grupos[g].length / 2;
   const marcados = new Set(nombres.filter(es2n)); if(!marcados.size) nombres.forEach(g => marcados.add(g));
   const existe = DOCS.capas.find(c => MAY(c.nombre) === MAY(file.name.replace(/\.(kmz|kml)$/i, '')));
   const {o, cerrar} = ventana('Cargar KMZ', `<div class="mbody">
     <label>Nombre del proyecto</label><input id="kNom" value="${esc(file.name.replace(/\.(kmz|kml)$/i, ''))}">
-    <div class="hint" id="kNomH">${existe ? 'Ya hay un KMZ con este nombre: se reemplaza y lo ya documentado se vuelve a ligar a sus 2N.' : ''}</div>
+    <div class="hint" id="kNomH">${existe ? 'Ya hay un KMZ con este nombre: se reemplaza y lo ya documentado se vuelve a ligar a sus 2N. Las rutas que editaste en NODO se reemplazan por las del archivo nuevo.' : ''}</div>
     <div class="hint" style="margin-top:10px">${A.puntos.length} punto(s) y ${A.rutas.length} ruta(s). Marca las carpetas que son 2N:</div>
     <div class="card" style="margin:8px 0;padding:4px 12px">${nombres.map(g => `<label class="item" style="cursor:pointer"><span class="nom">${esc(g)}<small>${grupos[g].length} punto(s) · ${esc(grupos[g].slice(0,3).map(p => p.nombre).join(', '))}</small></span>
       <input type="checkbox" data-g="${esc(g)}" ${marcados.has(g) ? 'checked' : ''} style="width:22px;height:22px"></label>`).join('')}</div>
     <div id="kErr" class="hint err"></div></div>`, `<button class="btn verde" id="kOk">Cargar</button>`);
   o.querySelector('#kNom').addEventListener('input', e => { const ex = DOCS.capas.find(c => MAY(c.nombre) === MAY(e.target.value.trim()));
-    o.querySelector('#kNomH').textContent = ex ? 'Ya hay un KMZ con este nombre: se reemplaza y lo ya documentado se vuelve a ligar a sus 2N.' : ''; });
+    o.querySelector('#kNomH').textContent = ex ? 'Ya hay un KMZ con este nombre: se reemplaza y lo ya documentado se vuelve a ligar a sus 2N. Las rutas que editaste en NODO se reemplazan por las del archivo nuevo.' : ''; });
   o.querySelector('#kOk').onclick = async () => {
     const sel = new Set([...o.querySelectorAll('[data-g]:checked')].map(c => c.dataset.g)), nombre = o.querySelector('#kNom').value.trim(), err = o.querySelector('#kErr');
     if(!nombre){ err.textContent = 'Escribe el nombre.'; return; }
     if(!demo() && !navigator.onLine){ err.textContent = 'Necesitas señal para cargar el KMZ.'; return; }
-    const puntos = A.puntos.filter(p => sel.has(p.carpeta || '(sin carpeta)')).map(p => { const r = clusterDe(p.lat, p.lng); return {...p, cluster: r ? r.cluster : ''}; });
+    const puntos = A.puntos.filter(p => !esGaza(p) && sel.has(p.carpeta || '(sin carpeta)')).map(p => { const r = clusterDe(p.lat, p.lng), {desc, icono, colorIcono, ...q} = p;
+      return {...q, ...fichaKmz(p), cluster: r ? r.cluster : ''}; });
     const b = o.querySelector('#kOk'); b.disabled = true; b.textContent = 'Cargando…';
     try{
       const j = await apiDoc('cargarCapa', {nombre, tipo: esZip(bytes) ? 'kmz' : 'kml', archivo: bytesAb64(bytes), puntos, rutas: A.rutas});
@@ -1659,19 +1992,13 @@ function elegirDescarga(){
     catch(e){ o.querySelector('#eErr').textContent = e.message; b.disabled = false; b.innerHTML = t; }
   });
 }
-function descripcionDoc(x){
-  const f = [['Tipo', nomCierre(x) || '2N'], ['QR', x.qr], ['Foto', x.foto && x.foto !== '#' ? x.foto : ''], ['Capacidad', x.capacidad], ['Brazo', x.brazo], ['Cluster', x.cluster], ['Documentó', [x.quien, x.empresa].filter(Boolean).join(' · ')],
-    ['Fecha', fmtFecha(local(x.fecha || x.actualizado || new Date()).slice(0,16))], ['Origen', x.origen], ['Notas', x.notas], ['Nombre en el KMZ', x.nombreKmz]].filter(([, v]) => v);
-  return '<table>' + f.map(([k, v]) => `<tr><td><b>${esc(k)}</b></td><td>${/^https?:/.test(v) ? `<a href="${esc(v)}">Ver foto</a>` : esc(v)}</td></tr>`).join('') + '</table>';
-}
 async function armarKmz(capa){
   await bajarDocs();
-  const hechos = vistaDocs().filter(x => x.estado === 'DOCUMENTADO');
-  const hoy = hoyISO();
-  if(!capa){                                     // KMZ nuevo, sin base
-    const porCl = {}; hechos.forEach(x => { const c = x.cluster || 'SIN CLUSTER', b = x.brazo || 'SIN BRAZO'; ((porCl[c] = porCl[c] || {})[b] = porCl[c][b] || []).push(x); });
-    const pm = x => `<Placemark><name>${esc(x.qr || nomCierre(x))}</name><description><![CDATA[${descripcionDoc(x)}]]></description><styleUrl>#fo_2n_doc</styleUrl>
-      <ExtendedData>${[['QR', x.qr], ['CAPACIDAD', x.capacidad], ['BRAZO', x.brazo], ['CLUSTER', x.cluster]].map(([k, v]) => `<Data name="${k}"><value>${esc(v || '')}</value></Data>`).join('')}</ExtendedData>
+  const todos = vistaDocs(), hechos = todos.filter(x => x.estado === 'DOCUMENTADO');
+  const hoy = hoyISO(), nombre = x => tituloDoc(x, todos) || x.qr || nomCierre(x) || x.nombreKmz || '2N';
+  if(!capa){                                     // KMZ nuevo, sin base: por cluster y brazo
+    const porCl = {}; hechos.forEach(x => { const c = x.cluster || 'SIN CLUSTER', b = brazoDoc(x) || 'SIN BRAZO'; ((porCl[c] = porCl[c] || {})[b] = porCl[c][b] || []).push(x); });
+    const pm = x => `<Placemark><name>${esc(nombre(x))}</name><description>${esc(fichaTexto(x, todos))}</description><styleUrl>${estiloDoc(x)}</styleUrl>
       <Point><coordinates>${x.lng},${x.lat},0</coordinates></Point></Placemark>`;
     const kml = `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>2N documentados ${hoy}</name>${ESTILO_2N}
       ${Object.keys(porCl).sort().map(c => `<Folder><name>${esc(c)}</name>${Object.keys(porCl[c]).sort().map(b => `<Folder><name>${esc(b)}</name>${porCl[c][b].map(pm).join('')}</Folder>`).join('')}</Folder>`).join('')}
@@ -1684,78 +2011,120 @@ async function armarKmz(capa){
   const A = analizarKml(z ? z.kml : new TextDecoder().decode(bytes)), X = A.x, ns = X.documentElement.namespaceURI;
   const el = (tag, txt) => { const e = X.createElementNS(ns, tag); if(txt !== undefined) e.textContent = txt; return e; };
   const docEl = X.getElementsByTagNameNS('*', 'Document')[0] || X.documentElement;
-  const estilo = new DOMParser().parseFromString(`<kml xmlns="${ns}">${ESTILO_2N}</kml>`, 'application/xml').documentElement.firstElementChild;
   const primero = [...docEl.children].find(c => ['Folder', 'Placemark', 'Document', 'GroundOverlay', 'NetworkLink'].includes(c.localName));
-  docEl.insertBefore(X.importNode(estilo, true), primero || null);
+  [...new DOMParser().parseFromString(`<kml xmlns="${ns}">${ESTILO_2N}</kml>`, 'application/xml').documentElement.children].forEach(e => docEl.insertBefore(X.importNode(e, true), primero || null));
   const GEOM = ['Point', 'LineString', 'LinearRing', 'Polygon', 'MultiGeometry', 'Model', 'Track', 'MultiTrack'];
   const antesDeGeom = (pm, e) => { const g = [...pm.children].find(c => GEOM.includes(c.localName)); pm.insertBefore(e, g || null); };
   const quitar = (pm, tag) => [...pm.children].filter(c => c.localName === tag).forEach(c => c.remove());
-  let escritos = 0;
-  const deCapa = hechos.filter(x => x.capa === capa.id), sueltos = [];
-  deCapa.forEach(x => {
+  const ponerEstilo = (pm, x) => { quitar(pm, 'Style'); quitar(pm, 'StyleMap'); quitar(pm, 'styleUrl'); antesDeGeom(pm, el('styleUrl', estiloDoc(x))); };
+  const ponerTexto = (pm, x, nuevo) => {
+    const nom = hijoKml(pm, 'name') || pm.insertBefore(el('name'), pm.firstChild), t = tituloDoc(x, todos); if(t || nuevo) nom.textContent = nombre(x);
+    if(!nuevo && hijoKml(pm, 'description') && textoKml(pm, 'description')) return;      // pendiente: su ficha original se respeta
+    quitar(pm, 'description'); nom.after(el('description', fichaTexto(x, todos)));
+  };
+  // rutas editadas en NODO: mover/borrar puntos, borrar rutas y rutas nuevas (en su carpeta; si no existe, se crea)
+  const R = j.rutas || [];
+  const crearCarpeta = camino => {
+    let padre = docEl;
+    for(const nom of String(camino || '').split(' / ').map(t => t.trim()).filter(Boolean)){
+      let f = [...padre.children].find(c => c.localName === 'Folder' && textoKml(c, 'name') === nom);
+      if(!f){ f = el('Folder'); f.appendChild(el('name', nom)); padre.appendChild(f); }
+      padre = f;
+    }
+    return padre;
+  };
+  const lineas = A.rutas.map(a => [...A.pms[a.pm].getElementsByTagNameNS('*', 'LineString')][a.li]);
+  let rutasCambio = 0;
+  R.forEach((r, k) => {
+    if(r.nueva){
+      if(!r.c || r.c.length < 2) return;
+      const p = el('Placemark'); p.appendChild(el('name', r.n || 'RUTA NUEVA'));
+      const st = el('Style'), ls = el('LineStyle'), hex = String(r.color || '#7a5cc4').replace('#', '');
+      ls.appendChild(el('color', 'ff' + hex.slice(4, 6) + hex.slice(2, 4) + hex.slice(0, 2))); ls.appendChild(el('width', '3')); st.appendChild(ls); p.appendChild(st);
+      const l = el('LineString'); l.appendChild(el('tessellate', '1')); l.appendChild(el('coordinates', r.c.map(([la, lo]) => `${lo},${la},0`).join(' '))); p.appendChild(l);
+      crearCarpeta(r.f || 'RUTAS NUEVAS').appendChild(p); rutasCambio++; return;
+    }
+    const ls = lineas[r.o != null ? r.o : k]; if(!ls || !ls.isConnected) return;
+    const pm = ls.closest ? ls.closest('Placemark') : null;
+    if(r.borrada){ ls.remove(); if(pm && !pm.getElementsByTagNameNS('*', 'LineString').length && !pm.getElementsByTagNameNS('*', 'Point').length && !pm.getElementsByTagNameNS('*', 'Polygon').length) pm.remove(); rutasCambio++; return; }
+    if(r.ed){ const ce = hijoKml(ls, 'coordinates') || ls.appendChild(el('coordinates')); ce.textContent = r.c.map(([la, lo]) => `${lo},${la},0`).join(' ');
+      if(pm && r.n && hijoKml(pm, 'name')) hijoKml(pm, 'name').textContent = r.n; rutasCambio++; }
+  });
+  let escritos = 0, rojos = 0;
+  const sueltos = [];
+  todos.filter(x => x.capa === capa.id).forEach(x => {
     const pm = x.pm !== '' && x.pm !== undefined ? A.pms[+x.pm] : null;
-    if(!pm){ sueltos.push(x); return; }
-    const nom = hijoKml(pm, 'name') || pm.insertBefore(el('name'), pm.firstChild); nom.textContent = x.qr || nomCierre(x);
-    quitar(pm, 'description'); const de = el('description'); de.appendChild(X.createCDATASection(descripcionDoc(x))); nom.after(de);
-    quitar(pm, 'Style'); quitar(pm, 'StyleMap'); quitar(pm, 'styleUrl'); antesDeGeom(pm, el('styleUrl', '#fo_2n_doc'));
-    let ed = hijoKml(pm, 'ExtendedData'); if(!ed){ ed = el('ExtendedData'); antesDeGeom(pm, ed); }
-    [...ed.children].filter(c => c.localName === 'Data' && /^FO_/.test(c.getAttribute('name') || '')).forEach(c => c.remove());
-    [['FO_QR', x.qr], ['FO_CAPACIDAD', x.capacidad], ['FO_BRAZO', x.brazo], ['FO_DOCUMENTO', x.quien], ['FO_FECHA', String(x.fecha || '').slice(0, 10)], ['FO_NOMBRE_ORIGINAL', x.nombreKmz]]
-      .forEach(([k, v]) => { const d = el('Data'); d.setAttribute('name', k); d.appendChild(el('value', v || '')); ed.appendChild(d); });
+    if(!pm){ if(x.estado === 'DOCUMENTADO') sueltos.push(x); return; }
+    const hecho = x.estado === 'DOCUMENTADO';
+    ponerTexto(pm, x, hecho); ponerEstilo(pm, x);
+    if(!hecho){ rojos++; return; }
     const pt = pm.getElementsByTagNameNS('*', 'Point')[0], c = pt && coordsKml(textoKml(pt, 'coordinates'))[0];
     if(pt && c && docMetros_(c[0], c[1], x.lat, x.lng) > 3){ const ce = hijoKml(pt, 'coordinates'); ce.textContent = `${x.lng},${x.lat},0`; }
     escritos++;
   });
-  // nuevos: documentados que no estaban en el KMZ y caen dentro del área del proyecto
+  // nuevos: documentados que no estaban en el KMZ y caen dentro del área del proyecto → a la carpeta de su brazo, si existe
   const lat = A.puntos.map(p => p.lat), lng = A.puntos.map(p => p.lng), m = 0.005;
   const dentroArea = x => x.lat >= Math.min(...lat) - m && x.lat <= Math.max(...lat) + m && x.lng >= Math.min(...lng) - m && x.lng <= Math.max(...lng) + m;
   hechos.filter(x => !x.capa && dentroArea(x)).forEach(x => sueltos.push(x));
-  if(sueltos.length){
-    const f = el('Folder'); f.appendChild(el('name', '2N documentados nuevos (no estaban en el KMZ)'));
-    sueltos.forEach(x => { const p = el('Placemark'); p.appendChild(el('name', x.qr || nomCierre(x))); const de = el('description'); de.appendChild(X.createCDATASection(descripcionDoc(x))); p.appendChild(de);
-      p.appendChild(el('styleUrl', '#fo_2n_nuevo')); const pt = el('Point'); pt.appendChild(el('coordinates', `${x.lng},${x.lat},0`)); p.appendChild(pt); f.appendChild(p); });
-    docEl.appendChild(f);
-  }
+  const folders = [...X.getElementsByTagNameNS('*', 'Folder')];
+  const ruta = f => { const r = []; for(let a = f; a; a = a.parentElement) if(a.localName === 'Folder') r.unshift(textoKml(a, 'name')); return r.join(' / '); };
+  const conPuntos = f => [...f.children].some(c => c.localName === 'Placemark' && c.getElementsByTagNameNS('*', 'Point').length);
+  const carpetaPara = x => {
+    const b = docNorm_(brazoDoc(x));
+    const c = x.tipo === '1N' ? folders.filter(f => /PRIMERO?S?\s+NIVEL/i.test(textoKml(f, 'name'))) : b ? folders.filter(f => docNorm_(textoKml(f, 'name')) === b) : [];
+    return c.map(f => ({f, p: (/SEGUNDO/i.test(ruta(f)) ? 2 : 0) + (conPuntos(f) ? 1 : 0)})).sort((a, b) => b.p - a.p).map(o => o.f)[0] || null;
+  };
+  let sinCarpeta = null, enSuCarpeta = 0;
+  sueltos.forEach(x => {
+    const p = el('Placemark'); p.appendChild(el('name', nombre(x))); p.appendChild(el('description', fichaTexto(x, todos)));
+    p.appendChild(el('styleUrl', estiloDoc(x))); const pt = el('Point'); pt.appendChild(el('coordinates', `${x.lng},${x.lat},0`)); p.appendChild(pt);
+    const f = carpetaPara(x);
+    if(f){ const sub = [...f.children].find(c => c.localName === 'Folder'); f.insertBefore(p, sub || null); enSuCarpeta++; }
+    else { if(!sinCarpeta){ sinCarpeta = el('Folder'); sinCarpeta.appendChild(el('name', 'Documentados nuevos sin brazo confirmado')); docEl.appendChild(sinCarpeta); } sinCarpeta.appendChild(p); }
+  });
   const datos = new TextEncoder().encode(new XMLSerializer().serializeToString(X));
   const ents = [{nombre: z ? z.nombreKml : 'doc.kml', met:0, crc:crc32(datos), csz:datos.length, usz:datos.length, datos}, ...(z ? z.otros : [])];
-  toast(`${escritos} 2N escritos en el KMZ${sueltos.length ? ', ' + sueltos.length + ' nuevos' : ''}`);
+  toast(`${escritos} documentados · ${rojos} sin documentar${sueltos.length ? ` · ${sueltos.length} nuevos (${enSuCarpeta} en su brazo)` : ''}${rutasCambio ? ` · ${rutasCambio} cambio(s) de rutas` : ''}`);
   return {blob: armarZip(ents), nombre: `${capa.nombre} documentado ${hoy}.kmz`};
 }
-const ESTILO_2N = `<Style id="fo_2n_doc"><IconStyle><color>ff4c8a1f</color><scale>1.1</scale><Icon><href>http://maps.google.com/mapfiles/kml/paddle/grn-circle.png</href></Icon></IconStyle><LabelStyle><scale>0.8</scale></LabelStyle></Style><Style id="fo_2n_nuevo"><IconStyle><color>ff00a4e0</color><scale>1.1</scale><Icon><href>http://maps.google.com/mapfiles/kml/paddle/ylw-stars.png</href></Icon></IconStyle><LabelStyle><scale>0.8</scale></LabelStyle></Style>`;
-// Excel (.xlsx) armado en el teléfono: una hoja con los 2N documentados
-function xlsxSimple(hoja, cab, filas, anchos){
+// Excel (.xlsx) armado en el teléfono: una o varias hojas
+function xlsxLibro(hojas){
   const x = v => String(v == null ? '' : v).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'})[c]).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '');
   const col = i => String.fromCharCode(65 + i), celda = (v, r, i, st) => `<c r="${col(i)}${r}" t="inlineStr"${st ? ` s="${st}"` : ''}><is><t xml:space="preserve">${x(v)}</t></is></c>`;
-  const ult = col(cab.length - 1) + (filas.length + 1);
-  const hojaXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:${ult}"/>`
-    + `<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`
-    + `<cols>${cab.map((_, i) => `<col min="${i + 1}" max="${i + 1}" width="${anchos[i] || 16}" customWidth="1"/>`).join('')}</cols><sheetData>`
-    + `<row r="1">${cab.map((v, i) => celda(v, 1, i, 1)).join('')}</row>`
-    + filas.map((f, n) => `<row r="${n + 2}">${f.map((v, i) => celda(v, n + 2, i, 0)).join('')}</row>`).join('')
-    + `</sheetData>${filas.length ? `<autoFilter ref="A1:${ult}"/>` : ''}</worksheet>`;
-  const partes = {
-    '[Content_Types].xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`,
-    '_rels/.rels': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`,
-    'xl/workbook.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${x(hoja.slice(0, 31))}" sheetId="1" r:id="rId1"/></sheets>${filas.length ? `<definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="0" hidden="1">'${x(hoja.slice(0, 31))}'!$A$1:$${ult.replace(/(\d+)$/, '$$$1')}</definedName></definedNames>` : ''}</workbook>`,
-    'xl/_rels/workbook.xml.rels': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`,
-    'xl/styles.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF465264"/></patternFill></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="2"><xf fontId="0" fillId="0" borderId="0" xfId="0"/><xf fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`,
-    'xl/worksheets/sheet1.xml': hojaXml};
+  const X = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n', partes = {};
+  hojas.forEach(({cab, filas, anchos}, k) => {
+    const ult = col(cab.length - 1) + (filas.length + 1);
+    partes[`xl/worksheets/sheet${k + 1}.xml`] = X + `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:${ult}"/>`
+      + `<sheetViews><sheetView workbookViewId="0"${k ? '' : ' tabSelected="1"'}><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`
+      + `<cols>${cab.map((_, i) => `<col min="${i + 1}" max="${i + 1}" width="${(anchos || [])[i] || 16}" customWidth="1"/>`).join('')}</cols><sheetData>`
+      + `<row r="1">${cab.map((v, i) => celda(v, 1, i, 1)).join('')}</row>`
+      + filas.map((f, n) => `<row r="${n + 2}">${f.map((v, i) => celda(v, n + 2, i, 0)).join('')}</row>`).join('')
+      + `</sheetData>${filas.length ? `<autoFilter ref="A1:${ult}"/>` : ''}</worksheet>`; });
+  const nom = h => x(String(h.hoja).replace(/[\\\/?*\[\]:]/g, ' ').slice(0, 31));
+  partes['[Content_Types].xml'] = X + `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${hojas.map((_, k) => `<Override PartName="/xl/worksheets/sheet${k + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`;
+  partes['_rels/.rels'] = X + `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+  partes['xl/workbook.xml'] = X + `<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${hojas.map((h, k) => `<sheet name="${nom(h)}" sheetId="${k + 1}" r:id="rId${k + 1}"/>`).join('')}</sheets>`
+    + (hojas.some(h => h.filas.length) ? `<definedNames>${hojas.map((h, k) => h.filas.length ? `<definedName name="_xlnm._FilterDatabase" localSheetId="${k}" hidden="1">'${nom(h)}'!$A$1:$${col(h.cab.length - 1)}$${h.filas.length + 1}</definedName>` : '').join('')}</definedNames>` : '') + `</workbook>`;
+  partes['xl/_rels/workbook.xml.rels'] = X + `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${hojas.map((_, k) => `<Relationship Id="rId${k + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${k + 1}.xml"/>`).join('')}<Relationship Id="rId${hojas.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+  partes['xl/styles.xml'] = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF465264"/></patternFill></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="2"><xf fontId="0" fillId="0" borderId="0" xfId="0"/><xf fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
   const enc = new TextEncoder();
   return new Blob([armarZip(Object.entries(partes).map(([nombre, t]) => { const d = enc.encode(t); return {nombre, met: 0, crc: crc32(d), csz: d.length, usz: d.length, datos: d}; }))],
     {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
 }
+const xlsxSimple = (hoja, cab, filas, anchos) => xlsxLibro([{hoja, cab, filas, anchos}]);
 function filasQr(lista){
+  const todos = lista;
   return lista.filter(x => x.estado === 'DOCUMENTADO' && !nomCierre(x) && x.qr)
     .sort((a, b) => [a.brazo, a.qr].join('|').localeCompare([b.brazo, b.qr].join('|'), 'es', {numeric: true}))
     .map(x => { const la = +x.lat, lo = +x.lng, ok = isFinite(la) && isFinite(lo) && (la || lo);
-      return [x.qr, x.brazo || '', x.nombreKmz || '', x.capacidad || '', ok ? `${la.toFixed(6)}, ${lo.toFixed(6)}` : '', ok ? olcCodificar(la, lo) : '']; });
+      return [x.qr, x.brazo || '', tituloDoc(x, todos) || x.nombreKmz || '', x.capacidad || '', ok ? `${la.toFixed(6)}, ${lo.toFixed(6)}` : '', ok ? olcGoogle(la, lo) : '']; });
 }
 function excelQr(lista){
   const filas = filasQr(lista);
   if(!filas.length) return toast('Aún no hay 2N documentados con QR.');
   const {o} = ventana('Excel de QR', '<div class="mbody"><div class="vacio">Armando el Excel…</div></div>', '');
   const nombre = `QR 2N ${hoyISO()}.xlsx`;
-  entregarArchivo(xlsxSimple('QR 2N', ['QR', 'BRAZO', 'ID DEL 2N', 'CAPACIDAD', 'COORDENADAS', 'PLUS CODE'], filas, [14, 18, 16, 12, 26, 16]), nombre, o,
+  entregarArchivo(xlsxSimple('QR 2N', ['QR', 'BRAZO', 'ID DEL 2N', 'CAPACIDAD', 'COORDENADAS', 'PLUS CODE'], filas, [14, 18, 16, 12, 26, 36]), nombre, o,
     {t: 'Excel listo', h: `${filas.length} 2N con QR · ábrelo con Excel o Google Sheets`});
 }
 function entregarArchivo(blob, nombre, o, txt){   // muestra el archivo listo dentro de la misma ventana
@@ -3001,6 +3370,307 @@ function activarRecorrido(mes){
     const ok = o.querySelector('#rbOk'), re = o.querySelector('#rbRe');
     if(ok) ok.onclick = () => { marcarBrazo(r, b, 'CONCLUIDO'); cerrar(); toast(b.n + ' concluido'); setTimeout(router, 60); };
     if(re) re.onclick = () => { marcarBrazo(r, b, 'PENDIENTE'); cerrar(); setTimeout(router, 60); }; });
+}
+
+/* ===== Levantamientos (solo administrador) =====
+   Validar en campo postes y registros (y otros puntos), con foto y datos, y cuál conecta con cuál (aéreo o subterráneo).
+   Cada levantamiento se guarda en el teléfono y se sube a Drive (NODO · Levantamientos) como un archivo; se descarga en KMZ y Excel. */
+const TIPOS_LEV = {POSTE: ['Poste', 'P', '#3d6bff'], REGISTRO: ['Registro', 'R', '#8d5a2b'], OTRO: ['Otro', 'X', '#6b7280']};
+const CAMPOS_LEV = {
+  POSTE: [['material', 'Material', ['CONCRETO', 'MADERA', 'METÁLICO', 'FIBRA DE VIDRIO']], ['altura', 'Altura (m)', ['7', '8', '9', '10', '11', '12', '13']],
+    ['propietario', 'Propietario', ['CFE', 'TELMEX', 'PROPIO', 'OTRO']], ['estado', 'Estado', ['BUENO', 'DAÑADO', 'INCLINADO', 'SATURADO']]],
+  REGISTRO: [['tamano', 'Tamaño', ['CHICO', 'MEDIANO', 'GRANDE']], ['tapa', 'Tapa', ['BUENA', 'DAÑADA', 'SIN TAPA']],
+    ['propietario', 'Propietario', ['CFE', 'TELMEX', 'PROPIO', 'OTRO']], ['estado', 'Estado', ['BUENO', 'DAÑADO', 'INUNDADO', 'SATURADO']]],
+  OTRO: [['estado', 'Estado', ['BUENO', 'DAÑADO']]]};
+const CONEX_LEV = {AEREO: ['Aéreo', '#2c3440'], SUBTERRANEO: ['Subterráneo', '#b45309']};
+let LEV = LS.get('lev', {lista: [], t: ''});
+const guardarLev = () => { LS.set('lev', LEV); pintarPendientes(); };
+const levPorSubir = () => esAdmin() ? LEV.lista.filter(l => l.subida !== l.actualizado).length : 0;
+const levDe = id => LEV.lista.find(l => l.id === id);
+const tocarLev = L => { L.actualizado = new Date().toISOString(); guardarLev(); };
+const metrosConex = (L, c) => { const a = L.puntos.find(p => p.id === c.a), b = L.puntos.find(p => p.id === c.b); return a && b ? Math.round(docMetros_(a.lat, a.lng, b.lat, b.lng)) : 0; };
+const etiquetaNueva = (L, tipo) => { const pre = TIPOS_LEV[tipo][1]; let n = 0; L.puntos.forEach(p => { const m = new RegExp('^' + pre + '(\\d+)$').exec(p.et || ''); if(m) n = Math.max(n, +m[1]); }); return pre + (n + 1); };
+async function apiLev(accion, datos){
+  if(!demo()) return api(accion, datos);
+  const s = LS.get('demoLev', {}), r = (() => {
+    if(accion === 'levantamientos') return {lista: Object.values(s).map(l => ({id: l.id, nombre: l.nombre, actualizado: l.actualizado}))};
+    if(accion === 'levantamiento'){ if(!s[datos.id]) throw new Error('No encontré ese levantamiento'); return {lev: s[datos.id]}; }
+    if(accion === 'guardarLev'){ const y = s[datos.lev.id]; if(!y || String(y.actualizado) <= String(datos.lev.actualizado)) s[datos.lev.id] = datos.lev; return {}; }
+    if(accion === 'fotoLev') return {foto: {id: 'f' + Math.random().toString(36).slice(2, 8), url: '#'}};
+    if(accion === 'borrarLev'){ delete s[datos.id]; return {}; }
+    throw new Error('Acción desconocida'); })();
+  try{ LS.set('demoLev', s); }catch(e){}
+  return {ok: true, ...r};
+}
+let subiendoLev = false;
+async function subirLev(){
+  if(subiendoLev || !esAdmin() || (!demo() && !navigator.onLine)) return;
+  subiendoLev = true; let cambio = false;
+  try{ for(const L of LEV.lista.filter(l => l.subida !== l.actualizado)){
+    try{
+      for(const p of L.puntos.filter(p => p._fotoPend)){
+        const b = await IDB.traer(p._fotoPend).catch(() => null);
+        if(b){ const j = await apiLev('fotoLev', {id: L.id, punto: p.et, foto: await blobAb64(b)}); p.foto = j.foto; IDB.quitar(p._fotoPend).catch(() => {}); }
+        delete p._fotoPend; guardarLev(); }
+      const v = L.actualizado, datos = JSON.parse(JSON.stringify(L)); delete datos.subida;
+      await apiLev('guardarLev', {lev: datos}); L.subida = v; cambio = true;
+    }catch(e){ console.log('lev', e); } } }
+  finally { subiendoLev = false; }
+  if(cambio){ guardarLev(); if(/^#lev/.test(location.hash) && !enFormulario() && !MODALES.length) router(); }
+}
+async function bajarLev(){
+  if(!esAdmin() || (!demo() && !navigator.onLine)) return;
+  try{ const j = await apiLev('levantamientos', {});
+    for(const r of j.lista){ const k = LEV.lista.findIndex(x => x.id === r.id), loc = LEV.lista[k];
+      if(loc && (loc.subida !== loc.actualizado || String(loc.actualizado) >= String(r.actualizado))) continue;
+      const f = await apiLev('levantamiento', {id: r.id}); const L = {...f.lev, subida: f.lev.actualizado};
+      if(k < 0) LEV.lista.push(L); else LEV.lista[k] = L; }
+    LEV.t = new Date().toISOString(); guardarLev(); await subirLev(); }catch(e){ console.log('lev', e); }
+}
+function pantallaLevs(sinBajar){
+  if(!esAdmin()) return reemplazar('#');
+  $('#titulo').textContent = 'Levantamientos';
+  const ls = [...LEV.lista].sort((a, b) => String(b.actualizado).localeCompare(String(a.actualizado)));
+  const cuenta = (L, t) => L.puntos.filter(p => p.tipo === t).length;
+  $('#app').innerHTML = `<button class="accion" id="lvNuevo"><span class="ic">＋</span><span>Nuevo levantamiento<small>Postes, registros y cómo se conectan</small></span></button>
+    <div class="card"><h2>Levantamientos</h2>${ls.length ? ls.map(L => `<div class="item fr ${L.subida === L.actualizado ? 'f-ok' : 'f-pend'}" data-lv="${esc(L.id)}" style="cursor:pointer">
+      <span class="nom"><b>${esc(L.nombre)}</b><small>${cuenta(L, 'POSTE')} postes · ${cuenta(L, 'REGISTRO')} registros · ${L.conex.length} conexiones · ${esc(fmtFecha(local(L.actualizado)).slice(0, 10))}</small></span>
+      <span class="estado ${L.subida === L.actualizado ? 'enviado' : 'pendiente'}">${L.subida === L.actualizado ? '✓' : 'Por enviar'}</span></div>`).join('') : '<div class="vacio">Aún no hay levantamientos.</div>'}</div>`;
+  $('#lvNuevo').onclick = () => {
+    const {o, cerrar} = ventana('Nuevo levantamiento', `<div class="mbody"><label>Nombre</label><input id="lvN" autocapitalize="characters" placeholder="Ej. POSTES AV. MÉXICO">
+      <label>Mostrar de fondo el KMZ de</label><select id="lvK"><option value="">(ninguno)</option>${DOCS.capas.map(c => `<option value="${esc(c.id)}">${esc(c.nombre)}</option>`).join('')}</select>
+      <div id="lvE" class="hint err"></div></div>`, '<button class="btn verde" id="lvOk">Crear</button>', true);
+    o.querySelector('#lvN').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
+    o.querySelector('#lvOk').onclick = () => { const n = MAY(o.querySelector('#lvN').value).trim(); if(!n){ o.querySelector('#lvE').textContent = 'Escribe el nombre.'; return; }
+      const ahora = new Date().toISOString(), L = {id: uuid(), nombre: n, capa: o.querySelector('#lvK').value, notas: '', creado: ahora, actualizado: ahora, subida: '', puntos: [], conex: []};
+      LEV.lista.push(L); guardarLev(); cerrar(); setTimeout(() => ir('#lev/' + L.id), 60); subirLev(); };
+  };
+  document.querySelectorAll('[data-lv]').forEach(el => el.onclick = () => ir('#lev/' + el.dataset.lv));
+  if(!sinBajar && (!LEV.t || Date.now() - new Date(LEV.t) > 60000)) bajarLev().then(() => { if(location.hash === '#lev' && !MODALES.length) pantallaLevs(true); });
+}
+// GPS: la mejor lectura en unos segundos
+function gpsLev(){
+  return new Promise((res, rej) => {
+    if(!navigator.geolocation) return rej(new Error('Este teléfono no da ubicación'));
+    let mejor = null; const fin = () => { navigator.geolocation.clearWatch(w); clearTimeout(t); mejor ? res(mejor) : rej(new Error('No se pudo obtener el GPS')); };
+    const w = navigator.geolocation.watchPosition(p => { if(!mejor || p.coords.accuracy < mejor.prec) mejor = {lat: p.coords.latitude, lng: p.coords.longitude, prec: Math.round(p.coords.accuracy)}; if(p.coords.accuracy <= 6) fin(); },
+      () => fin(), {enableHighAccuracy: true, timeout: 15000, maximumAge: 0});
+    const t = setTimeout(fin, 9000);
+  });
+}
+function pantallaLev(id){
+  const L = levDe(id); if(!esAdmin()) return reemplazar('#'); if(!L) return reemplazar('#lev');
+  $('#titulo').textContent = L.nombre;
+  const auto = LS.get('levAuto', true), ult = L.puntos[L.puntos.length - 1];
+  const cuenta = t => L.puntos.filter(p => p.tipo === t).length, metros = L.conex.reduce((s, c) => s + metrosConex(L, c), 0);
+  $('#app').innerHTML = `
+    <div class="kpis3" style="margin-bottom:12px"><div class="kpi"><b>${cuenta('POSTE')}</b><span>Postes</span></div><div class="kpi"><b>${cuenta('REGISTRO')}</b><span>Registros</span></div><div class="kpi"><b>${L.conex.length}</b><span>Conexiones · ${metros} m</span></div></div>
+    <div class="row"><button class="btn" id="lvP" style="padding:16px">📍 Poste aquí</button><button class="btn sec" id="lvR" style="padding:16px">🟫 Registro aquí</button></div>
+    <label class="item" style="cursor:pointer;margin:0 0 6px"><span class="nom">Conectar con el anterior${ult ? ` (<b>${esc(ult.et)}</b>)` : ''}<small>Al agregar un punto, se une con el último que capturaste</small></span><input type="checkbox" id="lvAuto" ${auto ? 'checked' : ''} style="width:22px;height:22px"></label>
+    <div class="row"><button class="btn ghost" id="lvMapa">🗺️ Mapa y conexiones</button><button class="btn ghost" id="lvOtro" style="flex:.6">＋ Otro</button></div>
+    <div class="card"><h2>Puntos · ${L.puntos.length}</h2>${L.puntos.length ? [...L.puntos].reverse().map(p => { const con = L.conex.filter(c => c.a === p.id || c.b === p.id).map(c => (L.puntos.find(q => q.id === (c.a === p.id ? c.b : c.a)) || {}).et).filter(Boolean);
+      return `<div class="item" data-lp="${esc(p.id)}" style="cursor:pointer"><span style="width:12px;height:12px;border-radius:${p.tipo === 'POSTE' ? '50%' : '2px'};background:${TIPOS_LEV[p.tipo][2]};flex:none"></span>
+        <span class="nom"><b>${esc(p.et)}</b> · ${TIPOS_LEV[p.tipo][0]}${p.estado ? ' · ' + esc(p.estado) : ''}<small>${con.length ? '🔗 ' + esc(con.join(', ')) : 'sin conexión'}${p.foto || p._fotoPend ? ' · 📷' : ''}${p.prec ? ' · ±' + p.prec + ' m' : ''}</small></span></div>`; }).join('') : '<div class="vacio">Agrega el primer poste o registro con los botones de arriba.</div>'}</div>
+    <div class="card"><h2>Descargar</h2><div class="row"><button class="btn ghost" id="lvKmz">⬇️ KMZ</button><button class="btn ghost" id="lvXls">⬇️ Excel</button></div>
+      <button class="btn ghost sm" id="lvEd" style="margin-top:8px">✏️ Nombre, KMZ de fondo o borrar</button></div>`;
+  $('#lvAuto').onchange = e => LS.set('levAuto', e.target.checked);
+  const rapido = async tipo => { toast('Buscando GPS…'); let g = null; try{ g = await gpsLev(); }catch(e){ toast(e.message + ': marca el punto en el mapa.'); }
+    puntoLev(L, null, {tipo, ...(g || {})}); };
+  $('#lvP').onclick = () => rapido('POSTE'); $('#lvR').onclick = () => rapido('REGISTRO'); $('#lvOtro').onclick = () => rapido('OTRO');
+  $('#lvMapa').onclick = () => mapaLev(L);
+  document.querySelectorAll('[data-lp]').forEach(el => el.onclick = () => puntoLev(L, el.dataset.lp));
+  $('#lvKmz').onclick = () => kmzLev(L); $('#lvXls').onclick = () => excelLev(L);
+  $('#lvEd').onclick = () => {
+    const {o, cerrar} = ventana('Levantamiento', `<div class="mbody"><label>Nombre</label><input id="leN" value="${esc(L.nombre)}" autocapitalize="characters">
+      <label>KMZ de fondo</label><select id="leK"><option value="">(ninguno)</option>${DOCS.capas.map(c => `<option value="${esc(c.id)}" ${c.id === L.capa ? 'selected' : ''}>${esc(c.nombre)}</option>`).join('')}</select>
+      <label>Notas</label><textarea id="leT" rows="3">${esc(L.notas || '')}</textarea></div>`,
+      '<button class="btn ghost" id="leB" style="color:var(--err);flex:.7">Borrar</button><button class="btn verde" id="leOk">Guardar</button>', true);
+    o.querySelector('#leOk').onclick = () => { L.nombre = MAY(o.querySelector('#leN').value).trim() || L.nombre; L.capa = o.querySelector('#leK').value; L.notas = o.querySelector('#leT').value.trim(); tocarLev(L); cerrar(); setTimeout(() => router(), 60); subirLev(); };
+    o.querySelector('#leB').onclick = async () => { if(!await preguntar(`¿Borrar el levantamiento ${L.nombre} con sus ${L.puntos.length} puntos?`, 'Borrar', 'Cancelar')) return;
+      LEV.lista = LEV.lista.filter(x => x !== L); guardarLev(); L.puntos.forEach(p => { if(p._fotoPend) IDB.quitar(p._fotoPend).catch(() => {}); });
+      try{ if(demo() || navigator.onLine) await apiLev('borrarLev', {id: L.id}); }catch(e){}
+      cerrar(); setTimeout(() => reemplazar('#lev'), 80); };
+  };
+}
+// Alta o edición de un punto. nuevo: {tipo, lat, lng, prec}
+function puntoLev(L, pid, nuevo){
+  const prev = pid ? L.puntos.find(p => p.id === pid) : null; if(pid && !prev) return;
+  const p = prev ? {...prev} : {id: uuid(), tipo: nuevo.tipo, et: etiquetaNueva(L, nuevo.tipo), lat: nuevo.lat || '', lng: nuevo.lng || '', prec: nuevo.prec || '', fecha: new Date().toISOString(), notas: ''};
+  const ult = !prev && LS.get('levAuto', true) ? L.puntos[L.puntos.length - 1] : null;
+  let foto = null;
+  const chips = (k, t, ops) => `<label>${t}</label><div class="chips" data-campo="${k}">${ops.map(v => `<button type="button" class="chip ${p[k] === v ? 'on' : ''}" data-v="${esc(v)}">${esc(v)}</button>`).join('')}</div>`;
+  const cuerpo = () => `<div class="mbody">
+    <div class="chips" id="lpT">${Object.entries(TIPOS_LEV).map(([k, [t]]) => `<button type="button" class="chip ${p.tipo === k ? 'on' : ''}" data-t="${k}">${t}</button>`).join('')}</div>
+    <label>Etiqueta</label><input id="lpE" value="${esc(p.et)}" autocapitalize="characters">
+    <label>Ubicación</label><div class="row"><input id="lpC" inputmode="decimal" value="${p.lat ? esc((+p.lat).toFixed(6) + ', ' + (+p.lng).toFixed(6)) : ''}" placeholder="Toca 📍 o 🗺️"><button type="button" class="btn sm sec" id="lpG" style="flex:0 0 auto">📍</button><button type="button" class="btn sm sec" id="lpM" style="flex:0 0 auto">🗺️</button></div>
+    <div class="hint" id="lpH">${p.prec ? 'GPS ±' + p.prec + ' m' : ''}</div>
+    <div id="lpCampos">${CAMPOS_LEV[p.tipo].map(([k, t, ops]) => chips(k, t, ops)).join('')}</div>
+    ${ult ? `<label class="item" style="cursor:pointer"><span class="nom">Conectar con <b>${esc(ult.et)}</b> (${TIPOS_LEV[ult.tipo][0].toLowerCase()})</span><input type="checkbox" id="lpU" checked style="width:22px;height:22px"></label>
+      <div class="chips" id="lpCx">${Object.entries(CONEX_LEV).map(([k, [t]]) => `<button type="button" class="chip ${(p.tipo === 'REGISTRO' || ult.tipo === 'REGISTRO' ? 'SUBTERRANEO' : 'AEREO') === k ? 'on' : ''}" data-cx="${k}">${t}</button>`).join('')}</div>` : ''}
+    <label>Foto</label><div id="lpF">${prev && prev.foto && prev.foto.url && prev.foto.url !== '#' ? `<a href="${esc(prev.foto.url)}" target="_blank" rel="noopener">Ver la foto guardada</a>` : prev && prev._fotoPend ? '<div class="hint">Foto por enviar.</div>' : ''}</div>
+    <div class="row"><label class="btn sec" style="text-align:center;flex:1">📷 Tomar foto<input type="file" id="lpFc" accept="image/*" capture="environment" hidden></label><label class="btn ghost" style="text-align:center;flex:1">🖼️ De archivos<input type="file" id="lpFa" accept="image/*" hidden></label></div>
+    <label>Notas</label><textarea id="lpN" rows="2">${esc(p.notas || '')}</textarea><div id="lpErr" class="hint err"></div></div>`;
+  const {o, cerrar} = ventana(prev ? 'Editar ' + p.et : 'Nuevo punto', cuerpo(), `${prev ? '<button class="btn ghost" id="lpB" style="color:var(--err);flex:.6">Borrar</button>' : ''}<button class="btn verde" id="lpOk">Guardar</button>`);
+  const q = s => o.querySelector(s);
+  const leer = () => { const c = parseCoords(q('#lpC').value); if(c){ p.lat = +c[0].toFixed(6); p.lng = +c[1].toFixed(6); } p.et = MAY(q('#lpE').value).trim() || p.et; p.notas = q('#lpN').value.trim();
+    o.querySelectorAll('[data-campo]').forEach(g => { const on = g.querySelector('.chip.on'); p[g.dataset.campo] = on ? on.dataset.v : ''; }); };
+  const enlazar = () => {
+    o.querySelectorAll('[data-campo] .chip, #lpCx .chip').forEach(b => b.onclick = () => { const on = !b.classList.contains('on'); b.parentElement.querySelectorAll('.chip').forEach(x => x.classList.remove('on')); if(on || b.parentElement.id === 'lpCx') b.classList.add('on'); });
+    o.querySelectorAll('#lpT .chip').forEach(b => b.onclick = () => { leer(); if(b.dataset.t === p.tipo) return;
+      if(!prev && TIPOS_LEV[b.dataset.t][1] !== TIPOS_LEV[p.tipo][1]) p.et = etiquetaNueva(L, b.dataset.t); p.tipo = b.dataset.t;
+      o.querySelectorAll('#lpT .chip').forEach(x => x.classList.toggle('on', x === b)); q('#lpE').value = p.et;
+      q('#lpCampos').innerHTML = CAMPOS_LEV[p.tipo].map(([k, t, ops]) => chips(k, t, ops)).join(''); enlazar(); });
+  };
+  enlazar();
+  q('#lpE').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
+  q('#lpG').onclick = async () => { q('#lpH').textContent = 'Buscando GPS…'; try{ const g = await gpsLev(); q('#lpC').value = g.lat.toFixed(6) + ', ' + g.lng.toFixed(6); p.prec = g.prec; q('#lpH').textContent = 'GPS ±' + g.prec + ' m'; }catch(e){ q('#lpH').textContent = e.message; } };
+  q('#lpM').onclick = () => abrirMapa(q('#lpC').value, (la, lo) => { q('#lpC').value = la.toFixed(6) + ', ' + lo.toFixed(6); p.prec = ''; q('#lpH').textContent = 'Punto marcado en el mapa'; },
+    {titulo: 'Toca dónde está ' + (q('#lpE').value || 'el punto'), hint: 'Toca el lugar exacto.', puntos: L.puntos.filter(x => x.id !== p.id && x.lat).map(x => ({lat: +x.lat, lng: +x.lng, color: TIPOS_LEV[x.tipo][2]}))});
+  const ponerFoto = async f => { q('#lpF').innerHTML = '<div class="hint">Procesando la foto…</div>'; leer();
+    const ub = await ubicacionDeFoto(f).catch(() => null), sf = await sellarFoto(f, ub ? ub.pos : (p.lat ? [p.lat, p.lng] : null), ub ? ub.origen : 'del punto', [`${L.nombre} · ${p.et}`]);
+    const clave = 'lev-' + p.id + '-' + Date.now(); await IDB.poner(clave, sf.blob); foto = clave; q('#lpF').innerHTML = `<img src="${sf.mini}" alt="" class="fotoDoc">`; };
+  ['#lpFc', '#lpFa'].forEach(k => q(k).addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if(f) ponerFoto(f); }));
+  q('#lpOk').onclick = () => {
+    leer();
+    if(!p.lat){ q('#lpErr').textContent = 'Falta la ubicación: toca 📍 o 🗺️.'; return; }
+    if(L.puntos.some(x => x.id !== p.id && x.et === p.et)){ q('#lpErr').textContent = `Ya hay un punto ${p.et}.`; return; }
+    if(foto){ if(prev && prev._fotoPend) IDB.quitar(prev._fotoPend).catch(() => {}); p._fotoPend = foto; delete p.foto; }
+    if(prev) Object.assign(prev, p); else L.puntos.push(p);
+    if(ult && q('#lpU') && q('#lpU').checked && !L.conex.some(c => (c.a === ult.id && c.b === p.id) || (c.b === ult.id && c.a === p.id)))
+      L.conex.push({id: uuid(), a: ult.id, b: p.id, tipo: (o.querySelector('#lpCx .chip.on') || {dataset: {cx: 'AEREO'}}).dataset.cx});
+    tocarLev(L); cerrar(); toast(prev ? 'Guardado' : `${p.et} agregado`); setTimeout(() => { if(location.hash === '#lev/' + L.id && !MODALES.length) router(); }, 60); subirLev();
+  };
+  if(q('#lpB')) q('#lpB').onclick = async () => { if(!await preguntar(`¿Borrar ${prev.et} y sus conexiones?`, 'Borrar', 'Cancelar')) return;
+    L.puntos = L.puntos.filter(x => x.id !== prev.id); L.conex = L.conex.filter(c => c.a !== prev.id && c.b !== prev.id); if(prev._fotoPend) IDB.quitar(prev._fotoPend).catch(() => {});
+    tocarLev(L); cerrar(); setTimeout(() => router(), 60); subirLev(); };
+}
+// Mapa del levantamiento: tocar un punto lo elige (se puede arrastrar), "Conectar" y luego tocar otro punto los une; tocar una conexión la borra
+async function mapaLev(L){
+  const fondo = L.capa && DOCS.capas.find(c => c.id === L.capa), lineasF = fondo ? await rutasDe(fondo).catch(() => []) : [];
+  const S = z => 256 * 2 ** z, wx = (lon, z) => (lon + 180) / 360 * S(z);
+  const wy = (lat, z) => { const s = Math.sin(lat * Math.PI / 180); return (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * S(z); };
+  const ilon = (x, z) => x / S(z) * 360 - 180, ilat = (y, z) => { const n = Math.PI - 2 * Math.PI * y / S(z); return 180 / Math.PI * Math.atan(Math.sinh(n)); };
+  const pts = () => L.puntos.filter(p => p.lat);
+  let z = 18, c0 = CENTRO_MAPA;
+  if(pts().length){ const la = pts().map(p => +p.lat), lo = pts().map(p => +p.lng), a = Math.min(...la), b = Math.max(...la), c = Math.min(...lo), d = Math.max(...lo);
+    c0 = [(a + b) / 2, (c + d) / 2]; while(z > 11 && (wx(d, z) - wx(c, z) > 320 || wy(a, z) - wy(b, z) > 400)) z--; }
+  else if(lineasF.length){ c0 = lineasF[0].c[0]; z = 16; }
+  let cx = wx(c0[1], z), cy = wy(c0[0], z), sel = null, modo = 'ver', tipoConex = 'AEREO', alta = null, cambio = false;
+  const {o, cerrar} = ventana('Mapa · ' + L.nombre, `<div class="mv" id="mv"><div id="mt"></div><svg id="ms"><g id="mg"></g></svg><div class="yo hidden" id="myo"></div>
+      <div class="mhint" id="mhint"></div><div class="mzoom"><button id="mzi" aria-label="Acercar">+</button><button id="mzo" aria-label="Alejar">−</button></div><div class="mattr">© OpenStreetMap</div></div>
+    <div class="minfo" id="minf"></div>`, '<div id="lmPie" style="display:flex;gap:8px;width:100%"></div>');
+  const mv = o.querySelector('#mv'), mt = o.querySelector('#mt'), mg = o.querySelector('#mg'), tiles = new Map(); let yo = null;
+  const X = lo => wx(lo, z) - cx + mv.clientWidth / 2, Y = la => wy(la, z) - cy + mv.clientHeight / 2;
+  const P = id => L.puntos.find(p => p.id === id);
+  function pintar(){
+    const W = mv.clientWidth, H = mv.clientHeight, x0 = cx - W / 2, y0 = cy - H / 2, n = 2 ** z, vistos = new Set();
+    for(let tx = Math.floor(x0 / 256); tx <= Math.floor((x0 + W) / 256); tx++) for(let ty = Math.floor(y0 / 256); ty <= Math.floor((y0 + H) / 256); ty++){
+      if(ty < 0 || ty >= n) continue; const k = `${z}/${((tx % n) + n) % n}/${ty}`; vistos.add(k + '@' + tx);
+      let im = tiles.get(k + '@' + tx); if(!im){ im = new Image(); im.alt = ''; im.onerror = () => { im.style.visibility = 'hidden'; }; im.src = `https://tile.openstreetmap.org/${k}.png`; tiles.set(k + '@' + tx, im); mt.appendChild(im); }
+      im.style.left = (tx * 256 - x0) + 'px'; im.style.top = (ty * 256 - y0) + 'px'; }
+    for(const [k, im] of tiles) if(!vistos.has(k)){ im.remove(); tiles.delete(k); }
+    let h = lineasF.map(l => `<path d="M${l.c.map(([la, lo]) => X(lo).toFixed(1) + ' ' + Y(la).toFixed(1)).join('L')}" fill="none" stroke="${l.color || '#7a5cc4'}" stroke-width="2.5" stroke-opacity=".4"/>`).join('');
+    h += L.conex.map(c => { const a = P(c.a), b = P(c.b); if(!a || !b) return '';
+      return `<line x1="${X(+a.lng).toFixed(1)}" y1="${Y(+a.lat).toFixed(1)}" x2="${X(+b.lng).toFixed(1)}" y2="${Y(+b.lat).toFixed(1)}" stroke="${CONEX_LEV[c.tipo][1]}" stroke-width="3.5" ${c.tipo === 'SUBTERRANEO' ? 'stroke-dasharray="9 6"' : ''}/>`; }).join('');
+    h += pts().map(p => { const x = X(+p.lng), y = Y(+p.lat), r = p.id === sel ? 11 : 8, col = TIPOS_LEV[p.tipo][2];
+      return (p.tipo === 'POSTE' ? `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="${col}" stroke="${p.id === sel ? '#ffb020' : '#fff'}" stroke-width="${p.id === sel ? 4 : 2}"/>`
+        : `<rect x="${(x - r).toFixed(1)}" y="${(y - r).toFixed(1)}" width="${2 * r}" height="${2 * r}" rx="2" fill="${col}" stroke="${p.id === sel ? '#ffb020' : '#fff'}" stroke-width="${p.id === sel ? 4 : 2}"/>`)
+        + (z >= 17 ? `<text x="${(x + r + 3).toFixed(1)}" y="${(y + 4).toFixed(1)}" font-size="12" font-weight="700" fill="#111" stroke="#fff" stroke-width="3" paint-order="stroke">${esc(p.et)}</text>` : ''); }).join('');
+    mg.innerHTML = h;
+    const yoEl = o.querySelector('#myo'); if(yo){ yoEl.classList.remove('hidden'); yoEl.style.left = X(yo[1]) + 'px'; yoEl.style.top = Y(yo[0]) + 'px'; }
+  }
+  function ui(){
+    const pie = o.querySelector('#lmPie'), inf = o.querySelector('#minf'), hint = o.querySelector('#mhint'), p = sel && P(sel);
+    if(modo === 'conectar'){ hint.textContent = `Toca el punto que conecta con ${p.et}.`;
+      inf.innerHTML = `<div class="chips" id="lmCx">${Object.entries(CONEX_LEV).map(([k, [t]]) => `<button type="button" class="chip ${tipoConex === k ? 'on' : ''}" data-cx="${k}">${t}</button>`).join('')}</div>`;
+      pie.innerHTML = '<button class="btn ghost" id="lmCan">Terminar de conectar</button>';
+    } else if(modo === 'alta'){ hint.textContent = `Toca el mapa donde está el ${TIPOS_LEV[alta][0].toLowerCase()}.`; inf.innerHTML = '';
+      pie.innerHTML = '<button class="btn ghost" id="lmCan">Cancelar</button>';
+    } else if(p){ const con = L.conex.filter(c => c.a === p.id || c.b === p.id);
+      hint.textContent = 'Arrastra el punto para moverlo · toca una conexión para borrarla.';
+      inf.innerHTML = `<b>${esc(p.et)}</b> · ${TIPOS_LEV[p.tipo][0]}${p.estado ? ' · ' + esc(p.estado) : ''}<div class="hint" style="margin:0">${con.length ? con.map(c => `${esc((P(c.a === p.id ? c.b : c.a) || {}).et || '')} (${CONEX_LEV[c.tipo][0].toLowerCase()}, ${metrosConex(L, c)} m)`).join(' · ') : 'Sin conexiones'}</div>`;
+      pie.innerHTML = '<button class="btn ghost" id="lmEd">Editar</button><button class="btn" id="lmCon">🔗 Conectar</button><button class="btn ghost" id="lmOk" style="flex:.6">Listo</button>';
+    } else { hint.textContent = 'Toca un punto para elegirlo · toca una conexión para borrarla.';
+      inf.innerHTML = `${L.puntos.length} puntos · ${L.conex.length} conexiones`;
+      pie.innerHTML = '<button class="btn ghost" id="lmAP">＋ Poste</button><button class="btn ghost" id="lmAR">＋ Registro</button><button class="btn ghost" id="lmYo" style="flex:.5">📍</button>'; }
+    const b = s => o.querySelector(s);
+    o.querySelectorAll('#lmCx .chip').forEach(c => c.onclick = () => { tipoConex = c.dataset.cx; ui(); });
+    if(b('#lmCan')) b('#lmCan').onclick = () => { modo = 'ver'; alta = null; pintar(); ui(); };
+    if(b('#lmOk')) b('#lmOk').onclick = () => { sel = null; pintar(); ui(); };
+    if(b('#lmCon')) b('#lmCon').onclick = () => { modo = 'conectar'; tipoConex = p.tipo === 'REGISTRO' ? 'SUBTERRANEO' : 'AEREO'; ui(); };
+    if(b('#lmEd')) b('#lmEd').onclick = () => { const id = sel; cerrar(); setTimeout(() => puntoLev(L, id), 80); };
+    if(b('#lmAP')) b('#lmAP').onclick = () => { modo = 'alta'; alta = 'POSTE'; ui(); };
+    if(b('#lmAR')) b('#lmAR').onclick = () => { modo = 'alta'; alta = 'REGISTRO'; ui(); };
+    if(b('#lmYo')) b('#lmYo').onclick = async () => { try{ const g = await gpsLev(); yo = [g.lat, g.lng]; cx = wx(g.lng, z); cy = wy(g.lat, z); pintar(); }catch(e){ toast(e.message); } };
+  }
+  const guarda = () => { cambio = true; tocarLev(L); };
+  function zoom(dz){ const nz = Math.max(11, Math.min(20, z + dz)); if(nz === z) return; const la = ilat(cy, z), lo = ilon(cx, z); z = nz; cx = wx(lo, z); cy = wy(la, z); pintar(); }
+  const ptrs = new Map(); let ini = null, pinch = null, arr = null;
+  const rel = (ex, ey) => { const r = mv.getBoundingClientRect(); return [ex - r.left, ey - r.top]; };
+  const puntoEn = (px, py) => { let m = null, d0 = 20; pts().forEach(p => { const d = Math.hypot(X(+p.lng) - px, Y(+p.lat) - py); if(d < d0){ d0 = d; m = p; } }); return m; };
+  const conexEn = (px, py) => { let m = null, d0 = 12; L.conex.forEach(c => { const a = P(c.a), b = P(c.b); if(!a || !b) return; const ax = X(+a.lng), ay = Y(+a.lat), dx = X(+b.lng) - ax, dy = Y(+b.lat) - ay;
+    const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy || 1))), d = Math.hypot(px - ax - t * dx, py - ay - t * dy); if(d < d0){ d0 = d; m = c; } }); return m; };
+  mv.addEventListener('pointerdown', e => { if(e.target.closest('.mzoom,.mhint')) return; mv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+    if(ptrs.size === 1){ const [px, py] = rel(e.clientX, e.clientY), p = modo === 'ver' && sel ? puntoEn(px, py) : null;
+      if(p && p.id === sel){ arr = {p, x: e.clientX, y: e.clientY, mov: false}; ini = null; return; }
+      ini = {x: e.clientX, y: e.clientY, cx, cy, mov: false}; }
+    if(ptrs.size === 2){ const [a, b] = [...ptrs.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); if(ini) ini.mov = true; arr = null; } });
+  mv.addEventListener('pointermove', e => { if(!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+    if(ptrs.size === 2 && pinch){ const [a, b] = [...ptrs.values()], dd = Math.hypot(a[0] - b[0], a[1] - b[1]); if(dd / pinch > 1.5){ zoom(1); pinch = dd; } else if(dd / pinch < .67){ zoom(-1); pinch = dd; } return; }
+    if(arr){ if(!arr.mov && Math.hypot(e.clientX - arr.x, e.clientY - arr.y) > 6) arr.mov = true;
+      if(arr.mov){ const [px, py] = rel(e.clientX, e.clientY); arr.p.lat = +ilat(cy - mv.clientHeight / 2 + py, z).toFixed(6); arr.p.lng = +ilon(cx - mv.clientWidth / 2 + px, z).toFixed(6); arr.p.prec = ''; pintar(); } return; }
+    if(!ini) return; const dx = e.clientX - ini.x, dy = e.clientY - ini.y; if(Math.abs(dx) + Math.abs(dy) > 8) ini.mov = true;
+    if(ini.mov){ cx = ini.cx - dx; cy = ini.cy - dy; pintar(); } });
+  const fin = async e => { if(!ptrs.has(e.pointerId)) return; ptrs.delete(e.pointerId);
+    if(ptrs.size === 1){ const [q] = [...ptrs.values()]; ini = {x: q[0], y: q[1], cx, cy, mov: true}; pinch = null; return; }
+    if(ptrs.size) return;
+    if(arr){ const a = arr; arr = null; if(a.mov){ guarda(); ui(); } return; }
+    if(ini && !ini.mov && e.type === 'pointerup'){ const [px, py] = rel(e.clientX, e.clientY), p = puntoEn(px, py);
+      if(modo === 'alta'){ const t = alta; modo = 'ver'; alta = null; cerrar(); setTimeout(() => puntoLev(L, null, {tipo: t, lat: +ilat(cy - mv.clientHeight / 2 + py, z).toFixed(6), lng: +ilon(cx - mv.clientWidth / 2 + px, z).toFixed(6)}), 80); }
+      else if(modo === 'conectar'){ if(p && p.id !== sel){
+          if(L.conex.some(c => (c.a === sel && c.b === p.id) || (c.b === sel && c.a === p.id))) toast('Ya están conectados');
+          else { L.conex.push({id: uuid(), a: sel, b: p.id, tipo: tipoConex}); guarda(); toast(`${P(sel).et} ↔ ${p.et}`); }
+          sel = p.id; pintar(); ui(); } }       // sigue conectando desde el nuevo punto (para tramos seguidos)
+      else if(p){ sel = p.id; pintar(); ui(); }
+      else { const c = conexEn(px, py);
+        if(c && await preguntar(`¿Borrar la conexión ${(P(c.a) || {}).et} ↔ ${(P(c.b) || {}).et}?`, 'Borrar', 'Cancelar')){ L.conex = L.conex.filter(x => x !== c); guarda(); }
+        else if(!c){ sel = null; }
+        pintar(); ui(); } }
+    ini = null; pinch = null; };
+  mv.addEventListener('pointerup', fin); mv.addEventListener('pointercancel', fin);
+  mv.addEventListener('wheel', e => { e.preventDefault(); zoom(e.deltaY < 0 ? 1 : -1); }, {passive: false});
+  o.querySelector('#mzi').onclick = () => zoom(1); o.querySelector('#mzo').onclick = () => zoom(-1);
+  addEventListener('resize', pintar);
+  o.addEventListener('cerrar', () => { removeEventListener('resize', pintar); if(cambio){ subirLev(); setTimeout(() => { if(location.hash === '#lev/' + L.id && !MODALES.length) router(); }, 60); } });
+  const ro = new ResizeObserver(() => pintar()); ro.observe(mv); o.addEventListener('cerrar', () => ro.disconnect());
+  requestAnimationFrame(() => { ui(); pintar(); });
+}
+// Descargas: KMZ (postes, registros, otros y conexiones por tipo) y Excel (puntos y conexiones)
+function kmzLev(L){
+  const P = id => L.puntos.find(p => p.id === id), hoy = hoyISO();
+  const est = [['POSTE', 'http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png', 'ffff6b3d'], ['REGISTRO', 'http://maps.google.com/mapfiles/kml/shapes/square.png', 'ff2b5a8d'], ['OTRO', 'http://maps.google.com/mapfiles/kml/shapes/placemark_square.png', 'ff80726b']];
+  const ficha = p => [`${TIPOS_LEV[p.tipo][0].toUpperCase()}: ${p.et}`, '', `UBICACIÓN:`, `${(+p.lat).toFixed(6)}°,${(+p.lng).toFixed(6)}°`, olcGoogle(+p.lat, +p.lng), '------------------------------',
+    ...CAMPOS_LEV[p.tipo].map(([k, t]) => `${t.toUpperCase()}: ${p[k] || ''}`), `CONECTA CON: ${L.conex.filter(c => c.a === p.id || c.b === p.id).map(c => (P(c.a === p.id ? c.b : c.a) || {}).et).filter(Boolean).join(', ')}`,
+    '------------------------------', `NOTAS: ${p.notas || ''}`, ...(p.foto && p.foto.url && p.foto.url !== '#' ? [`FOTO: ${p.foto.url}`] : [])].join('\n');
+  const kml = `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${esc(L.nombre)} · levantamiento ${hoy}</name>
+${est.map(([t, h, c]) => `<Style id="lev_${t}"><IconStyle><color>${c}</color><Icon><href>${h}</href></Icon></IconStyle></Style>`).join('')}
+${Object.entries(CONEX_LEV).map(([k, [, c]]) => `<Style id="cx_${k}"><LineStyle><color>ff${c.slice(5, 7)}${c.slice(3, 5)}${c.slice(1, 3)}</color><width>3</width></LineStyle></Style>`).join('')}
+${Object.keys(TIPOS_LEV).map(t => { const ps = L.puntos.filter(p => p.tipo === t && p.lat); return ps.length ? `<Folder><name>${TIPOS_LEV[t][0].toUpperCase()}S (${ps.length})</name>${ps.map(p => `<Placemark><name>${esc(p.et)}</name><description>${esc(ficha(p))}</description><styleUrl>#lev_${t}</styleUrl><Point><coordinates>${p.lng},${p.lat},0</coordinates></Point></Placemark>`).join('')}</Folder>` : ''; }).join('')}
+${L.conex.length ? `<Folder><name>CONEXIONES (${L.conex.length})</name>${Object.keys(CONEX_LEV).map(k => { const cs = L.conex.filter(c => c.tipo === k && P(c.a) && P(c.b)); return cs.length ? `<Folder><name>${CONEX_LEV[k][0].toUpperCase()}</name>${cs.map(c => `<Placemark><name>${esc(P(c.a).et)} - ${esc(P(c.b).et)}</name><description>${CONEX_LEV[k][0]} · ${metrosConex(L, c)} m</description><styleUrl>#cx_${k}</styleUrl><LineString><tessellate>1</tessellate><coordinates>${P(c.a).lng},${P(c.a).lat},0 ${P(c.b).lng},${P(c.b).lat},0</coordinates></LineString></Placemark>`).join('')}</Folder>` : ''; }).join('')}</Folder>` : ''}
+</Document></kml>`;
+  const k = new TextEncoder().encode(kml), {o} = ventana('KMZ del levantamiento', '<div class="mbody"><div class="vacio">Armando…</div></div>', '');
+  entregarArchivo(armarZip([{nombre: 'doc.kml', met: 0, crc: crc32(k), csz: k.length, usz: k.length, datos: k}]), `${L.nombre} levantamiento ${hoy}.kmz`, o);
+}
+function excelLev(L){
+  const P = id => L.puntos.find(p => p.id === id), hoy = hoyISO();
+  const campos = [['material', 'MATERIAL'], ['altura', 'ALTURA (m)'], ['tamano', 'TAMAÑO'], ['tapa', 'TAPA'], ['propietario', 'PROPIETARIO'], ['estado', 'ESTADO']];
+  const puntos = L.puntos.filter(p => p.lat).map(p => [p.et, TIPOS_LEV[p.tipo][0].toUpperCase(), `${(+p.lat).toFixed(6)}, ${(+p.lng).toFixed(6)}`, olcGoogle(+p.lat, +p.lng), ...campos.map(([k]) => p[k] || ''),
+    L.conex.filter(c => c.a === p.id || c.b === p.id).map(c => (P(c.a === p.id ? c.b : c.a) || {}).et).filter(Boolean).join(', '), p.notas || '', p.foto && p.foto.url && p.foto.url !== '#' ? p.foto.url : '', fmtFecha(local(p.fecha)).slice(0, 16)]);
+  const conex = L.conex.filter(c => P(c.a) && P(c.b)).map(c => [P(c.a).et, P(c.b).et, CONEX_LEV[c.tipo][0].toUpperCase(), String(metrosConex(L, c))]);
+  const {o} = ventana('Excel del levantamiento', '<div class="mbody"><div class="vacio">Armando…</div></div>', '');
+  entregarArchivo(xlsxLibro([{hoja: 'Puntos', cab: ['ETIQUETA', 'TIPO', 'COORDENADAS', 'PLUS CODE', ...campos.map(c => c[1]), 'CONECTA CON', 'NOTAS', 'FOTO', 'FECHA'], filas: puntos, anchos: [10, 11, 24, 34, 13, 10, 10, 10, 13, 11, 18, 26, 30, 16]},
+    {hoja: 'Conexiones', cab: ['DE', 'A', 'TIPO', 'METROS'], filas: conex, anchos: [10, 10, 14, 10]}]), `${L.nombre} levantamiento ${hoy}.xlsx`, o,
+    {t: 'Excel listo', h: `${puntos.length} puntos y ${conex.length} conexiones · ábrelo con Excel o Google Sheets`});
 }
 
 /* ===== IDR (inspector de red) =====
