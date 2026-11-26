@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tile.openstreetmap.org; connect-src 'self' https://script.google.com https://script.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<meta name="referrer" content="no-referrer">
+<meta name="referrer" content="strict-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#465264">
 <script>
@@ -276,7 +276,7 @@ button.ocupado::before{content:"";display:inline-block;width:14px;height:14px;ma
 <script>
 /* ===== Configuración ===== */
 const API_URL = 'https://script.google.com/macros/s/AKfycbzI9uNq8muKRdLWnrY6StHGs8bfSvacPbXsOTxjHJPNpU4ZHK_CaRrfD4PDAmNcbt-kHQ/exec';            // URL de la implementación de Apps Script (termina en /exec). Vacío = modo demo.
-const APP_VERSION = '0.42.0';
+const APP_VERSION = '0.42.1';
 const HORAS_EDICION = 48;      // horas que un técnico puede corregir su folio
 const CENTRO_MAPA = [20.66, -105.24];   // donde abre el mapa si aún no hay coordenadas
 const DIAS_HISTORIAL = 30;     // los folios ya enviados se borran del teléfono después de estos días (siguen en Sheets)
@@ -4714,7 +4714,7 @@ function abrirMapa(coordsTxt, alElegir, opts = {}){   // opts: titulo, hint, lin
       navigator.geolocation.getCurrentPosition(p => { if(!o.isConnected) return; o.querySelector('#mbq').value = coordsTexto([p.coords.latitude, p.coords.longitude]); ir(p.coords.latitude, p.coords.longitude); },
         () => toast('No se pudo obtener el GPS'), {enableHighAccuracy: true, timeout: 20000}); };
   }
-  buscarYo(false);                                  // al abrir: muestra el punto azul de dónde estás
+  if(!escritorio()) buscarYo(false);                // al abrir (solo teléfono): muestra el punto azul de dónde estás
   o.querySelector('#mok').onclick = () => { if(opts.soloVer) return cerrar(); if(!pt) return toast('Toca el mapa para marcar el punto'); alElegir(pt[0], pt[1]); cerrar(); };
   addEventListener('resize', pintar); o.addEventListener('cerrar', () => removeEventListener('resize', pintar));
   zonas(); requestAnimationFrame(() => { pintar(); info(); });
