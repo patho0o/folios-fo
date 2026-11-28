@@ -75,7 +75,7 @@ textarea{min-height:80px;resize:vertical}
 .tira{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 10px;scrollbar-width:none}.tira::-webkit-scrollbar{display:none}.tira .chip{flex:none}
 .hint{font-size:13px;color:var(--gris);margin-top:4px}
 .hint.ok{color:var(--ok)}.hint.warn{color:var(--warn)}.hint.err{color:var(--err)}
-.fh{display:flex;gap:8px}.fh input{min-width:0;width:auto}.fh input[type=date]{flex:1.3 1 0}.fh input[type=time],.fh input[data-hora]{flex:1 1 0}
+.faltan .estado{font-size:11px;margin-left:6px}.resalta{outline:2px solid var(--err);outline-offset:2px;border-radius:10px}.fh{display:flex;gap:8px}.fh input{min-width:0;width:auto}.fh input[type=date]{flex:1.3 1 0}.fh input[type=time],.fh input[data-hora]{flex:1 1 0}
 .item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--linea)}
 .item:last-child{border-bottom:0}
 .item .nom{font-size:14px;flex:1;min-width:0}
@@ -276,7 +276,7 @@ button.ocupado::before{content:"";display:inline-block;width:14px;height:14px;ma
 <script>
 /* ===== Configuración ===== */
 const API_URL = 'https://script.google.com/macros/s/AKfycbzI9uNq8muKRdLWnrY6StHGs8bfSvacPbXsOTxjHJPNpU4ZHK_CaRrfD4PDAmNcbt-kHQ/exec';            // URL de la implementación de Apps Script (termina en /exec). Vacío = modo demo.
-const APP_VERSION = '0.42.1';
+const APP_VERSION = '0.43.1';
 const HORAS_EDICION = 48;      // horas que un técnico puede corregir su folio
 const CENTRO_MAPA = [20.66, -105.24];   // donde abre el mapa si aún no hay coordenadas
 const DIAS_HISTORIAL = 30;     // los folios ya enviados se borran del teléfono después de estos días (siguen en Sheets)
@@ -370,6 +370,14 @@ const BOV = (() => {
         try{ if(v === null) await tx('datos', 'readwrite', s => s.delete(k)); else { const x = await cifra(st.llave, te.encode(v)); await tx('datos', 'readwrite', s => s.put(x, k)); } }catch(e){ console.log('bóveda', e); } }
       st.escribiendo = null; })();
   }
+  const llaveBio = async u8 => crypto.subtle.importKey('raw', await crypto.subtle.digest('SHA-256', u8), 'AES-GCM', false, ['encrypt', 'decrypt']);
+  const prfDe = async (credId, sal) => {
+    const a = await navigator.credentials.get({publicKey: {challenge: crypto.getRandomValues(new Uint8Array(32)), rpId: location.hostname,
+      allowCredentials: [{type: 'public-key', id: credId}], userVerification: 'required', timeout: 60000, extensions: {prf: {eval: {first: sal}}}}});
+    const r = a.getClientExtensionResults ? a.getClientExtensionResults() : {}, f = r.prf && r.prf.results && r.prf.results.first;
+    if(!f) throw new Error('Este teléfono no entregó la llave de la huella. Sigue con tu PIN.');
+    return new Uint8Array(f);
+  };
   const guardaLlave = (limiteMin) => tx('llave', 'readwrite', s => s.put({k: st.llave, limite: limiteMin * 60e3}, 'dek')).catch(() => {});
   return {
     get on(){ return st.on; }, get abierta(){ return st.abierta; }, get probando(){ return st.probando; },
@@ -402,6 +410,31 @@ const BOV = (() => {
     async cambiarPinLocal(id, viejo, nuevo){ const m = meta(); if(!m || !m.envPin || !m.envPin[id]) return;
       const raw = st.raw || await desenvolver(m.envPin[id], await kdf(viejo, id, m.sal)); m.envPin[id] = await envolver(raw, await kdf(nuevo, id, m.sal)); ponMeta(m); },
     async agregarPin(id, pin){ if(!st.raw) return; const m = meta(); m.envPin[id] = await envolver(st.raw, await kdf(pin, id, m.sal)); ponMeta(m); },
+    tieneBio: id => !!((meta() || {}).envBio || {})[id],
+    hayBio: () => Object.keys((meta() || {}).envBio || {}).length > 0,
+    async activarBio(id, nombre, pin){
+      if(!window.PublicKeyCredential || !navigator.credentials || !window.isSecureContext) throw new Error('Este navegador no permite usar la huella en NODO.');
+      const m = meta(), env = m && m.envPin && m.envPin[id]; if(!env) throw new Error('Primero entra con tu PIN en este teléfono.');
+      let raw; try{ raw = await desenvolver(env, await kdf(pin, id, m.sal)); }catch(e){ throw new Error('PIN incorrecto'); }
+      const sal = crypto.getRandomValues(new Uint8Array(32));
+      const cred = await navigator.credentials.create({publicKey: {challenge: crypto.getRandomValues(new Uint8Array(32)), rp: {name: 'NODO', id: location.hostname},
+        user: {id: crypto.getRandomValues(new Uint8Array(16)), name: id, displayName: nombre || id},
+        pubKeyCredParams: [{type: 'public-key', alg: -7}, {type: 'public-key', alg: -257}],
+        authenticatorSelection: {authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'discouraged'}, timeout: 60000,
+        extensions: {prf: {eval: {first: sal}}}}});
+      const ext = cred.getClientExtensionResults ? cred.getClientExtensionResults() : {};
+      if(!ext.prf || ext.prf.enabled === false) throw new Error('Este teléfono no permite usar la huella para abrir los datos cifrados. Sigue con tu PIN.');
+      const credId = new Uint8Array(cred.rawId);
+      let out = ext.prf.results && ext.prf.results.first ? new Uint8Array(ext.prf.results.first) : await prfDe(credId, sal);
+      const m2 = meta(); m2.envBio = m2.envBio || {}; m2.envBio[id] = {cred: b64(credId), sal: b64(sal), env: await envolver(raw, await llaveBio(out))}; ponMeta(m2); return true;
+    },
+    async abrirConBio(id, limiteMin){
+      const b = ((meta() || {}).envBio || {})[id]; if(!b) throw new Error('La huella no está activada para este usuario.');
+      const out = await prfDe(deb64(b.cred), deb64(b.sal));
+      let raw; try{ raw = await desenvolver(b.env, await llaveBio(out)); }catch(e){ throw new Error('No se pudo abrir con la huella. Entra con tu PIN.'); }
+      st.raw = raw; st.llave = await importar(raw); await cargar(); st.on = st.abierta = true; await guardaLlave(limiteMin); return true;
+    },
+    quitarBio(id){ const m = meta(); if(m && m.envBio){ delete m.envBio[id]; ponMeta(m); } },
     async verificarPin(id, pin){ const m = meta(), env = m && m.envPin && m.envPin[id]; if(!env) return null; try{ await desenvolver(env, await kdf(pin, id, m.sal)); return true; }catch(e){ return false; } },
     async desdeCache(){                           // al abrir la app: si no ha pasado el tiempo de bloqueo, abre sola
       if(!meta()) return false; st.probando = true;
@@ -430,7 +463,7 @@ const DISP = (() => { let d = null; try{ d = localStorage.getItem('fo.disp'); }c
   if(!d || !/^[a-f0-9]{32}$/.test(d)){ d = [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join(''); try{ localStorage.setItem('fo.disp', d); }catch(e){} }
   return d; })();
 const nombreDisp = () => { const ua = navigator.userAgent, m = ua.match(/Android [\d.]+; ([^;)]+)/) || ua.match(/\((iPhone|iPad|Windows NT [\d.]+|Macintosh)/); return ((m && m[1]) || 'Navegador').trim() + (matchMedia('(display-mode: standalone)').matches ? ' · app' : ''); };
-const limiteInactividad = u => u && ['ADMIN', 'INGRED', 'COORD'].includes(u.rol) ? 20 : 8 * 60;   // minutos
+const limiteInactividad = u => u && ['ADMIN', 'INGRED', 'COORD'].includes(u.rol) ? 12 * 60 : 8 * 60;   // minutos: escritorio 12 h (su turno), campo 8 h
 let ESPACIO = 'fo.';                    // 'fo.demo.' mientras entra el usuario de demostración: sus datos no se mezclan con los reales
 const claveLS = k => (k === 'tema' || k === 'letra') ? 'fo.' + k : ESPACIO + k;
 // Con bóveda: lo que no es "plano" vive cifrado; mientras está cerrada no se lee ni se escribe nada de eso.
@@ -785,8 +818,8 @@ function entradasMenu(){                 // menú lateral de escritorio: lo mism
   e.push(['-', 'Material']);
   if(verInv() || USER.cuadrilla) e.push(['#inventario', '📦', 'Inventario']);
   if(adm || r === 'SUPERVISOR' || puede('reporte', 1)) e.push(['#reporte', '📊', 'Reporte semanal']);
-  if(adm) e.push(['-', 'Administración'], ['#lev', '📐', 'Levantamientos'], ['#usuarios', '👥', 'Usuarios'], ['#catalogos', '🗂️', 'Catálogos'], ['#reportes', '💬', 'Avisos de la app']);
-  else if(puedeCat()) e.push(['-', 'Administración'], ['#catalogos', '🗂️', 'Catálogos']);
+  if(adm) e.push(['-', 'Administración'], ['#lev', '📐', 'Levantamientos'], ['#usuarios', '👥', 'Usuarios'], ['#catalogos', '🗂️', 'Catálogos'], ['#jumpeos', '🔌', 'Jumpeos en OLT'], ['#reportes', '💬', 'Avisos de la app']);
+  else if(puedeCat()) e.push(['-', 'Administración'], ['#catalogos', '🗂️', 'Catálogos'], ['#jumpeos', '🔌', 'Jumpeos en OLT']);
   e.push(['-', ''], ['#ajustes', 'ajustes', 'Ajustes']);
   return e.filter((x, i, a) => x[0] !== '-' || (a[i + 1] && a[i + 1][0] !== '-'));
 }
@@ -843,6 +876,7 @@ function rutaBase(){
   if(h.startsWith('#inv/mov/')) return pantallaMov(h.slice(9));
   if(h === '#compartido') return pantallaCompartido();
   if(h === '#catalogos') return pantallaCatalogos();
+  if(h === '#jumpeos') return pantallaJumpeos();
   if(h === '#informes') return pantallaInformes();
   if(h === '#lev') return pantallaLevs();
   if(h.startsWith('#lev/')) return pantallaLev(h.slice(5));
@@ -942,17 +976,28 @@ function qrSvg(texto, px = 220){
    · Con señal, el servidor revisa PIN (y el código de 6 dígitos en Admin, Ing. de red y Coordinación) y que el teléfono esté autorizado;
      entrega una llave de sesión que vence y el secreto del teléfono para abrir sus datos cifrados.
    · Sin señal, solo puede entrar quien ya entró antes en este teléfono: el PIN abre la bóveda aquí mismo. */
+// Vigencia de la sesión guardada (el token trae su vencimiento; la firma la revisa el servidor)
+function tokenVigente(t){
+  try{ const c = String(t).split('.')[0].replace(/-/g, '+').replace(/_/g, '/'); const p = JSON.parse(decodeURIComponent(escape(atob(c + '==='.slice((c.length + 3) % 4))))); return p.e > Date.now() + 36e5; }
+  catch(e){ return false; }
+}
 async function entrar(u, pin){
   if(demo()){ if(pin !== '1234') throw new Error('PIN incorrecto'); return {}; }
   if(BOV.existe() && BOV.tienePin(u.id)){
     const ok = await BOV.verificarPin(u.id, pin);
     if(ok === false) throw new Error('PIN incorrecto');
+    // Desbloqueo: si este teléfono ya tiene una sesión vigente, basta el PIN (sin código del autenticador).
+    // El servidor la sigue validando en cada petición; si la cerraron o venció, pide entrar de nuevo.
+    // (los perfiles viven dentro de la bóveda: primero se abre con el PIN)
+    if(!BOV.abierta){ try{ await BOV.abrirConPin(u.id, pin, limiteInactividad(cuentasTel().find(c => c.id === u.id) || u)); }catch(e){} }
+    const pv = BOV.abierta ? LS.get('perfiles', {})[u.id] : null;
+    if(pv && pv.token && tokenVigente(pv.token)) return {...pv, _offline: true};
     if(navigator.onLine){
       try{ return await loginServidor(u, pin); }
       catch(e){ if(e.codigo || !/conexión|señal/i.test(e.message)) throw e; }    // sin respuesta: entra sin señal
     }
-    if(!BOV.abierta) await BOV.abrirConPin(u.id, pin, 20);
     const pf = LS.get('perfiles', {})[u.id];
+    if(!BOV.abierta) await BOV.abrirConPin(u.id, pin, limiteInactividad(pf));
     if(!pf) throw new Error('Necesitas señal para entrar.');
     return {...pf, _offline: true};
   }
@@ -1013,7 +1058,7 @@ function avisoPrivacidad(soloVer){
   const {o, cerrar} = ventana('Aviso de privacidad', `<div class="mbody" style="font-size:14px;line-height:1.5">${AVISO_PRIVACIDAD}</div>`, soloVer ? '' : '<button class="btn" id="pvOk">Entendido, acepto</button>');
   if(!soloVer) o.querySelector('#pvOk').onclick = () => { api('privacidad', {}).catch(() => {}); cerrar(); };
 }
-// Bloqueo por inactividad: al volver, la app pide el PIN (20 min en Admin y oficina; 8 h en campo)
+// Bloqueo por inactividad: al volver, la app pide el PIN (12 h en Admin y oficina; 8 h en campo)
 let ultToque = 0;
 const marcarActividad = () => { ultToque = Date.now(); try{ localStorage.setItem('fo.actividad', String(ultToque)); }catch(e){} };
 ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if(Date.now() - ultToque > 15000) marcarActividad(); }, {capture: true, passive: true}));
@@ -1047,8 +1092,15 @@ const marcaDescarga = () => USER ? `Descargado de NODO por ${USER.nombre} (${USE
 // Cuentas que ya entraron en este teléfono (para no escribir el usuario cada vez); se borran con los datos de la app
 const cuentasTel = () => { try{ return JSON.parse(localStorage.getItem('fo.cuentas') || '[]'); }catch(e){ return []; } };
 function guardarCuentaTel(d, escrito){
-  const l = cuentasTel().filter(c => c.id !== d.id); l.unshift({id: d.id, nombre: d.nombre, acceso: d.acceso || escrito || d.id});
+  const l = cuentasTel().filter(c => c.id !== d.id); l.unshift({id: d.id, nombre: d.nombre, rol: d.rol, acceso: d.acceso || escrito || d.id});
   try{ localStorage.setItem('fo.cuentas', JSON.stringify(l.slice(0, 8))); }catch(e){}
+}
+function activarHuella(){
+  const {o, cerrar} = ventana('Desbloquear con huella', `<div class="mbody"><div class="hint" style="margin-top:0">Podrás abrir NODO con tu huella o con el bloqueo de tu teléfono. El PIN sigue sirviendo. La huella nunca sale del teléfono y NODO no la ve.</div>
+    <label>Tu PIN</label><input id="hPin" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password"><div id="hErr" class="hint err"></div></div>`, '<button class="btn" id="hOk">Activar</button>');
+  o.querySelector('#hOk').onclick = async () => { const b = o.querySelector('#hOk'); b.disabled = true;
+    try{ await BOV.activarBio(USER.id, USER.nombre, o.querySelector('#hPin').value.trim()); cerrar(); toast('Huella activada'); router(); }
+    catch(e){ o.querySelector('#hErr').textContent = e.name === 'NotAllowedError' ? 'Se canceló o no se reconoció la huella.' : e.message; b.disabled = false; } };
 }
 function pantallaLogin(){
   $('#titulo').textContent='NODO';
@@ -1060,11 +1112,41 @@ function pantallaLogin(){
         ${cuentas.length > 1 || (cuentas.length && !ult) ? `<div class="chips" style="margin-top:6px">${cuentas.map(c => `<button type="button" class="chip" data-cta="${esc(c.acceso)}">${esc(String(c.nombre || c.acceso).split(' ')[0])}</button>`).join('')}</div><div class="hint" style="margin-top:2px">Quienes ya entraron en este teléfono.</div>` : ''}`}
     <label>PIN</label><input id="lp" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password">
     ${demo()?'<div class="hint">En modo demo el PIN de todos es 1234.</div>':'<div class="hint">Tu usuario es tu No. de empleado o el que te dio el administrador.</div>'}
-    <button class="btn" id="lb">Entrar</button><div id="lerr" class="hint err"></div></div>
+    <button class="btn" id="lb">Entrar</button>${!demo() && BOV.existe() && BOV.hayBio() ? '<button class="btn sec" id="lBio">👆 Entrar con huella</button>' : ''}<div id="lerr" class="hint err"></div></div>
     ${!demo() && BOV.existe() ? '<div class="hint" style="text-align:center">🔒 Los datos de este teléfono están cifrados. Entra con tu PIN para abrirlos.</div>' : ''}`;
   if(demo() && ses && us().some(u => u.id === ses.id)) $('#lu').value = ses.id;
   document.querySelectorAll('[data-cta]').forEach(b => b.onclick = () => { $('#lUs').value = b.dataset.cta; $('#lp').focus(); });
   if(!demo() && ult) setTimeout(() => { const p = $('#lp'); if(p) p.focus(); }, 50);
+  const exito = async (u, datos, clave, pin) => {
+    const fx = LS.get('fallos', {}); delete fx[clave]; LS.set('fallos', fx);
+    if(!demo()){ u = {id: datos.id, nombre: datos.nombre}; guardarCuentaTel(datos, clave); }
+    if((datos.rol || u.rol) === 'DEMO' && ESPACIO === 'fo.'){
+      const ll = LS.get('llaves', {}), cfg = LS.get('config', null);
+      try{ Object.keys(localStorage).filter(k => k.startsWith('fo.demo.')).forEach(k => localStorage.removeItem(k)); }catch(e){}
+      ESPACIO = 'fo.demo.'; LS.set('usuario', {...u, ...datos, pin}); if(cfg) LS.set('config', cfg); if(ll[u.id]) LS.set('llaves', {[u.id]: ll[u.id]});
+      localStorage.setItem('fo.espacio', 'demo'); location.replace(location.pathname + '#'); location.reload(); return;
+    }
+    marcarActividad(); if(BOV.abierta) recargarEstado();
+    const {_cambiarPin, _privacidad, _offline, ...dat} = datos;
+    USER = demo() ? {...u, ...dat, pin} : {...u, ...dat}; delete USER.pin; if(demo()) USER.pin = pin; LS.set('usuario', USER);
+    try{ localStorage.setItem('fo.sesion', JSON.stringify({id: u.id})); }catch(e){}
+    if(LS.get('remotosDe', '') !== u.id){ REMOTOS = []; LS.set('remotos', []); LS.set('remotosT', 0); LS.set('remotosDe', u.id); }   // lo descargado era de otra persona
+    const cr = LS.get('creds', {}); cr[u.id] = demo() ? pin : USER.token; LS.set('creds', cr);       // para enviar sus folios aunque luego entre otro
+    if(!demo()){ LS.del('llaves'); convertirCredsViejas(); bajarConfig(); if(_cambiarPin) setTimeout(() => cambiarPin(true, _cambiarPin), 300); else if(!_privacidad && !_offline) setTimeout(() => avisoPrivacidad(false), 300); }
+    FOLIOS.forEach(f => { if(!f.usuario) f.usuario = u.id; }); guardarFolios();
+    reemplazar('#'); sincronizar();
+  };
+  const bb = $('#lBio');
+  if(bb) bb.onclick = async () => {
+    const ident = MAY($('#lUs').value).replace(/\s+/g, ''), k = cuentasTel().find(c => [c.acceso, c.id].map(x => MAY(x || '')).includes(ident));
+    if(!k || !BOV.tieneBio(k.id)) return $('#lerr').textContent = 'La huella no está activada para este usuario. Entra con tu PIN.';
+    $('#lerr').textContent = '';
+    try{ if(!BOV.abierta) await BOV.abrirConBio(k.id, limiteInactividad(k)); }
+    catch(e){ return $('#lerr').textContent = e.name === 'NotAllowedError' ? 'Se canceló o no se reconoció la huella.' : e.message; }
+    const pv = LS.get('perfiles', {})[k.id];
+    if(!pv || !pv.token || !tokenVigente(pv.token)){ await BOV.bloquear(); return $('#lerr').textContent = 'Tu sesión venció: entra con tu PIN y el código.'; }
+    return exito({id: k.id, nombre: k.nombre}, {...pv, _offline: true}, k.id, '');
+  };
   $('#lb').onclick = async () => {
     const pin = $('#lp').value.trim(); let u;
     if(demo()){ u = us().find(x => x.id === $('#lu').value); if(!u || !pin) return $('#lerr').textContent='Elige tu nombre y escribe tu PIN'; }
@@ -1084,23 +1166,7 @@ function pantallaLogin(){
       }
       return $('#lerr').textContent = error;
     }
-    const fx = LS.get('fallos', {}); delete fx[clave]; LS.set('fallos', fx);
-    if(!demo()){ u = {id: datos.id, nombre: datos.nombre}; guardarCuentaTel(datos, clave); }
-    if((datos.rol || u.rol) === 'DEMO' && ESPACIO === 'fo.'){
-      const ll = LS.get('llaves', {}), cfg = LS.get('config', null);
-      try{ Object.keys(localStorage).filter(k => k.startsWith('fo.demo.')).forEach(k => localStorage.removeItem(k)); }catch(e){}
-      ESPACIO = 'fo.demo.'; LS.set('usuario', {...u, ...datos, pin}); if(cfg) LS.set('config', cfg); if(ll[u.id]) LS.set('llaves', {[u.id]: ll[u.id]});
-      localStorage.setItem('fo.espacio', 'demo'); location.replace(location.pathname + '#'); location.reload(); return;
-    }
-    marcarActividad(); if(BOV.abierta) recargarEstado();
-    const {_cambiarPin, _privacidad, _offline, ...dat} = datos;
-    USER = demo() ? {...u, ...dat, pin} : {...u, ...dat}; delete USER.pin; if(demo()) USER.pin = pin; LS.set('usuario', USER);
-    try{ localStorage.setItem('fo.sesion', JSON.stringify({id: u.id})); }catch(e){}
-    if(LS.get('remotosDe', '') !== u.id){ REMOTOS = []; LS.set('remotos', []); LS.set('remotosT', 0); LS.set('remotosDe', u.id); }   // lo descargado era de otra persona
-    const cr = LS.get('creds', {}); cr[u.id] = demo() ? pin : USER.token; LS.set('creds', cr);       // para enviar sus folios aunque luego entre otro
-    if(!demo()){ LS.del('llaves'); convertirCredsViejas(); bajarConfig(); if(_cambiarPin) setTimeout(() => cambiarPin(true, _cambiarPin), 300); else if(!_privacidad && !_offline) setTimeout(() => avisoPrivacidad(false), 300); }
-    FOLIOS.forEach(f => { if(!f.usuario) f.usuario = u.id; }); guardarFolios();
-    reemplazar('#'); sincronizar();
+    return exito(u, datos, clave, pin);
   };
 }
 
@@ -1112,7 +1178,7 @@ const ICONOS = {
   chat: 'M4 5h16v11H9l-5 4z', casa: 'M4 11l8-7 8 7v9H4z M10 20v-6h4v6', mapa: 'M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z M9 4v14 M15 6v14',
   ajustes: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M12 3v3 M12 18v3 M3 12h3 M18 12h3 M5.600 5.600l2.100 2.100 M16.300 16.300l2.100 2.100 M5.600 18.400l2.100-2.100 M16.300 7.700l2.100-2.100'};
 const icono = (k, color = 'currentColor', t = 26) => `<svg class="ico" width="${t}" height="${t}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONOS[k] || ICONOS.doc}"/></svg>`;
-const ICO_TABLERO = {'🚨': ['alerta', '#ff3b30'], '🏗️': ['obra', '#e0a400'], '📍': ['pin', '#1fa855'], '📦': ['caja', '#3d6bff'], '📄': ['doc', 'var(--txt)'], '📊': ['barras', '#8b5cf6'],
+const ICO_TABLERO = {'🔌': ['llave', '#0ea5a4'], '🚨': ['alerta', '#ff3b30'], '🏗️': ['obra', '#e0a400'], '📍': ['pin', '#1fa855'], '📦': ['caja', '#3d6bff'], '📄': ['doc', 'var(--txt)'], '📊': ['barras', '#8b5cf6'],
   '＋': ['mas', 'var(--azul)'], '🛠️': ['llave', '#1fa855'], '📣': ['mega', '#ff3b30'], '👥': ['gente', 'var(--gris)'], '💬': ['chat', 'var(--gris)'], '📐': ['poste', '#0ea5a4'], '🗂️': ['mapa', '#3d6bff'], '📈': ['barras', '#e0a400']};
 function pantallaInicio(){
   $('#titulo').textContent = 'NODO';
@@ -1142,7 +1208,7 @@ function pantallaInicio(){
       <div class="seccion">Operación</div><div class="tablero">${inventario}${folios}${reporte}${mi('#nuevo', '＋', 'Nuevo folio', 'Capturar un folio')}</div>
       ${prevVisible() ? `<div class="seccion">Preventivo${PREV_PUBLICO ? '' : ' · en construcción'}</div><div class="tablero">${mi('#prev', '🛠️', 'OTs de preventivo', (n => n + ' OT(s) este mes')(PREV.ots.filter(o => String(o.termino || '').startsWith(hoyISO().slice(0, 7))).length))}
         ${mi('#idr', '📣', 'IDR · Inspector de red', (v => v ? `<span style="color:var(--err)">${v} fuera de plazo</span>` : idrAbiertos().length + ' por atender')(idrAbiertos().filter(idrVencido).length), num(idrAbiertos().length))}</div>` : ''}
-      <div class="seccion">Administración</div><div class="tablero">${mi('#lev', '📐', 'Levantamientos', (n => n ? n + ' levantamiento(s)' : 'Postes, registros y conexiones')(LEV.lista.length))}${mi('#informes', '📈', 'Reportes de coordinación', 'Avance, reporte GTB, material e IDR')}${mi('#usuarios', '👥', 'Usuarios', 'Altas, PIN y cuadrillas')}${mi('#catalogos', '🗂️', 'Catálogos', 'Clusters, OLT, coberturas y listas')}
+      <div class="seccion">Administración</div><div class="tablero">${mi('#lev', '📐', 'Levantamientos', (n => n ? n + ' levantamiento(s)' : 'Postes, registros y conexiones')(LEV.lista.length))}${mi('#informes', '📈', 'Reportes de coordinación', 'Avance, reporte GTB, material e IDR')}${mi('#usuarios', '👥', 'Usuarios', 'Altas, PIN y cuadrillas')}${mi('#catalogos', '🗂️', 'Catálogos', 'Clusters, OLT, coberturas y listas')}${mi('#jumpeos', '🔌', 'Jumpeos en OLT', 'F/S/P, troncal y posición en DFO')}
         ${mi('#reportes', '💬', 'Reportes', (n => n ? `<span style="color:var(--err)">${n} nuevo(s) por revisar</span>` : 'Problemas que avisan desde la app')(repNuevos()), num(repNuevos()))}</div>`;
   } else if(esOficina()){                            // Ing. de red y Coordinador: solo lo que su perfil deja ver
     const t = [], pre = PREV.ots.filter(o => String(o.termino || '').startsWith(hoyISO().slice(0, 7))).length;
@@ -1154,7 +1220,7 @@ function pantallaInicio(){
     if(puede('reporte', 1)) t.push(reporte);
     if(puede('folios', 1)) t.push(folios);
     if(puede('masivas', 1)) t.push(mi('#masivas', '🚨', 'Seguimiento de masivas', abiertas.length + ' abierta(s)', num(abiertas.length)));
-    if(puedeCat()) t.push(mi('#catalogos', '🗂️', 'Catálogos', 'Clusters, OLT, coberturas y listas'));
+    if(puedeCat()) t.push(mi('#catalogos', '🗂️', 'Catálogos', 'Clusters, OLT, coberturas y listas'), mi('#jumpeos', '🔌', 'Jumpeos en OLT', 'F/S/P, troncal y posición en DFO'));
     cuerpo = t.length ? `<div class="tablero">${t.join('')}</div>` : '<div class="card"><div class="hint">Tu usuario aún no tiene secciones asignadas. Pide al administrador que revise tus permisos.</div></div>';
   } else if(rol === 'SUPERVISOR'){
     cuerpo = `<div class="tablero">${inventario}${reporte}</div>
@@ -1330,11 +1396,11 @@ function masivaComoFolio(m){
   return {'FOLIO/OS': m.folio, 'PUNTO DE MEDICION': m.punto, 'COORD PUNTO DE MEDICION': m.coordPunto, 'PROVEEDOR': m.proveedor || 'GTB',
     'TECNICO QUE ATIENDE': (m.tecnicos||[]).join(' , '), 'CAUSA DE DAÑO': m.causa, 'ACCION CORRECTIVA': m.accion, 'ETR': m.etr, 'CALIBRE FO': m.calibre,
     'COORDENADAS': m.coordDanio || m.coordPunto, 'MATERIALES A UTILIZAR': t2, 'MAS DE UN CIERRE': m.varios ? 'SI' : '', 'QR SEGUNDO NIVEL': m.qr,
-    'CIUDAD': m.ciudad, 'ESTADO': m.estado, 'CLUSTER': m.cluster, 'CLUSTER EXACTO': m.clusterExacto || '', 'OLT': m.olt, 'CLIENTES AFECTADOS': m.clientesTP, 'CLIENTES ENLACE': m.clientesEnlace,
+    'CIUDAD': m.ciudad, 'ESTADO': m.edo || ((CFG.clusters || {})[m.cluster] || {}).estado || '', 'CLUSTER': m.cluster, 'CLUSTER EXACTO': m.clusterExacto || '', 'OLT': m.olt, 'CLIENTES AFECTADOS': m.clientesTP, 'CLIENTES ENLACE': m.clientesEnlace,
     'CLIENTES TFE': m.clientesTFE, 'FALLA REPORTADA': 'AFECTACIÓN MASIVA', 'FECHA Y HORA DE ASIGNACIÓN': m.asignacion, 'FECHA Y HORA DE LLEGADA': m.llegada,
     'HORA 1ER MEDICION': m.medicion, 'UBICACIÓN DEL DAÑO': m.ubicacion, 'DESCIPCIÓN DE ACTIVIDADES': m.descripcion, 'POTENCIA INICIAL': m.potIni,
     'POTENCIA FINAL': m.potFin, 'HORA FINAL': m.horaFinal, 'SUPERVISOR DISTRITO': CFG.supervisorDefault || (CFG.listas.SUPERVISOR||[''])[0],
-    'TIPO DE MANTENIMIENTO': m.tipo || 'CORRECTIVO', 'MATERIAL UTILIZADO TEXTO': t3, 'PAUSA INICIO': m.pausaIni, 'PAUSA FIN': m.pausaFin, 'MOTIVO DE PAUSA': m.motivoPausa};
+    'TIPO DE MANTENIMIENTO': m.tipo || 'CORRECTIVO', 'MATERIAL UTILIZADO TEXTO': t3, 'PAUSA INICIO': m.pausaIni, 'PAUSA FIN': m.pausaFin, 'MOTIVO DE PAUSA': m.motivoPausa, 'PAUSAS': pausasDe(m)};
 }
 async function subirMasiva(m){
   if(demo() || !navigator.onLine) return;
@@ -1345,24 +1411,161 @@ async function bajarMasivas(){
   try{
     const j = await api('masivas', {});
     j.masivas.forEach(r => { const i = MASIVAS.findIndex(x => x.id === r.id);
-      if(i < 0) MASIVAS.push(r); else if((r.actualizado||'') > (MASIVAS[i].actualizado||'')) MASIVAS[i] = r; });
+      if(i < 0){ MASIVAS.push(r); return; }
+      const loc = MASIVAS[i]; if((r.actualizado || '') <= (loc.actualizado || '')) return;
+      let guardo = false;
+      Object.entries(r).forEach(([k, v]) => { if(typeof loc[k] === 'string' && loc[k] && (v === '' || v == null) && !/^pausa|^motivoPausa$/.test(k)){ guardo = true; return; } loc[k] = v; });
+      if(guardo) loc.actualizado = new Date().toISOString(); });   // lo que solo estaba aquí se vuelve a subir
     guardarMasivas();
     MASIVAS.filter(m => m.subida !== m.actualizado).forEach(subirMasiva);   // lo que se cambió sin señal
     if(location.hash === '#masivas' && !MODALES.length) pantallaMasivas(true);
   }catch(e){ console.log('masivas', e); }
 }
+/* --- Pausas de la masiva: varias por masiva; inicio y fin reales; se descuentan del tiempo de atención --- */
+const MOTIVOS_PAUSA = ['SIN ACCESO EN CASETA', 'HORARIO RESTRINGIDO DEL FRACCIONAMIENTO', 'LLUVIA', 'INSEGURIDAD EN LA ZONA', 'NO PERMITEN EL ACCESO', 'ESPERA DE PERMISO (CFE, MUNICIPIO)', 'OTRO'];
+// La masiva guarda el estado de seguimiento (ABIERTA/CERRADA) en "estado" y el estado geográfico en "edo"
+function normMasiva(m){
+  if(m.estado && m.estado !== 'ABIERTA' && m.estado !== 'CERRADA'){ if(!m.edo) m.edo = m.estado; m.estado = 'ABIERTA'; }
+  if(!m.estado) m.estado = 'ABIERTA';
+  pausasDe(m); return m;
+}
+function pausasDe(m){
+  if(!Array.isArray(m.pausas)) m.pausas = m.pausaIni ? [{id: uuid(), ini: m.pausaIni, fin: m.pausaFin || '', motivo: m.motivoPausa || ''}] : [];
+  return m.pausas;
+}
+const pausaActiva = m => (m.pausas || []).find(p => p.ini && !p.fin);
+const durMin = (a, b) => completa(a) && completa(b) ? Math.max(0, Math.round((new Date(b) - new Date(a)) / 60000)) : 0;
+const durTexto = mi => { const h = Math.floor(mi / 60), r = mi % 60; return h ? `${h} hr${h > 1 ? 's' : ''}${r ? ' ' + r + ' min' : ''}` : `${r} min`; };
+const fmtLarga = v => completa(v) ? `${v.slice(8, 10)}/${v.slice(5, 7)}/${v.slice(0, 4)} ${v.slice(11, 16)}` : '';
+const masMin = (v, mi) => local(new Date(new Date(v).getTime() + mi * 6e4)).slice(0, 16);
+const minutosPausa = (m, hasta) => pausasDe(m).reduce((t, p) => t + durMin(p.ini, p.fin || hasta || ''), 0);
+function sincPausas(m){                    // columnas viejas (servidor y folio) = primera y última pausa
+  const ps = pausasDe(m).filter(p => p.ini);
+  m.pausaIni = ps.length ? ps[0].ini : ''; m.pausaFin = ps.length ? (ps.at(-1).fin || '') : '';
+  m.motivoPausa = [...new Set(ps.map(p => p.motivo).filter(Boolean))].join(', ');
+}
+function scriptPausa(m, p){
+  const fol = ((m.folios || []).length > 1 ? m.folios.map(f => f.folio) : [m.folio]).filter(Boolean).join(' / ');
+  return ['SCRIPT DE PAUSA.', `DISTRITO / TX: DISTRITO, ${DISTRITO}`, `SD: ${fol}`, 'SERVICIOS Y/O CLIENTES AFECTADOS:',
+    `${m.clientesTP || 0} clientes Totalplay, ${m.clientesEnlace || 0} clientes enlace, ${m.clientesTFE || 0} clientes TFE`,
+    `MOTIVO DE PAUSA: ${MAY(p.motivo || '')}`, `ALCALDÍA/MUNICIPIO: ${MAY(m.ciudad || DISTRITO)}`, `ETA PARA RETOMAR LABORES: ${MAY(p.eta || '')}`,
+    `TIEMPO QUE LLEVA EL FOLIO: ${completa(m.asignacion) && completa(p.ini) ? durTexto(durMin(m.asignacion, p.ini)) : ''}`,
+    `CUAL ES LA ALTERNATIVA DE LA REPARACIÓN: ${MAY(p.alternativa || 'SIN ALTERNATIVA')}`, `CUAL ES EL CONTEXTO DE LA PAUSA: ${MAY(p.contexto || '')}`,
+    `HAY REDUNDANCIA? ESPECIFICAR ENLACE: ${MAY(p.redundancia || 'NO')}`, `SUBIR DETENCION EN EL PORTAL, QUE COMENTA DDV?: ${MAY(p.portal || 'N/A')}`].join('\n');
+}
+function solicitarPausa(m, alGuardar){
+  const ah = ahoraLocal();
+  const {o, cerrar} = ventana('Solicitar pausa', `<div class="mbody">
+    <label style="margin-top:0">Motivo</label><select id="pMot">${MOTIVOS_PAUSA.map(x => `<option>${esc(x)}</option>`).join('')}</select>
+    <input id="pMotO" class="hidden" placeholder="Escribe el motivo" autocapitalize="characters" style="margin-top:6px">
+    <label>Inicio de la pausa</label><div class="fh" id="pIni"><input type="date" value="${ah.slice(0, 10)}">${campoHora('', ah.slice(11, 16))}</div>
+    <label>ETA para retomar labores (lo que solicitas)</label><div class="row"><select id="pEh" aria-label="Horas">${Array.from({length: 25}, (_, i) => `<option value="${i}" ${i === 1 ? 'selected' : ''}>${i} h</option>`).join('')}</select>
+      <select id="pEm" aria-label="Minutos">${[0, 15, 30, 45].map(x => `<option value="${x}">${String(x).padStart(2, '0')} min</option>`).join('')}</select></div>
+    <label>Contexto de la pausa</label><textarea id="pCtx" placeholder="SE LLEGA A SITIO, FRACCIONAMIENTO NO PERMITE ACCESO POR HORARIO…"></textarea>
+    <label>Alternativa de la reparación</label><input id="pAlt" value="SIN ALTERNATIVA" autocapitalize="characters">
+    <label>¿Hay redundancia? Especificar enlace</label><input id="pRed" value="NO" autocapitalize="characters">
+    <label>Subir detención en el portal, ¿qué comenta DDV?</label><input id="pPor" value="N/A" autocapitalize="characters">
+    <div class="hint">El inicio y el fin reales se guardan aparte: el ETA solo va en el mensaje.</div></div>`, '<button class="btn" id="pOk">Armar script de pausa</button>');
+  const q = k => o.querySelector(k);
+  q('#pMot').onchange = () => q('#pMotO').classList.toggle('hidden', q('#pMot').value !== 'OTRO');
+  q('#pOk').onclick = () => {
+    const [d, t] = q('#pIni').querySelectorAll('input'), ini = d.value && t.value ? d.value + 'T' + t.value : '';
+    if(!ini) return toast('Pon la fecha y hora de inicio');
+    const mot = q('#pMot').value === 'OTRO' ? MAY(q('#pMotO').value.trim()) : q('#pMot').value; if(!mot) return toast('Escribe el motivo');
+    const h = +q('#pEh').value, mi = +q('#pEm').value, eta = [h ? `${h} HORA${h > 1 ? 'S' : ''}` : '', mi ? `${mi} MIN` : ''].filter(Boolean).join(' ');
+    const p = {id: uuid(), ini, fin: '', motivo: mot, eta, regreso: (h || mi) ? masMin(ini, h * 60 + mi) : '', contexto: q('#pCtx').value.trim(),
+      alternativa: q('#pAlt').value.trim(), redundancia: q('#pRed').value.trim(), portal: q('#pPor').value.trim()};
+    pausasDe(m).push(p); sincPausas(m); alGuardar(); cerrar();
+    setTimeout(() => mostrarTexto('Script de pausa', scriptPausa(m, p), () => { p.enviado = new Date().toISOString(); alGuardar(); }), 60);
+  };
+}
+// Avisos mientras la app está abierta: evidencia cada 30 min si la pausa es por lluvia, y la hora de regreso
+setInterval(() => {
+  if(!USER || !esAdmin()) return; let cambio = false; const ah = ahoraLocal();
+  MASIVAS.forEach(m => { const p = pausaActiva(m); if(!p) return;
+    if(/LLUVIA/i.test(p.motivo) && durMin(p.avisoEvid || p.ini, ah) >= 30){ p.avisoEvid = ah; cambio = true; toast(`🌧️ Masiva ${m.folio}: toca mandar evidencia de la lluvia`); try{ navigator.vibrate && navigator.vibrate([200, 100, 200]); }catch(e){} }
+    if(p.regreso && !p.avisoReg && ah >= p.regreso){ p.avisoReg = ah; cambio = true; toast(`⏰ Masiva ${m.folio}: es la hora de regreso de la pausa`); try{ navigator.vibrate && navigator.vibrate(300); }catch(e){} } });
+  if(cambio) guardarMasivas();
+}, 60000);
+/* --- Pegar el script de cierre que mandó alguien más (mismo formato que arma la app) --- */
+function fechaDeTexto(t, base){
+  t = String(t || '').trim(); let x = t.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s+(\d{1,2}):(\d{2})/);
+  if(x){ const y = x[3].length === 2 ? '20' + x[3] : x[3]; return `${y}-${x[2].padStart(2, '0')}-${x[1].padStart(2, '0')}T${x[4].padStart(2, '0')}:${x[5]}`; }
+  x = t.match(/^(\d{1,2}):(\d{2})/); if(x && completa(base)) return base.slice(0, 10) + 'T' + x[1].padStart(2, '0') + ':' + x[2];
+  return '';
+}
+function leerCierre(txt){
+  const d = {};
+  String(txt || '').split(/\r?\n/).forEach(l => { const k = l.replace(/^\s*\|?\s*/, '').replace(/\*/g, '').match(/^([^:]{2,70}):\s*(.*)$/);
+    if(k){ const c = sinAcento(MAY(k[1])).replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, ''); if(!(c in d)) d[c] = k[2].trim(); } });
+  const g = re => { const k = Object.keys(d).find(x => re.test(x)); return k ? d[k] : ''; };
+  const folio = g(/^(FOLIO|SD)$/), cli = g(/^CLIENTES/);
+  if(!folio || !(g(/^CAUSA_DEL_DANO/) || g(/^FECHA_HR_FINAL/))) return null;
+  const n = re => { const x = cli.match(re); return x ? x[1] : '0'; };
+  const asig = fechaDeTexto(g(/^FECHA_Y_HR_DE_ASG_DESP/)), llegada = fechaDeTexto(g(/^HR_DE_LLEGADA/), asig), fin = fechaDeTexto(g(/^FECHA_HR_FINAL/), llegada || asig);
+  const cl = g(/^CLUSTER$/), base = Object.keys(CFG.clusters || {}).find(c => sinAcento(MAY(cl)).startsWith(sinAcento(MAY(c)))) || '';
+  const pt = g(/^PAUSA_HORA/), mot = g(/^MOTIVO_DE_PAUSA/).split(/\s*,\s*/).filter(Boolean), pausas = [];
+  const re = /INICIO\s+(\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2})\s+FIN\s*(\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2})?/gi; let x;
+  while((x = re.exec(pt))) pausas.push({ini: fechaDeTexto(x[1]), fin: fechaDeTexto(x[2] || '')});
+  if(!pausas.length && pt){ const pp = pt.split(/\s+-\s+/); if(pp.length === 2){ const ini = fechaDeTexto(pp[0], llegada || asig); let f = fechaDeTexto(pp[1], ini || llegada || asig);
+    if(ini && f && f < ini) f = masMin(f, 1440); if(ini) pausas.push({ini, fin: f}); } }
+  pausas.forEach((p, i) => { p.id = uuid(); p.motivo = mot[i] || mot[0] || ''; });
+  const tec = g(/^ATIENDE_NOM_TEC/);
+  return {folio: folio.replace(/\s+/g, ' ').trim(), ciudad: g(/^CIUDAD$/), edo: g(/^ESTADO$/), cluster: base || cl, clusterExacto: cl, olt: g(/^OLT$/),
+    clientesTP: n(/(\d+)\s*clientes?\s*totalplay/i), clientesEnlace: n(/(\d+)\s*clientes?\s*enlace/i), clientesTFE: n(/(\d+)\s*clientes?\s*tfe/i),
+    asignacion: asig, llegada, medicion: fechaDeTexto(g(/^HR_DE_LA_1ER_MEDICION/), llegada || asig), causa: g(/^CAUSA_DEL_DANO/), ubicacion: g(/^UBICACION_DEL_DANO/),
+    coordDanio: g(/^COORDENADAS$/), descripcion: g(/^DESCRIP/), potIni: g(/^POTENCIA_INICIAL/), potFin: g(/^POTENCIA_FINAL/), accion: g(/^TRABAJOS_REALIZADOS/),
+    calibre: g(/^CALIBRE/), horaFinal: fin, qr: g(/^QR_DE_SEGUNDO/), tecnicos: tec ? tec.split(/\s*(?:,|\/|\sY\s)\s*/i).filter(Boolean) : [],
+    proveedor: g(/^PROVEDOR|^PROVEEDOR/) || 'GTB', tipo: g(/^TIPO_DE_MANTENIMIENTO/) || 'CORRECTIVO', materialUsado: g(/^MATERIAL_UTILIZADO/), pausas};
+}
+function pegarCierre(){
+  const {o, cerrar} = ventana('Pegar cierre', `<div class="mbody">
+    <label style="margin-top:0">Pega el script de cierre que mandaron al grupo</label>
+    <textarea id="cTxt" style="min-height:180px" placeholder="FOLIO: 4865130&#10;|CIUDAD: PUERTO VALLARTA&#10;…"></textarea>
+    <button class="btn sec" id="cPegar">📋 Pegar del portapapeles</button><div id="cPrev"></div></div>`, '<button class="btn" id="cOk">Registrar masiva</button>');
+  const q = k => o.querySelector(k);
+  const prev = () => { const r = leerCierre(q('#cTxt').value), ya = r && MASIVAS.find(x => x.folio === r.folio || (x.folios || []).some(f => f.folio === r.folio));
+    q('#cPrev').innerHTML = !q('#cTxt').value.trim() ? '' : !r ? '<div class="hint warn">No reconozco un script de cierre (necesito al menos FOLIO y CAUSA DEL DAÑO o la hora final).</div>'
+      : `<div class="sug" style="margin-top:10px">Folio <b>${esc(r.folio)}</b> · ${esc(r.olt || 'OLT ?')} · ${esc(r.clusterExacto || r.cluster || 'cluster ?')}<br>${esc(r.clientesTP)} Totalplay, ${esc(r.clientesEnlace)} enlace, ${esc(r.clientesTFE)} TFE
+        <br>Asignación ${esc(fmtLarga(r.asignacion) || '?')} · final ${esc(fmtLarga(r.horaFinal) || '?')}${r.pausas.length ? `<br>${r.pausas.length} pausa${r.pausas.length > 1 ? 's' : ''} · ${esc(durTexto(r.pausas.reduce((t, p) => t + durMin(p.ini, p.fin), 0)))}` : ''}
+        <br>Causa: ${esc(r.causa || '?')}${ya ? `<br><b>Ya existe esta masiva:</b> se completan solo los datos que le falten.` : ''}</div>`; };
+  q('#cTxt').addEventListener('input', prev);
+  q('#cPegar').onclick = async () => { try{ q('#cTxt').value = await navigator.clipboard.readText(); prev(); }catch(e){ toast('Pégalo manteniendo presionado el cuadro'); } };
+  q('#cOk').onclick = () => {
+    const txt = q('#cTxt').value, r = leerCierre(txt); if(!r) return toast('No reconozco el script de cierre');
+    let m = MASIVAS.find(x => x.folio === r.folio || (x.folios || []).some(f => f.folio === r.folio));
+    if(m){ normMasiva(m); Object.entries(r).forEach(([k, v]) => { if(k === 'pausas'){ if(!pausasDe(m).length && v.length) m.pausas = v; }
+        else if(k === 'tecnicos'){ if(!(m.tecnicos || []).length) m.tecnicos = v; } else if(v && !m[k]) m[k] = v; }); }
+    else { m = {id: uuid(), enviados: {}, ...r, estado: 'CERRADA', origen: 'cierre pegado', cierreOriginal: txt}; m.folios = [{folio: r.folio, olt: r.olt, clientesTP: r.clientesTP, clientesEnlace: r.clientesEnlace, clientesTFE: r.clientesTFE}]; MASIVAS.push(m); }
+    m.enviados = m.enviados || {}; [1, 2, 3].forEach(k => { if(!m.enviados[k]) m.enviados[k] = 'pegado'; });
+    m.estado = 'CERRADA'; sincPausas(m); m.actualizado = new Date().toISOString(); guardarMasivas(); subirMasiva(m);
+    cerrar(); toast('Masiva ' + r.folio + ' registrada'); pantallaMasivas(true);
+  };
+}
+const FALTAN_M = {1: [['punto', 'Punto de medición'], ['llegada', 'Hora de llegada'], ['coordPunto', 'Coordenadas del punto de medición'], ['tecnicos', 'Técnicos']],
+  2: [['causa', 'Causa del daño'], ['accion', 'Acción correctiva'], ['etr', 'ETR'], ['calibre', 'Capacidad de FO'], ['coordDanio', 'Coordenadas del daño'], ['mat2', 'Materiales a utilizar'], ['qr', 'Número QR']],
+  3: [['causa', 'Causa del daño'], ['accion', 'Acción correctiva'], ['coordDanio', 'Coordenadas del daño'], ['ubicacion', 'Ubicación del daño'], ['descripcion', 'Descripción de actividades'], ['potIni', 'Potencia inicial'], ['potFin', 'Potencia final'], ['horaFinal', 'Hora final de reparación']]};
+function faltanM(m, n){
+  const f = FALTAN_M[n].filter(([k]) => k === 'tecnicos' ? !(m.tecnicos || []).length : k === 'mat2' ? !(textoMat(m.mat2) || m.materiales) : k === 'qr' ? !m.varios && !String(m.qr || '').trim()
+    : k === 'llegada' || k === 'horaFinal' ? !completa(m[k]) : !String(m[k] || '').trim()).map(x => x[1]);
+  if(n === 3 && pausaActiva(m)) f.push('retirar la pausa');
+  return f;
+}
 function pantallaMasivas(sinBajar){
   if(!esAdmin()){ reemplazar('#'); return; }
   $('#titulo').textContent = 'Masivas';
+  MASIVAS.forEach(normMasiva);
   const lista = [...MASIVAS].sort((a,b) => (a.estado === 'CERRADA') - (b.estado === 'CERRADA') || (b.asignacion||'').localeCompare(a.asignacion||''));
   const paso = (m, n) => `<span class="estado ${m.enviados && m.enviados[n] ? 'enviado' : 'pendiente'}">${n}${m.enviados && m.enviados[n] ? ' ✓' : ''}</span>`;
   $('#app').innerHTML = lista.length ? lista.map(m => `<div class="card lista" onclick="ir('#masiva/${esc(m.id)}')" style="${m.estado==='CERRADA'?'opacity:.6':''}">
       <div class="f"><b>${esc(m.folio || 'Sin folio')}</b><span style="display:flex;gap:4px">${paso(m,1)}${paso(m,2)}${paso(m,3)}</span></div>
       <div class="hint">${esc(m.olt||'')}${m.puerto ? ' ' + esc(m.puerto) : ''} · ${esc(m.cluster||'')} · ${esc(m.clientesTP||0)} clientes · ${esc(fmtFecha(m.asignacion))}</div>
-      <div class="hint">${esc((m.tecnicos||[]).join(', ') || 'Sin técnico asignado')}${m.estado==='CERRADA'?' · CERRADA':''}</div></div>`).join('')
+      <div class="hint">${esc((m.tecnicos||[]).join(', ') || 'Sin técnico asignado')}${m.estado==='CERRADA'?' · CERRADA':''}${m.origen === 'cierre pegado' ? ' · cierre pegado' : ''}${(p => p ? ` · <b style="color:#e0a400">⏸ en pausa${p.regreso ? ' hasta ' + esc(fmtLarga(p.regreso).slice(11)) : ''}</b>` : '')(m.estado !== 'CERRADA' && pausaActiva(m))}</div></div>`).join('')
     : '<div class="card"><div class="hint">No hay masivas. Toca "+ Nueva" y pega el mensaje de asignación.</div></div>';
   $('#fab').innerHTML = `<button class="fab" id="bNuevaM">+ Nueva masiva</button>`;
   $('#bNuevaM').onclick = nuevaMasiva;
+  $('#app').insertAdjacentHTML('afterbegin', '<button class="btn ghost" id="bPegarC" style="margin-bottom:10px">📋 Pegar cierre de otra persona</button>');
+  $('#bPegarC').onclick = pegarCierre;
   if(!sinBajar) bajarMasivas();
 }
 function nuevaMasiva(){
@@ -1392,7 +1595,8 @@ function nuevaMasiva(){
     if(!m && cerca && await preguntar(`¿Es la misma afectación que la masiva ${cerca.folio} (${cerca.olt})? Se juntan en un solo seguimiento y script.`, 'Unir', 'Es otra')) m = cerca;
     if(m){ const r = agregarFolios(m, ps); m.actualizado = new Date().toISOString(); m.mensajeOriginal = [m.mensajeOriginal, txt].filter(Boolean).join('\n\n'); guardarMasivas(); subirMasiva(m);
       toast(r.nuevos.length ? `Folio(s) ${r.nuevos.join(', ')} unidos` : 'Ya estaban en la masiva'); }
-    else { m = {id: uuid(), estado: 'ABIERTA', enviados: {}, tecnicos: [], calibre: '', tipo: 'CORRECTIVO', proveedor: 'GTB', potIni: 'Low', potFin: 'Activos', ...ps[0], mensajeOriginal: txt};
+    else { m = {id: uuid(), enviados: {}, tecnicos: [], calibre: '', tipo: 'CORRECTIVO', proveedor: 'GTB', potIni: 'Low', potFin: 'Activos', ...ps[0], mensajeOriginal: txt};
+      m.edo = ps[0].estado || ''; m.estado = 'ABIERTA';
       m.folios = [folioDe(ps[0])]; const r = agregarFolios(m, ps.slice(1)); if(r.otros.length) toast(`Folio(s) ${r.otros.join(', ')} de otro cluster: créalos aparte`);
       m.actualizado = new Date().toISOString(); MASIVAS.push(m); guardarMasivas(); subirMasiva(m); }
     cerrar(); setTimeout(() => ir('#masiva/' + m.id), 50);
@@ -1400,6 +1604,7 @@ function nuevaMasiva(){
 }
 function pantallaMasiva(id){
   const m = MASIVAS.find(x => x.id === id); if(!m || !esAdmin()){ reemplazar('#masivas'); return; }
+  normMasiva(m);
   $('#titulo').textContent = 'Masiva ' + (m.folio || '');
   if(m.potIni === undefined){ m.potIni = 'Low'; m.potFin = 'Activos'; }     // lo normal; se cambia si fue distinto
   const L = CFG.listas, olts = [...new Set(Object.values(CFG.clusters||{}).flatMap(c => c.olts||[]))];
@@ -1412,10 +1617,10 @@ function pantallaMasiva(id){
   const txt = (k, label, ph = '') => `<label>${label}</label><input data-m="${k}" value="${esc(m[k]||'')}" placeholder="${esc(ph)}">`;
   const coord = (k, label) => `<label>${label}</label><div class="row"><input data-m="${k}" inputmode="decimal" value="${esc(m[k]||'')}" placeholder="pega las coordenadas que manda el técnico"><button type="button" class="btn sm sec" data-mapa="${k}" style="flex:0 0 auto">🗺️</button></div>`;
   const sigue = [1, 2, 3].find(k => !m.enviados[k]) || 0;      // la etapa que toca: abierta; las mandadas y las de después, cerradas
-  const etapa = (n, titulo, cuerpo) => `<details class="card" data-et="${n}" ${n === sigue ? 'open' : ''}><summary>${titulo}${m.enviados[n] ? ' <span class="estado enviado">enviado</span>' : ''}</summary>${cuerpo}
+  const etapa = (n, titulo, cuerpo) => `<details class="card" data-et="${n}" ${n === sigue ? 'open' : ''}><summary>${titulo}${m.enviados[n] ? ' <span class="estado enviado">enviado</span>' : ''}<span class="faltan" data-faltan="${n}"></span></summary>${cuerpo}
     <button type="button" class="btn verde" data-msg="${n}">📋 Mensaje ${n}: ${['','llegada','daño','cierre'][n]}</button></details>`;
   $('#app').innerHTML = `<div id="fm">
-   <details class="card" data-et="0" ${m.estado === 'CERRADA' ? '' : 'open'}><summary>Asignación · ${esc(m.folio||'')} · ${esc(m.cluster||'')}</summary>
+   <details class="card" data-et="0" ${m.estado !== 'CERRADA' && (!m.folio || !completa(m.asignacion) || !m.olt) ? 'open' : ''}><summary>Asignación · ${esc(m.folio||'')} · ${esc(m.cluster||'')}${m.olt ? ' · ' + esc(m.olt) : ''} · ${esc(m.clientesTP || 0)} clientes</summary>
      ${(m.folios || []).length > 1 ? `<div class="hint" style="margin-top:0">Folios relacionados: en los 3 mensajes salen juntos y los clientes se suman.</div>
      ${m.folios.map((f, k) => `<div class="card" style="margin:8px 0;padding:8px 12px"><div class="row" style="align-items:center"><b style="flex:1">${k + 1}. Folio ${esc(f.folio)} · ${esc(f.olt || '')}</b>
          <button type="button" class="btn ghost sm" data-quitaf="${esc(f.folio)}" style="flex:0 0 auto;width:auto;color:var(--err)">Quitar</button></div>
@@ -1434,6 +1639,7 @@ function pantallaMasiva(id){
    </details>
    <div class="card"><h2>Técnicos</h2><div class="chips" id="mTec">${tecs.map(t => `<button type="button" class="chip ${(m.tecnicos||[]).includes(t)?'on':''}">${esc(t)}</button>`).join('')}</div>
      <button type="button" class="btn ghost" id="mTraer">⟵ Traer datos del folio del técnico</button><div class="hint" id="mTraerH"></div></div>
+   <div class="card" id="mPausas"></div>
    ${etapa(1, '1. Llegada', `<label>Punto de medición</label><select data-m="punto">${op(PUNTOS, m.punto)}</select>${fh('llegada','Llegada')}${coord('coordPunto','Coordenadas del punto de medición')}`)}
    ${etapa(2, '2. Daño encontrado', `<label>Causa del daño</label><button type="button" class="selbtn" id="mCausa"><span>${esc(m.causa || 'Toca para buscar')}</span><span class="ch">⌕</span></button>
      ${txt('accion','Acción correctiva','SE ACOMODA Y SE REEMPALMA')}
@@ -1449,20 +1655,48 @@ function pantallaMasiva(id){
      <div class="row"><div><label>Potencia inicial</label><input data-m="potIni" list="dlPotM" value="${esc(m.potIni||'')}"></div><div><label>Potencia final</label><input data-m="potFin" list="dlPotM" value="${esc(m.potFin||'')}"></div></div>
      <datalist id="dlPotM">${(L.POTENCIA||[]).map(x => `<option value="${esc(x)}">`).join('')}</datalist>
      ${fh('horaFinal','Hora final de reparación')}<label>Material utilizado</label><div class="hint" id="mMat3H">${m.mat3 ? '' : 'Tomado de los materiales del mensaje 2. Cámbialo solo si se usó otra cosa.'}</div>${editorMat(3, m)}
-     ${fh('pausaIni','Pausa: inicio')}${fh('pausaFin','Pausa: fin')}
-     ${txt('motivoPausa','Motivo de pausa')}`)}
+     <div class="hint" id="mAtn"></div><div class="hint">Las pausas se llenan solas en este mensaje desde la tarjeta "Pausas".</div>`)}
    </div>`;
   $('#bar').classList.remove('hidden');
   $('#bar').innerHTML = `<button class="btn ghost" onclick="volver('#masivas')" style="flex:.6">Masivas</button><button class="btn ${m.estado==='CERRADA'?'sec':''}" id="mCerrar">${m.estado==='CERRADA'?'Reabrir':'Marcar cerrada'}</button>`;
   // --- guardar cada cambio
   let reloj = null;
-  const ponCluster = cl => { const c = CFG.clusters[cl]; m.cluster = cl; if(c){ m.ciudad = c.ciudad; m.estado = c.estado; }
+  const ponCluster = cl => { const c = CFG.clusters[cl]; m.cluster = cl; if(c){ m.ciudad = c.ciudad; m.edo = c.estado; }
     const s1 = $('#mClSel'), s2 = $('#mOlt'); if(s1) s1.value = cl; if(s2){ s2.innerHTML = op(oltsDe(cl, m.olt), m.olt); } };
   const exacto = () => { const c = parseCoords(m.coordDanio || m.coordPunto || ''), r = c && clusterDe(c[0], c[1]); if(!r) return;
     if(m.clusterExacto !== r.zona){ m.clusterExacto = r.zona; if(r.cluster && r.cluster !== m.cluster && CFG.clusters[r.cluster]) ponCluster(r.cluster); }
     const h = $('#mClH'); if(h) h.innerHTML = 'Cluster exacto (por las coordenadas ' + (m.coordDanio ? 'del daño' : 'del punto de medición') + '): <b>' + esc(r.zona) + '</b>' + (r.km ? ' · zona más cercana' : ''); };
-  const cambio = () => { exacto(); m.actualizado = new Date().toISOString(); guardarMasivas(); clearTimeout(reloj); reloj = setTimeout(() => subirMasiva(m), 4000); };
+  const atn = () => { const h = $('#mAtn'); if(!h) return; const fin = completa(m.horaFinal) ? m.horaFinal : '';
+    if(!completa(m.asignacion) || !fin){ h.textContent = ''; return; }
+    const tot = durMin(m.asignacion, fin), pa = minutosPausa(m, fin); h.innerHTML = `Tiempo de atención: <b>${esc(durTexto(Math.max(0, tot - pa)))}</b>${pa ? ` (total ${esc(durTexto(tot))} menos ${esc(durTexto(pa))} en pausa)` : ''}`; };
+  const pintarPausas = () => { const box = $('#mPausas'); if(!box) return; const ps = pausasDe(m), act = pausaActiva(m);
+    const fhp = (attr, id, v) => `<div class="fh" ${attr}="${esc(id)}"><input type="date" value="${esc(String(v || '').slice(0, 10))}">${campoHora('', String(v || '').slice(11, 16))}</div>`;
+    box.innerHTML = `<h2>Pausas</h2>${ps.length ? ps.map((p, i) => `<div class="card" style="margin:8px 0;padding:8px 12px">
+        <div class="row" style="align-items:center"><b style="flex:1">${i + 1}. ${esc(p.motivo || 'Sin motivo')}</b>${p.fin ? `<span class="hint" style="margin:0;flex:0 0 auto">${esc(durTexto(durMin(p.ini, p.fin)))}</span>` : '<span class="estado pendiente" style="flex:0 0 auto">en pausa</span>'}</div>
+        <label>Inicio</label>${fhp('data-pini', p.id, p.ini)}
+        ${p.fin ? `<label>Fin</label>${fhp('data-pfin', p.id, p.fin)}` : `<label>Regreso estimado (si te piden estar antes, cámbialo)</label>${fhp('data-preg', p.id, p.regreso)}`}
+        <div class="row" style="margin-top:6px"><button type="button" class="btn ghost sm" data-pscr="${esc(p.id)}">📋 Script de pausa</button><button type="button" class="btn ghost sm" data-pdel="${esc(p.id)}" style="color:var(--err)">Quitar</button></div></div>`).join('') : '<div class="hint" style="margin-top:0">Sin pausas.</div>'}
+      ${act ? '<button type="button" class="btn verde" id="mPfin">▶ Retirar pausa (ahora)</button>' : (m.estado === 'CERRADA' ? '' : '<button type="button" class="btn sec" id="mPini">⏸ Solicitar pausa</button>')}
+      ${ps.some(p => p.ini) ? `<div class="hint">Tiempo en pausa: <b>${esc(durTexto(minutosPausa(m, ahoraLocal())))}</b>. Se descuenta del tiempo de atención.</div>` : ''}`; };
+  const pintaFaltan = () => document.querySelectorAll('[data-faltan]').forEach(x => { const f = faltanM(m, +x.dataset.faltan);
+    x.innerHTML = f.length && !m.enviados[+x.dataset.faltan] ? ` <span class="estado pendiente" title="${esc(f.join(', '))}">faltan ${f.length}</span>` : '';
+    const d = x.closest('details'), h = d && d.querySelector('.hfalta'); if(h) h.textContent = f.length ? 'Falta: ' + f.join(', ') : ''; });
+  const cambio = () => { exacto(); atn(); pintaFaltan(); m.actualizado = new Date().toISOString(); guardarMasivas(); clearTimeout(reloj); reloj = setTimeout(() => subirMasiva(m), 4000); };
   const fo = $('#fm');
+  const pz = $('#mPausas'), guardaP = () => { sincPausas(m); cambio(); pintarPausas(); };
+  pz.addEventListener('change', e => { const b = e.target.closest('[data-pini],[data-pfin],[data-preg]'); if(!b) return; e.stopPropagation();
+    const [d, t] = b.querySelectorAll('input'); if(t.value && !d.value) d.value = hoyISO(); const v = d.value && t.value ? d.value + 'T' + t.value : '';
+    const p = pausasDe(m).find(x => x.id === (b.dataset.pini || b.dataset.pfin || b.dataset.preg)); if(!p) return;
+    if(b.dataset.pini){ if(v) p.ini = v; } else if(b.dataset.pfin){ if(v && v < p.ini) return toast('El fin no puede ser antes del inicio'); p.fin = v; } else { p.regreso = v; p.avisoReg = ''; }
+    guardaP(); });
+  pz.addEventListener('click', async e => { const t = e.target;
+    if(t.id === 'mPini') return solicitarPausa(m, guardaP);
+    if(t.id === 'mPfin'){ const p = pausaActiva(m); if(p){ p.fin = ahoraLocal() < p.ini ? p.ini : ahoraLocal(); guardaP(); toast('Pausa retirada'); } return; }
+    if(t.dataset.pscr){ const p = pausasDe(m).find(x => x.id === t.dataset.pscr); if(p) mostrarTexto('Script de pausa', scriptPausa(m, p)); return; }
+    if(t.dataset.pdel && await preguntar('¿Quitar esta pausa?', 'Quitar')){ m.pausas = pausasDe(m).filter(x => x.id !== t.dataset.pdel); guardaP(); } });
+  pintarPausas(); atn();
+  document.querySelectorAll('#fm details[data-et]').forEach(d => { if(+d.dataset.et) d.querySelector('summary').insertAdjacentHTML('afterend', '<div class="hint warn hfalta" style="margin-top:0"></div>'); });
+  pintaFaltan();
   fo.addEventListener('input', e => { const k = e.target.dataset.m; if(k){ m[k] = e.target.value; cambio(); } });
   activarMat(m, cambio);
   $('#mCausa').onclick = () => elegirDeLista('Causa del daño', (L.CAUSA||[]).filter(c => !SOLO_OPERACION.includes(canonCausa(c))), m.causa, v => { m.causa = v; $('#mCausa').firstElementChild.textContent = v || 'Toca para buscar'; cambio(); });
@@ -1482,6 +1716,7 @@ function pantallaMasiva(id){
       else h.textContent = 'No se encontró la dirección; escríbela.'; }
     catch(e){ if($('#mDirH')) $('#mDirH').textContent = e.message; } };
   $('#mDir').onclick = () => dir(true);
+  fo.addEventListener('focusout', e => { const k = e.target.dataset && e.target.dataset.m; if(k && m[k] !== e.target.value){ m[k] = e.target.value; cambio(); } });
   fo.addEventListener('change', e => { const k = e.target.dataset.m;
     if(k === 'coordDanio' || k === 'coordPunto'){ const c = parseCoords(e.target.value); if(c){ e.target.value = m[k] = coordsTexto(c); cambio(); } }
     if(k === 'coordDanio') setTimeout(() => dir(false), 0); });
@@ -1499,7 +1734,12 @@ function pantallaMasiva(id){
     m[b.dataset.mapa] = `${la.toFixed(6)}, ${lo.toFixed(6)}`; document.querySelector(`[data-m="${b.dataset.mapa}"]`).value = m[b.dataset.mapa]; cambio();
     if(b.dataset.mapa === 'coordDanio') dir(false); }));
   document.querySelectorAll('[data-msg]').forEach(b => b.onclick = async () => {
-    const n = +b.dataset.msg;
+    const n = +b.dataset.msg, f = faltanM(m, n);
+    if(f.length && !(await preguntar(`Faltan datos importantes: ${f.join(', ')}. ¿Armar el mensaje así?`, 'Armar así', 'Completar'))){
+      const d = b.closest('details'), k = (FALTAN_M[n].find(([, t]) => t === f[0]) || [])[0];
+      const sel = {causa: '#mCausa', etr: '#mEtrH', mat2: '.matm[data-matn="2"]', tecnicos: '#mTec', llegada: '[data-mfh="llegada"] input', horaFinal: '[data-mfh="horaFinal"] input', coordDanio: '[data-m="coordDanio"]'}[k] || `[data-m="${k}"]`;
+      const i = k && document.querySelector('#fm ' + sel); if(i){ const dd = i.closest('details'); if(dd) dd.open = true; i.scrollIntoView({behavior: 'smooth', block: 'center'}); try{ i.focus({preventScroll: true}); }catch(e){}
+        i.classList.add('resalta'); setTimeout(() => i.classList.remove('resalta'), 2500); } return; }
     if(n === 3 && !m.ubicacion && parseCoords(m.coordDanio || '') && !demo() && navigator.onLine){   // falta la dirección: se busca antes de armar el mensaje
       b.disabled = true; await Promise.race([dir(false), new Promise(r => setTimeout(r, 6000))]); b.disabled = false;
       if(!m.ubicacion && !(await preguntar('No se encontró la dirección del daño. ¿Armar el mensaje sin ella?', 'Sí, sin dirección', 'Revisar'))) return; }
@@ -1512,7 +1752,10 @@ function pantallaMasiva(id){
       if(sig){ sig.open = true; setTimeout(() => sig.scrollIntoView({behavior: 'smooth', block: 'start'}), 350); }
     });
   });
-  $('#mCerrar').onclick = () => { m.estado = m.estado === 'CERRADA' ? 'ABIERTA' : 'CERRADA'; cambio(); subirMasiva(m); volver('#masivas'); };
+  $('#mCerrar').onclick = async () => {
+    if(m.estado !== 'CERRADA'){ const f = [...new Set(faltanM(m, 3))]; const sin = !m.enviados[3];
+      if((f.length || sin) && !(await preguntar(`${sin ? 'Aún no mandas el mensaje de cierre. ' : ''}${f.length ? 'Faltan: ' + f.join(', ') + '. ' : ''}¿Marcarla cerrada así?`, 'Cerrar así', 'Completar'))) return; }
+    m.estado = m.estado === 'CERRADA' ? 'ABIERTA' : 'CERRADA'; cambio(); subirMasiva(m); volver('#masivas'); };
   // --- folios relacionados
   $('#mMas').onclick = () => {
     const v = ventana('Folio relacionado', `<div class="mbody"><label>Pega el mensaje del otro folio (misma afectación, otra OLT)</label>
@@ -4720,6 +4963,107 @@ function abrirMapa(coordsTxt, alElegir, opts = {}){   // opts: titulo, hint, lin
   zonas(); requestAnimationFrame(() => { pintar(); info(); });
 }
 
+/* ===== Jumpeos en OLT (administrador e ingeniero de red) =====
+   Qué F/S/P de la OLT se jumpeó a qué hilo (troncal y posición en DFO), con su potencia y para qué. Uno por hilo. */
+const JUMP = {lista: LS.get('jumpeos', [])};
+const guardarJumpeos = () => LS.set('jumpeos', JUMP.lista);
+const scriptJumpeo = j => [`*F/S/P:* ${j.fsp}`, `*POSICIÓN EN DFO:* ${j.pos}`, `*TRONCAL :* ${j.troncal}`, `*POTENCIA EN DFO:* ${j.pot}${j.pot && !/dbm/i.test(j.pot) ? ' dBm' : ''}`, `*TRAZO:* ${j.trazo}`, `*OLT:* ${j.olt}`].join('\n');
+async function subirJumpeos(){
+  if(demo() || !navigator.onLine) return;
+  for(const j of JUMP.lista.filter(x => x.subido !== x.actualizado)){
+    try{ const {_foto, subido, ...lim} = j; const r = await api('guardarJumpeo', {jumpeo: lim, foto: _foto || ''});
+      if(r.foto) j.foto = r.foto; delete j._foto; j.subido = j.actualizado; guardarJumpeos(); }catch(e){ console.log('jumpeo', e); }
+  }
+}
+async function bajarJumpeos(){
+  if(demo() || !navigator.onLine) return;
+  try{ await subirJumpeos(); const r = await api('jumpeos', {});
+    (r.jumpeos || []).forEach(x => { const i = JUMP.lista.findIndex(y => y.id === x.id); x.subido = x.actualizado;
+      if(i < 0) JUMP.lista.push(x); else if((x.actualizado || '') >= (JUMP.lista[i].actualizado || '')) JUMP.lista[i] = x; });
+    guardarJumpeos(); if(location.hash === '#jumpeos' && !MODALES.length) pantallaJumpeos(true);
+  }catch(e){ console.log('jumpeos', e); }
+}
+function pantallaJumpeos(sinBajar){
+  if(!puedeCat()){ reemplazar('#'); return; }
+  $('#titulo').textContent = 'Jumpeos';
+  const q0 = (document.querySelector('#jBus') || {}).value || '';
+  $('#app').innerHTML = `<div class="card"><input id="jBus" placeholder="Buscar OLT, F/S/P, troncal-posición o para qué" value="${esc(q0)}">
+    <div class="row" style="margin-top:8px"><button class="btn ghost sm" id="jXls">⬇️ Excel</button></div></div><div id="jLista"></div>`;
+  const pintar = () => { const q = sinAcento(MAY($('#jBus').value)).replace(/\s+/g, '');
+    const l = [...JUMP.lista].filter(j => !q || sinAcento(MAY([j.olt, j.fsp, j.troncal + '-' + j.pos, 'T' + j.troncal + 'P' + j.pos, j.para, j.registro].join('|'))).replace(/\s+/g, '').includes(q))
+      .sort((a, b) => (a.estado === 'ACTIVO' ? 0 : 1) - (b.estado === 'ACTIVO' ? 0 : 1) || String(b.fecha).localeCompare(String(a.fecha)));
+    $('#jLista').innerHTML = l.length ? l.map(j => `<div class="card lista" data-j="${esc(j.id)}" style="${j.estado !== 'ACTIVO' ? 'opacity:.6' : ''}">
+      <div class="f"><b>${esc(j.olt)} · ${esc(j.fsp)}</b><span class="estado ${j.subido === j.actualizado || demo() ? 'enviado' : 'pendiente'}">${j.estado === 'ACTIVO' ? (j.subido === j.actualizado || demo() ? 'guardado' : 'por enviar') : esc(j.estado.toLowerCase())}</span></div>
+      <div class="hint">Troncal ${esc(j.troncal)} · posición ${esc(j.pos)} · ${esc(j.pot || '?')}${j.pot && !/dbm/i.test(j.pot) ? ' dBm' : ''} · trazo ${esc(j.trazo || '?')}</div>
+      <div class="hint">${j.para ? 'Para: <b>' + esc(j.para) + '</b> · ' : ''}${esc(fmtLarga(j.fecha))} · ${esc(j.registro || '')}</div></div>`).join('')
+      : `<div class="card"><div class="hint">${JUMP.lista.length ? 'Nada coincide.' : 'Aún no hay jumpeos. Toca "+ Nuevo jumpeo".'}</div></div>`;
+    document.querySelectorAll('[data-j]').forEach(c => c.onclick = () => verJumpeo(JUMP.lista.find(x => x.id === c.dataset.j))); };
+  $('#jBus').addEventListener('input', pintar); pintar();
+  $('#jXls').onclick = () => { const {o} = ventana('Excel de jumpeos', '<div class="mbody"></div>');
+    entregarArchivo(xlsxLibro([{hoja: 'Jumpeos', cab: ['FECHA', 'OLT', 'F/S/P', 'TRONCAL', 'POSICION DFO', 'POTENCIA DBM', 'TRAZO', 'PARA QUE', 'ESTADO', 'REGISTRO', 'FOTO'],
+      filas: [...JUMP.lista].sort((a, b) => String(b.fecha).localeCompare(String(a.fecha))).map(j => [fmtLarga(j.fecha), j.olt, j.fsp, j.troncal, j.pos, String(j.pot || '').replace(/\s*dbm/i, ''), j.trazo, j.para, j.estado, j.registro, j.foto ? j.foto.url : '']),
+      anchos: [16, 16, 9, 9, 12, 13, 9, 26, 12, 22, 40]}]), `Jumpeos ${hoyISO()}.xlsx`, o, {t: 'Excel listo', h: 'jumpeos registrados'}); };
+  $('#fab').innerHTML = '<button class="fab" id="bNuevoJ">+ Nuevo jumpeo</button>'; $('#bNuevoJ').onclick = () => editarJumpeo(null);
+  if(!sinBajar) bajarJumpeos();
+}
+function verJumpeo(j){
+  if(!j) return; const txt = scriptJumpeo(j);
+  const {o, cerrar} = ventana(`${j.olt} · ${j.fsp}`, `<div class="mbody"><pre class="wa">${esc(txt)}</pre>
+    <div class="hint">${j.para ? 'Para: <b>' + esc(j.para) + '</b><br>' : ''}${esc(fmtLarga(j.fecha))} · ${esc(j.registro || '')} · ${esc(j.estado)}${j.nota ? '<br>' + esc(j.nota) : ''}</div>
+    ${j.foto && j.foto.url ? `<a href="${esc(j.foto.url)}" class="btn ghost" style="margin-top:10px;text-align:center">📷 Ver foto del medidor</a>` : ''}
+    <div class="row" style="margin-top:10px"><button class="btn ghost sm" id="jEd">Editar</button>${j.estado === 'ACTIVO' ? '<button class="btn ghost sm" id="jLib" style="color:var(--err)">Liberar hilo</button>' : ''}</div></div>`,
+    '<button class="btn ghost" id="jCop" style="flex:.6">Copiar</button><button class="btn verde" id="jSh">Compartir</button>');
+  o.querySelector('#jCop').onclick = () => copiar(txt);
+  o.querySelector('#jSh').onclick = () => compartir(txt);
+  o.querySelector('#jEd').onclick = () => { cerrar(); editarJumpeo(j); };
+  const lb = o.querySelector('#jLib'); if(lb) lb.onclick = async () => {
+    if(!(await preguntar('¿Liberar este hilo? El registro queda en el historial como LIBERADO.', 'Liberar'))) return;
+    j.estado = 'LIBERADO'; j.actualizado = new Date().toISOString(); guardarJumpeos(); subirJumpeos(); cerrar(); pantallaJumpeos(true); };
+}
+function editarJumpeo(j){
+  const nuevo = !j, x = j ? {...j} : {fsp: '0//', troncal: '', pos: '', pot: '', trazo: '', para: '', olt: ''};
+  const [f, sl, pu] = String(x.fsp || '0//').split('/'), olts = [...new Set(Object.values(CFG.clusters || {}).flatMap(c => c.olts || []))].sort();
+  let foto = null;
+  const {o, cerrar} = ventana(nuevo ? 'Nuevo jumpeo' : 'Editar jumpeo', `<div class="mbody">
+    <label style="margin-top:0">OLT</label><input id="jOlt" list="dlOltJ" value="${esc(x.olt)}" autocapitalize="characters" placeholder="VALLARTA_JAL"><datalist id="dlOltJ">${olts.map(v => `<option value="${esc(v)}">`).join('')}</datalist>
+    <label>F/S/P (frame / slot / puerto)</label><div class="row"><input id="jF" inputmode="numeric" value="${esc(f || '0')}" aria-label="Frame"><input id="jS" inputmode="numeric" value="${esc(sl || '')}" aria-label="Slot" placeholder="slot"><input id="jP" inputmode="numeric" value="${esc(pu || '')}" aria-label="Puerto" placeholder="puerto"></div>
+    <div class="row"><div><label>Troncal</label><input id="jT" inputmode="numeric" value="${esc(x.troncal)}"></div><div><label>Posición en DFO</label><input id="jPos" inputmode="numeric" value="${esc(x.pos)}"></div></div>
+    <div class="row"><div><label>Potencia en DFO (dBm)</label><input id="jPot" inputmode="decimal" value="${esc(String(x.pot || '').replace(/\s*dbm/i, ''))}" placeholder="7.87"></div><div><label>Trazo</label><input id="jTr" value="${esc(x.trazo)}" placeholder="5km"></div></div>
+    <label>¿Para qué se jumpeó? (solo se guarda en NODO)</label><input id="jPara" value="${esc(x.para)}" autocapitalize="characters" placeholder="Ej. NVA-2-90N, predio RANCHITO o folio">
+    <div class="hint" id="jSug"></div>
+    ${nuevo ? '<button type="button" class="btn sec" id="jFoto">📷 Foto del medidor</button><div class="hint" id="jFotoH"></div>' : ''}
+    <div class="hint err" id="jErr"></div></div>`, `<button class="btn" id="jOk">${nuevo ? 'Guardar y armar mensaje' : 'Guardar'}</button>`);
+  const q = k => o.querySelector(k), num = k => q(k).value.replace(/\D/g, '');
+  const sug = () => { const t = num('#jT'), p = num('#jPos'), cl = q('#jOlt').value.trim();
+    const otro = JUMP.lista.find(y => y.id !== x.id && y.estado === 'ACTIVO' && MAY(y.olt) === MAY(cl) && ((y.troncal === t && y.pos === p && t && p) || y.fsp === `${num('#jF')}/${num('#jS')}/${num('#jP')}`));
+    q('#jSug').innerHTML = otro ? `<span style="color:var(--err)">Ya hay un jumpeo activo en ${esc(otro.olt)}: F/S/P ${esc(otro.fsp)} → troncal ${esc(otro.troncal)}, posición ${esc(otro.pos)}${otro.para ? ' (' + esc(otro.para) + ')' : ''}. Si guardas, ese queda como REEMPLAZADO.</span>` : '';
+    return otro; };
+  o.querySelectorAll('input').forEach(i => i.addEventListener('input', sug)); sug();
+  const fb = q('#jFoto'); if(fb) fb.onclick = () => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
+    inp.onchange = async () => { const fl = inp.files[0]; if(!fl) return; q('#jFotoH').textContent = 'Preparando foto…';
+      const u = await ubicacionDeFoto(fl).catch(() => null); foto = await reducirFoto(fl); x.coords = u && u.pos ? coordsTexto(u.pos) : '';
+      q('#jFotoH').textContent = 'Foto lista' + (x.coords ? ' · ' + x.coords : ''); }; inp.click(); };
+  q('#jOk').onclick = async () => {
+    const fsp = `${num('#jF') || '0'}/${num('#jS')}/${num('#jP')}`, err = t => { q('#jErr').textContent = t; };
+    if(!q('#jOlt').value.trim()) return err('Escribe la OLT.');
+    if(!/^\d+\/\d+\/\d+$/.test(fsp)) return err('Completa frame, slot y puerto.');
+    if(!num('#jT') || !num('#jPos')) return err('Completa troncal y posición en DFO.');
+    const otro = sug();
+    if(otro && !(await preguntar(`Ese hilo o F/S/P ya está jumpeado${otro.para ? ' para ' + otro.para : ''}. ¿Guardar este y marcar el anterior como REEMPLAZADO?`, 'Sí, reemplazar'))) return;
+    const ahora = new Date().toISOString();
+    Object.assign(x, {olt: MAY(q('#jOlt').value.trim()), fsp, troncal: num('#jT'), pos: num('#jPos'), pot: q('#jPot').value.trim().replace(',', '.'), trazo: q('#jTr').value.trim(), para: MAY(q('#jPara').value.trim()), actualizado: ahora});
+    if(nuevo){ Object.assign(x, {id: uuid(), fecha: ahoraLocal(), estado: 'ACTIVO', registro: USER.nombre, registroId: USER.id}); if(foto) x._foto = await blobAb64(foto); JUMP.lista.push(x); }
+    else Object.assign(j, x);
+    if(otro){ otro.estado = 'REEMPLAZADO'; otro.nota = `Reemplazado el ${fmtLarga(ahoraLocal())}`; otro.actualizado = ahora; }
+    guardarJumpeos(); subirJumpeos(); cerrar(); pantallaJumpeos(true);
+    if(nuevo) setTimeout(() => { const txt = scriptJumpeo(x), archivo = foto ? new File([foto], `JUMPEO_${x.olt}_${fsp.replace(/\//g, '-')}.jpg`, {type: 'image/jpeg'}) : null;
+      const v = ventana('Mensaje de jumpeo', `<div class="mbody"><pre class="wa">${esc(txt)}</pre>${archivo ? '<div class="hint">Se manda junto con la foto del medidor.</div>' : ''}</div>`,
+        '<button class="btn ghost" id="jmC" style="flex:.6">Copiar</button><button class="btn verde" id="jmS">Compartir</button>');
+      v.o.querySelector('#jmC').onclick = () => copiar(txt);
+      v.o.querySelector('#jmS').onclick = async () => { await copiar(txt);
+        if(archivo && navigator.canShare && navigator.canShare({files: [archivo]})){ try{ await navigator.share({files: [archivo], text: txt}); }catch(e){} } else compartir(txt); }; }, 80);
+  };
+}
 /* ===== Catálogos (administrador e ingeniero de red) =====
    Clusters y OLT (hoja CATALOGOS ENUM), coberturas (KMZ con el contorno de cada zona) y las listas de la app.
    Nada se borra: lo que se quita queda "desactivado" (no sale al capturar; los registros viejos conservan su texto). */
@@ -5659,6 +6003,11 @@ function scriptMasiva(n, d){
     total = m < 0 ? '' : m >= 60 ? `${Math.floor(m/60)} h ${m%60} min` : `${m} min`; }
   else if(pi && pf && !completa(pi) && !completa(pf)){ const [a,b] = pi.split(':').map(Number), [x,y] = pf.split(':').map(Number); let m = (x*60+y) - (a*60+b); if(m < 0) m += 1440; total = m >= 60 ? `${Math.floor(m/60)} h ${m%60} min` : `${m} min`; }
   else pausa = '';
+  let motivoP = v('MOTIVO DE PAUSA');
+  const lp = Array.isArray(d.PAUSAS) ? d.PAUSAS.filter(p => completa(p.ini)) : [];
+  if(lp.length){ pausa = lp.map(p => `INICIO ${fmtLarga(p.ini)} FIN ${fmtLarga(p.fin)}`).join(', ');
+    motivoP = lp.map(p => MAY(p.motivo || '')).filter(Boolean).join(', ');
+    const tm = lp.reduce((t, p) => t + durMin(p.ini, p.fin), 0); total = tm ? durTexto(tm) : ''; }
   return [`FOLIO: ${v('FOLIO/OS')}`, `|CIUDAD: ${v('CIUDAD')}`, `|ESTADO: ${v('ESTADO')}`, `|CLUSTER: ${v('CLUSTER EXACTO') || v('CLUSTER')}`, `|OLT: ${v('OLT')}`,
     `|CLIENTES_AFECTADOS:  ${v('CLIENTES AFECTADOS')||0} clientes Totalplay, ${v('CLIENTES ENLACE')||0} clientes enlace, ${v('CLIENTES TFE')||0} clientes TFE`,
     `|FALLA_REPORTADA: ${MAY(sinAcento(v('FALLA REPORTADA')))}`,
@@ -5670,7 +6019,7 @@ function scriptMasiva(n, d){
     `|TRABAJOS_REALIZADOS: ${MAY(v('ACCION CORRECTIVA'))}`, `|CALIBRE_DEL_CAB-024H 96H: ${v('CALIBRE FO')}`,
     `|FECHA_HR_FINAL_DE_REPARACION: ${fmtCorta(v('HORA FINAL'))}`, `|QR DE SEGUNDO NIVEL: ${qr}`, `|ATIENDE_NOM_TEC: ${nombresCortos(d)}`,
     `|PROVEDOR: ${v('PROVEEDOR')}`, `|SUPERVISOR DISTRITO: ${v('SUPERVISOR DISTRITO')}`, `|TIPO DE MANTENIMIENTO: ${v('TIPO DE MANTENIMIENTO')}`,
-    `|MATERIAL UTILIZADO: ${v('MATERIAL UTILIZADO TEXTO') || listaMaterial(d)}`, `|PAUSA HORA INICIAL Y FINAL: ${pausa}`, `|MOTIVO DE PAUSA: ${v('MOTIVO DE PAUSA')}`,
+    `|MATERIAL UTILIZADO: ${v('MATERIAL UTILIZADO TEXTO') || listaMaterial(d)}`, `|PAUSA HORA INICIAL Y FINAL: ${pausa}`, `|MOTIVO DE PAUSA: ${motivoP}`,
     `|TIEMPO TOTAL DE PAUSA: ${total}`].join('\n');
 }
 async function copiar(txt){ try{ await navigator.clipboard.writeText(txt); toast('Texto copiado'); return true; }catch(e){ toast('No se pudo copiar'); return false; } }
@@ -5873,6 +6222,7 @@ function pantallaAjustes(){
      <button class="btn sec" id="aPin">Cambiar mi PIN</button>
      <button class="btn ghost" id="btnSalir">Cerrar sesión</button></div>
    ${demo() ? '' : `<div class="card"><h2>Seguridad</h2><div class="hint" style="margin:0">Los datos de este teléfono van cifrados. La app se bloquea después de ${(m => m >= 60 ? m / 60 + ' horas' : m + ' minutos')(limiteInactividad(USER))} sin usarla. Teléfono ${esc(DISP.slice(0, 6))}.</div>
+     ${BOV.tieneBio(USER.id) ? '<div class="hint">👆 Desbloqueo con huella: <b>activado</b> en este teléfono.</div><button class="btn ghost" id="aBioX">Quitar huella</button>' : '<button class="btn sec" id="aBio">👆 Activar desbloqueo con huella</button>'}
      <button class="btn sec" id="aBloq">🔒 Bloquear ahora</button><button class="btn ghost" id="aPriv">Aviso de privacidad</button></div>`}
    <div class="card"><h2>Apariencia</h2><label style="margin-top:0">Tema</label>${chips('aTema', 'tema', 'auto', [['auto', 'Automático'], ['claro', 'Claro'], ['oscuro', 'Oscuro']])}
      <div class="hint">Automático sigue al teléfono.</div>
@@ -5896,6 +6246,8 @@ function pantallaAjustes(){
   $('#aPin').onclick = cambiarPin; $('#aAyuda').onclick = verAyuda; $('#aProb').onclick = avisarProblema;
   $('#btnSalir').onclick = cerrarSesion;
   if($('#aBloq')){ $('#aBloq').onclick = bloquearApp; $('#aPriv').onclick = () => avisoPrivacidad(true); }
+  if($('#aBio')) $('#aBio').onclick = activarHuella;
+  if($('#aBioX')) $('#aBioX').onclick = async () => { if(await preguntar('¿Quitar el desbloqueo con huella en este teléfono? Seguirás entrando con tu PIN.', 'Quitar')){ BOV.quitarBio(USER.id); router(); } };
   const grupo = (id, clave) => document.querySelectorAll(`#${id} .chip`).forEach(b => b.onclick = () => { LS.set(clave, b.dataset.k); aplicarTema();
     document.querySelectorAll(`#${id} .chip`).forEach(x => x.classList.toggle('on', x === b)); });
   grupo('aTema', 'tema'); grupo('aLetra', 'letra'); grupo('aPasos', 'pasos');
