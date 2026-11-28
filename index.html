@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tile.openstreetmap.org; connect-src 'self' https://script.google.com https://script.googleusercontent.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#465264">
 <script>
 // Tema: 'auto' sigue al teléfono; 'claro' u 'oscuro' lo fijan. Se guarda en este teléfono.
@@ -118,7 +118,7 @@ pre.wa{white-space:pre-wrap;font-family:inherit;font-size:14px;background:var(--
 .seccion{font-size:12px;font-weight:650;color:var(--gris);text-transform:uppercase;letter-spacing:.05em;margin:18px 4px 8px}
 .pie{font-size:12px;color:var(--gris);text-align:center;margin:18px 0 4px}
 /* ventanas */
-.modal{position:fixed;inset:0;z-index:30;background:var(--sup);display:flex;flex-direction:column}
+.modal{position:fixed;inset:0;z-index:30;background:var(--sup);display:flex;flex-direction:column;bottom:auto;height:var(--vvh,100%)}
 .modal .mtop{display:flex;align-items:center;gap:8px;padding:12px;padding-top:calc(12px + env(safe-area-inset-top));background:var(--sup);color:var(--txt);border-bottom:1px solid var(--borde)}
 .modal .mtop b{flex:1;font-size:17px}
 .modal .mtop button{background:var(--fondo);color:var(--txt);border:1px solid var(--borde);border-radius:999px;padding:6px 14px;font-size:14px}
@@ -276,7 +276,7 @@ button.ocupado::before{content:"";display:inline-block;width:14px;height:14px;ma
 <script>
 /* ===== Configuración ===== */
 const API_URL = 'https://script.google.com/macros/s/AKfycbzI9uNq8muKRdLWnrY6StHGs8bfSvacPbXsOTxjHJPNpU4ZHK_CaRrfD4PDAmNcbt-kHQ/exec';            // URL de la implementación de Apps Script (termina en /exec). Vacío = modo demo.
-const APP_VERSION = '0.43.1';
+const APP_VERSION = '0.44.0';
 const HORAS_EDICION = 48;      // horas que un técnico puede corregir su folio
 const CENTRO_MAPA = [20.66, -105.24];   // donde abre el mapa si aún no hay coordenadas
 const DIAS_HISTORIAL = 30;     // los folios ya enviados se borran del teléfono después de estos días (siguen en Sheets)
@@ -423,18 +423,30 @@ const BOV = (() => {
         authenticatorSelection: {authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'discouraged'}, timeout: 60000,
         extensions: {prf: {eval: {first: sal}}}}});
       const ext = cred.getClientExtensionResults ? cred.getClientExtensionResults() : {};
-      if(!ext.prf || ext.prf.enabled === false) throw new Error('Este teléfono no permite usar la huella para abrir los datos cifrados. Sigue con tu PIN.');
       const credId = new Uint8Array(cred.rawId);
+      if(!ext.prf || ext.prf.enabled === false){      // sin llave de huella (ej. Samsung Pass): la huella abre una llave guardada en el teléfono
+        if(!(await preguntar('Tu teléfono no entrega una llave con la huella (pasa con Samsung Pass). Puedo usar la huella como cerrojo: la llave de tus datos queda guardada en este teléfono y solo se usa después de tu huella. Es menos estricto que el PIN, pero sigue protegido por el bloqueo del teléfono y el borrado remoto. ¿Usarla así?', 'Usar como cerrojo', 'Cancelar'))) throw new Error('No se activó la huella.');
+        const k = await crypto.subtle.generateKey({name: 'AES-GCM', length: 256}, false, ['encrypt', 'decrypt']);
+        await tx('llave', 'readwrite', s => s.put(k, 'bio_' + id));
+        const m3 = meta(); m3.envBio = m3.envBio || {}; m3.envBio[id] = {cred: b64(credId), modo: 'cerrojo', env: await envolver(raw, k)}; ponMeta(m3); return 'cerrojo';
+      }
       let out = ext.prf.results && ext.prf.results.first ? new Uint8Array(ext.prf.results.first) : await prfDe(credId, sal);
       const m2 = meta(); m2.envBio = m2.envBio || {}; m2.envBio[id] = {cred: b64(credId), sal: b64(sal), env: await envolver(raw, await llaveBio(out))}; ponMeta(m2); return true;
     },
     async abrirConBio(id, limiteMin){
       const b = ((meta() || {}).envBio || {})[id]; if(!b) throw new Error('La huella no está activada para este usuario.');
-      const out = await prfDe(deb64(b.cred), deb64(b.sal));
-      let raw; try{ raw = await desenvolver(b.env, await llaveBio(out)); }catch(e){ throw new Error('No se pudo abrir con la huella. Entra con tu PIN.'); }
+      let raw;
+      if(b.modo === 'cerrojo'){
+        await navigator.credentials.get({publicKey: {challenge: crypto.getRandomValues(new Uint8Array(32)), rpId: location.hostname, allowCredentials: [{type: 'public-key', id: deb64(b.cred)}], userVerification: 'required', timeout: 60000}});
+        const k = await tx('llave', 'readonly', s => s.get('bio_' + id));
+        try{ raw = await desenvolver(b.env, k); }catch(e){ throw new Error('No se pudo abrir con la huella. Entra con tu PIN.'); }
+      } else {
+        const out = await prfDe(deb64(b.cred), deb64(b.sal));
+        try{ raw = await desenvolver(b.env, await llaveBio(out)); }catch(e){ throw new Error('No se pudo abrir con la huella. Entra con tu PIN.'); }
+      }
       st.raw = raw; st.llave = await importar(raw); await cargar(); st.on = st.abierta = true; await guardaLlave(limiteMin); return true;
     },
-    quitarBio(id){ const m = meta(); if(m && m.envBio){ delete m.envBio[id]; ponMeta(m); } },
+    quitarBio(id){ const m = meta(); if(m && m.envBio){ delete m.envBio[id]; ponMeta(m); } tx('llave', 'readwrite', s => s.delete('bio_' + id)).catch(() => {}); },
     async verificarPin(id, pin){ const m = meta(), env = m && m.envPin && m.envPin[id]; if(!env) return null; try{ await desenvolver(env, await kdf(pin, id, m.sal)); return true; }catch(e){ return false; } },
     async desdeCache(){                           // al abrir la app: si no ha pasado el tiempo de bloqueo, abre sola
       if(!meta()) return false; st.probando = true;
@@ -512,6 +524,10 @@ function toast(msg){ const t = document.createElement('div'); t.className='toast
 async function sha256(s){ const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 /* --- Navegación: el botón "atrás" del teléfono regresa a la pantalla anterior --- */
 const MODALES = [];
+// Con el teclado abierto, la ventana se encoge a lo visible para que los botones de abajo queden a la mano
+if(window.visualViewport){ const vv = window.visualViewport, ajusta = () => document.documentElement.style.setProperty('--vvh', Math.round(vv.height) + 'px');
+  vv.addEventListener('resize', ajusta); ajusta();
+  document.addEventListener('focusin', e => { if(e.target.matches && e.target.matches('.modal input, .modal textarea')) setTimeout(() => { try{ e.target.scrollIntoView({block: 'center'}); }catch(x){} }, 300); }); }
 const enFormulario = () => /^#(idr\/nuevo|doc2n|pdoc|inc\/nueva|prev\/(nueva|editar)|nuevo|editar)/.test(location.hash);   // no se redibujan al llegar datos                       // ventanas abiertas; "atrás" cierra la de arriba
 const nivel = () => (history.state && history.state.n) || 0;
 function ir(h){ history.pushState({n: nivel() + 1}, '', h || '#'); router(); }
@@ -795,7 +811,7 @@ setInterval(()=>sincronizar(false, false), 60000);
 // Botón ‹ del encabezado: regresa a la pantalla anterior (o a la que le corresponde si se abrió directo)
 function padreDe(h){
   return h.startsWith('#idr/') ? '#idr' : h.startsWith('#lev/') ? '#lev' : h.startsWith('#pdoc/') ? '#proyecto/' + h.slice(6) : h.startsWith('#prev/') ? '#prev' : h.startsWith('#inv/') ? '#inventario' : h.startsWith('#inc/') || h.startsWith('#proyecto/') ? '#proyectos' : h.startsWith('#doc2n') ? '#docs'
-    : h.startsWith('#masiva/') ? '#masivas' : h.startsWith('#ver/') || h.startsWith('#editar/') ? '#folios' : USER && USER.rol === 'EXTERNO' ? '#docs' : '#';
+    : h.startsWith('#masiva/') || h === '#mdr' ? '#masivas' : h.startsWith('#ver/') || h.startsWith('#editar/') ? '#folios' : USER && USER.rol === 'EXTERNO' ? '#docs' : '#';
 }
 $('#btnAtras').onclick = () => volver(padreDe(location.hash));
 
@@ -900,6 +916,7 @@ function rutaBase(){
   if(h.startsWith('#usuarios')) return pantallaUsuarios();
   if(h.startsWith('#reporte')) return pantallaReporte();
   if(h.startsWith('#masivas')) return pantallaMasivas();
+  if(h === '#mdr') return pantallaMdr();
   if(h.startsWith('#masiva/')) return pantallaMasiva(h.slice(8));
   return pantallaInicio();
 }
@@ -1099,7 +1116,7 @@ function activarHuella(){
   const {o, cerrar} = ventana('Desbloquear con huella', `<div class="mbody"><div class="hint" style="margin-top:0">Podrás abrir NODO con tu huella o con el bloqueo de tu teléfono. El PIN sigue sirviendo. La huella nunca sale del teléfono y NODO no la ve.</div>
     <label>Tu PIN</label><input id="hPin" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password"><div id="hErr" class="hint err"></div></div>`, '<button class="btn" id="hOk">Activar</button>');
   o.querySelector('#hOk').onclick = async () => { const b = o.querySelector('#hOk'); b.disabled = true;
-    try{ await BOV.activarBio(USER.id, USER.nombre, o.querySelector('#hPin').value.trim()); cerrar(); toast('Huella activada'); router(); }
+    try{ const r = await BOV.activarBio(USER.id, USER.nombre, o.querySelector('#hPin').value.trim()); cerrar(); toast(r === 'cerrojo' ? 'Huella activada como cerrojo' : 'Huella activada'); router(); }
     catch(e){ o.querySelector('#hErr').textContent = e.name === 'NotAllowedError' ? 'Se canceló o no se reconoció la huella.' : e.message; b.disabled = false; } };
 }
 function pantallaLogin(){
@@ -1421,6 +1438,144 @@ async function bajarMasivas(){
     if(location.hash === '#masivas' && !MODALES.length) pantallaMasivas(true);
   }catch(e){ console.log('masivas', e); }
 }
+/* ===== Meta de masivas: índice de fallas y tiempo de atención (como el tablero de Coordinación) =====
+   Índice = (clientes afectados − condonados) / base de usuarios; cumplimiento = meta / real (tope 100 %).
+   Tiempo = Σ clientes × minutos efectivos (sin pausas) / clientes. Sin la meta de clientes no hay bonificación. */
+const cliM = m => (+m.clientesTP || 0) + (+m.clientesEnlace || 0) + (+m.clientesTFE || 0);
+const minEfM = m => { const fin = completa(m.horaFinal) ? m.horaFinal : (m.estado !== 'CERRADA' ? ahoraLocal() : ''); if(!completa(m.asignacion) || !fin) return 0;
+  return Math.max(0, durMin(m.asignacion, fin) - (m.pausas || []).reduce((t, p) => t + durMin(p.ini, p.fin || fin), 0)); };
+const mesDe = v => String(v || '').slice(0, 7);
+const pct = x => (x * 100).toFixed(2) + ' %';
+const META_BASE = {base: 43201, indice: 2.5, horas: 2, umbralI: 85, umbralT: 85};
+function metaMes(mes){                      // META_MDR en Catálogos: "AAAA-MM|base|índice %|horas|umbral clientes %|umbral tiempo %"; vale desde ese mes
+  const l = ((CFG.listas || {}).META_MDR || []).map(x => String(x).split('|')).filter(x => /^\d{4}-\d{2}$/.test(x[0])).sort((a, b) => a[0].localeCompare(b[0]));
+  const r = [...l].reverse().find(x => x[0] <= mes) || l[0];
+  if(!r) return {...META_BASE, desde: '', sinDefinir: true};
+  const n = (v, d) => isFinite(parseFloat(v)) ? parseFloat(v) : d;
+  return {desde: r[0], base: n(r[1], META_BASE.base), indice: n(r[2], 2.5), horas: n(r[3], 2), umbralI: n(r[4], 85), umbralT: n(r[5], 85)};
+}
+function calcMdr(mes, todas, sim){            // sim: {extra:[{cli, min}], cond:Set de ids}
+  const cfg = metaMes(mes), l = todas.filter(m => mesDe(m.asignacion) === mes && (m.estado === 'CERRADA' || completa(m.asignacion)));
+  let cli = 0, cond = 0, min = 0, minCond = 0;
+  const filas = l.map(m => { const c = cliM(m), t = minEfM(m), cd = (m.condonada || (sim && sim.cond.has(m.id))) ? Math.min(c, +m.condClientes || c) : 0;
+    cli += c; min += c * t; cond += cd; minCond += cd * t; return {m, c, t, cd}; });
+  (sim ? sim.extra : []).forEach(e => { cli += e.cli; min += e.cli * e.min; });
+  const nc = cli - cond, ind = cfg.base ? nc / cfg.base : 0, cumI = ind ? Math.min(1, cfg.indice / 100 / ind) : 1;
+  const prom = nc ? (min - minCond) / nc : 0, horas = prom / 60, cumT = horas ? Math.min(1, cfg.horas / horas) : 1;
+  const logI = cumI * 100 >= cfg.umbralI, logT = logI && cumT * 100 >= cfg.umbralT;
+  return {mes, cfg, filas, cli, cond, nc, min, minCond, ind, cumI, prom, horas, cumT, logI, logT, permitidos: Math.floor(cfg.base * cfg.indice / 100), restantes: Math.floor(cfg.base * cfg.indice / 100) - nc,
+    bono: logI && logT ? 'Bonificación completa' : logI ? 'Solo bonificación de clientes' : 'Sin bonificación'};
+}
+const MDR = {anio: {}, sim: {extra: [], cond: new Set()}};
+async function bajarMdr(anio){
+  const k = 'mdr' + anio; MDR.anio[anio] = LS.get(k, MDR.anio[anio] || []);
+  if(demo() || !navigator.onLine) return;
+  try{ const r = await api('mdr', {anio}); MDR.anio[anio] = r.masivas || []; LS.set(k, MDR.anio[anio]); }catch(e){ console.log('mdr', e); }
+}
+const masivasMdr = anio => { const m = new Map((MDR.anio[anio] || []).map(x => [x.id, x])); MASIVAS.forEach(x => { if(String(x.asignacion || '').startsWith(anio)) m.set(x.id, x); }); return [...m.values()]; };
+function pantallaMdr(){
+  if(!esAdmin()){ reemplazar('#'); return; }
+  $('#titulo').textContent = 'Meta de masivas';
+  const mes = sessionStorage.getItem('fo.mdrMes') || hoyISO().slice(0, 7), anio = mes.slice(0, 4);
+  if(!MDR.anio[anio]){ MDR.anio[anio] = LS.get('mdr' + anio, []); bajarMdr(anio).then(() => { if(location.hash === '#mdr' && !MODALES.length) pantallaMdr(); }); }
+  const todas = masivasMdr(anio), r = calcMdr(mes, todas), sim = MDR.sim, haySim = sim.extra.length || sim.cond.size, rs = haySim ? calcMdr(mes, todas, sim) : null;
+  const meses = [...new Set([hoyISO().slice(0, 7), ...todas.map(m => mesDe(m.asignacion))].filter(Boolean))].sort().reverse();
+  const NOM = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'], nm = x => NOM.at(+x.slice(5, 7) - 1) + ' ' + x.slice(0, 4);
+  const val = (a, b, f) => `<b>${esc(f(a))}</b>${b != null && b !== false ? ` <span class="hint" style="margin:0;display:inline">→ ${esc(f(b))}</span>` : ''}`;
+  const fila = (t, a, b, f) => `<div class="f" style="padding:3px 0;display:flex;justify-content:space-between;gap:10px"><span>${t}</span><span>${val(a, b, f)}</span></div>`;
+  const ok = (l, t) => `<span class="estado ${l ? 'enviado' : 'error'}">${l ? 'Logrado' : 'No logrado'}</span>`;
+  const n0 = x => Math.round(x).toLocaleString('es-MX');
+  const porCausa = {}; r.filas.forEach(f => { const k = MAY(f.m.causa || 'SIN CAUSA'); porCausa[k] = porCausa[k] || [0, 0]; porCausa[k][0]++; porCausa[k][1] += f.c; });
+  $('#app').innerHTML = `<div class="card"><label style="margin-top:0">Mes</label><select id="mdMes">${meses.map(x => `<option value="${x}" ${x === mes ? 'selected' : ''}>${nm(x)}</option>`).join('')}</select>
+      ${r.cfg.sinDefinir ? '<div class="hint warn">Aún no defines la base de usuarios: se usa 43,201 y meta 2.50 %. Ajústala abajo.</div>' : ''}</div>
+    <div class="card"><h2>Índice de fallas masivas ${ok(r.logI)}</h2>
+      ${fila('Base de usuarios', r.cfg.base, undefined, n0)}${fila('Clientes afectados', r.cli, rs && rs.cli, n0)}${fila('Clientes condonados', r.cond, rs && rs.cond, n0)}
+      ${fila('<b>Índice de fallas</b>', r.ind, rs && rs.ind, pct)}${fila('Meta mensual', r.cfg.indice / 100, undefined, pct)}${fila('<b>Cumplimiento</b>', r.cumI, rs && rs.cumI, pct)}
+      <div class="sug" style="margin-top:8px">${r.restantes >= 0 ? `Te quedan <b>${n0(r.restantes)}</b> clientes antes de pasar el ${esc(r.cfg.indice.toFixed(2))} % (permitidos ${n0(r.permitidos)}).` : `Te pasaste por <b>${n0(-r.restantes)}</b> clientes (permitidos ${n0(r.permitidos)}).`}</div></div>
+    <div class="card"><h2>Tiempo de atención ${ok(r.logT)}</h2>
+      ${fila('Clientes afectados', r.nc, rs && rs.nc, n0)}${fila('Minutos afectados', r.min - r.minCond, rs && rs.min - rs.minCond, n0)}
+      ${fila('Minutos promedio', r.prom, rs && rs.prom, x => x.toFixed(2))}${fila('<b>Horas promedio</b>', r.horas, rs && rs.horas, x => x.toFixed(2))}${fila('Meta', r.cfg.horas, undefined, x => x.toFixed(2) + ' h')}${fila('<b>Cumplimiento</b>', r.cumT, rs && rs.cumT, pct)}
+      ${!r.logI ? '<div class="hint warn">Sin la meta de clientes, la de tiempo no cuenta.</div>' : ''}</div>
+    <div class="card" style="text-align:center"><b style="font-size:17px;color:${r.logI ? (r.logT ? 'var(--ok,#1f8a4c)' : '#e0a400') : 'var(--err)'}">${esc(r.bono)}</b>${rs ? `<div class="hint">Con la simulación: <b>${esc(rs.bono)}</b></div>` : ''}</div>
+    <div class="card"><h2>🔮 Simular</h2><div class="hint" style="margin-top:0">Agrega afectaciones posibles o marca masivas que esperas que condonen. No se guarda nada.</div>
+      <div class="row"><div><label>Clientes</label><input id="sCli" type="number" inputmode="numeric" placeholder="100"></div><div><label>Horas efectivas</label><input id="sHr" inputmode="decimal" placeholder="2.5"></div></div>
+      <button class="btn ghost" id="sAdd">＋ Agregar afectación supuesta</button>
+      ${sim.extra.map((e, i) => `<div class="f" style="padding:4px 0;display:flex;justify-content:space-between;gap:10px;align-items:center"><span>Supuesta ${i + 1}: ${e.cli} clientes · ${(e.min / 60).toFixed(2)} h</span><button class="btn ghost sm" data-sx="${i}" style="width:auto;color:var(--err)">✕</button></div>`).join('')}
+      ${haySim ? '<button class="btn ghost sm" id="sClr">Limpiar simulación</button>' : ''}</div>
+    <div class="card"><h2>Masivas del mes (${r.filas.length})</h2>${r.filas.length ? [...r.filas].sort((a, b) => b.c * b.t - a.c * a.t).map(f => `<div class="item" style="align-items:flex-start">
+        <span class="nom">${esc(f.m.folio || '')} · ${esc(f.m.olt || '')}<small>${esc(fmtLarga(f.m.asignacion))} · ${f.c} clientes · ${esc(durTexto(Math.round(f.t)))} · ${n0(f.c * f.t)} min·cliente${f.m.condonada ? ' · <b>condonada</b>' : ''}${f.m.estado !== 'CERRADA' ? ' · en curso' : ''}${f.m.causa ? '<br>' + esc(f.m.causa) : ''}</small></span>
+        ${f.m.condonada ? '' : `<label style="flex:0 0 auto;font-size:12px;display:flex;gap:4px;align-items:center"><input type="checkbox" data-sc="${esc(f.m.id)}" ${sim.cond.has(f.m.id) ? 'checked' : ''}>condonar</label>`}</div>`).join('') : '<div class="hint">Sin masivas en este mes.</div>'}</div>
+    <div class="card"><h2>Causas del mes</h2>${Object.entries(porCausa).sort((a, b) => b[1][1] - a[1][1]).map(([k, v]) => `<div class="f" style="padding:3px 0;display:flex;justify-content:space-between;gap:10px"><span>${esc(k)}</span><span>${v[0]} · <b>${n0(v[1])}</b> clientes</span></div>`).join('') || '<div class="hint">—</div>'}
+      <button class="btn ghost" id="mdMapa" style="margin-top:8px">🗺️ Mapa de calor del mes</button></div>
+    <div class="card"><h2>Ajustes de la meta</h2><div class="hint" style="margin-top:0">Vigente desde ${esc(r.cfg.desde ? nm(r.cfg.desde) : 'siempre')}. Si cambian, guarda los nuevos desde el mes que aplican; los meses anteriores conservan los suyos.</div>
+      <div class="row"><div><label>Base de usuarios</label><input id="cBase" type="number" inputmode="numeric" value="${r.cfg.base}"></div><div><label>Meta índice (%)</label><input id="cInd" inputmode="decimal" value="${r.cfg.indice}"></div></div>
+      <div class="row"><div><label>Meta horas</label><input id="cHr" inputmode="decimal" value="${r.cfg.horas}"></div><div><label>Logrado desde (% cumpl.)</label><input id="cUm" inputmode="decimal" value="${r.cfg.umbralI}"></div></div>
+      <label>Desde el mes</label><input id="cDesde" type="month" value="${esc(mes)}"><button class="btn sec" id="cGuarda">Guardar ajustes</button></div>
+    <div class="card"><h2>Excel e historial</h2><button class="btn ghost" id="mdXls">⬇️ Excel del año (formato MDR)</button>
+      <button class="btn ghost" id="mdImp">⬆️ Importar MDR 2026 (Excel)</button><div class="hint" id="mdImpH">Lee la hoja "MDR 2026 APP" de tu archivo y agrega las masivas que no estén en NODO.</div></div>`;
+  $('#mdMes').onchange = e => { sessionStorage.setItem('fo.mdrMes', e.target.value); MDR.sim = {extra: [], cond: new Set()}; pantallaMdr(); };
+  $('#sAdd').onclick = () => { const c = parseInt($('#sCli').value), h = parseFloat(String($('#sHr').value).replace(',', '.'));
+    if(!(c > 0) || !(h >= 0)) return toast('Pon clientes y horas'); sim.extra.push({cli: c, min: h * 60}); pantallaMdr(); };
+  document.querySelectorAll('[data-sx]').forEach(b => b.onclick = () => { sim.extra.splice(+b.dataset.sx, 1); pantallaMdr(); });
+  document.querySelectorAll('[data-sc]').forEach(b => b.onchange = () => { b.checked ? sim.cond.add(b.dataset.sc) : sim.cond.delete(b.dataset.sc); pantallaMdr(); });
+  if($('#sClr')) $('#sClr').onclick = () => { MDR.sim = {extra: [], cond: new Set()}; pantallaMdr(); };
+  $('#mdMapa').onclick = () => { const mx = Math.max(1, ...r.filas.map(f => f.c));
+    const pts = r.filas.map(f => { const c = parseCoords(f.m.coordDanio || f.m.coordPunto || ''); return c && {lat: c[0], lng: c[1], color: f.m.condonada ? '#8a8a8a' : '#ff3b30', op: .45, r: 6 + 22 * Math.sqrt(f.c / mx),
+      info: `<b>${esc(f.m.folio || '')}</b> · ${f.c} clientes · ${esc(durTexto(Math.round(f.t)))}<br><span class="hint">${esc(f.m.causa || '')} · ${esc(f.m.olt || '')}</span>`}; }).filter(Boolean);
+    if(!pts.length) return toast('Las masivas del mes no tienen coordenadas');
+    abrirMapa('', null, {soloVer: true, titulo: 'Masivas de ' + nm(mes), puntos: pts, hint: 'El tamaño es la cantidad de clientes.'}); };
+  $('#cGuarda').onclick = async () => {
+    const d = $('#cDesde').value, v = [d, parseInt($('#cBase').value), parseFloat($('#cInd').value), parseFloat($('#cHr').value), parseFloat($('#cUm').value), parseFloat($('#cUm').value)];
+    if(!/^\d{4}-\d{2}$/.test(d) || !(v[1] > 0) || !(v[2] > 0) || !(v[3] > 0) || !(v[4] > 0)) return toast('Revisa los datos');
+    const l = ((CFG.listas || {}).META_MDR || []).filter(x => !String(x).startsWith(d + '|')).concat(v.join('|'));
+    try{ await guardarCat('guardarListas', {cambios: {META_MDR: l}}, c => { c.listas.META_MDR = l; }); toast('Ajustes guardados'); pantallaMdr(); }catch(e){ toast(e.message); } };
+  $('#mdXls').onclick = () => exportarMdr(anio, todas);
+  $('#mdImp').onclick = () => importarMdr(anio);
+}
+function exportarMdr(anio, todas){
+  const NOM = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  const sem = v => { const d = new Date(v.slice(0, 10) + 'T00:00:00'), e = new Date(d.getFullYear(), 0, 1); return Math.floor(((d - e) / 864e5 + e.getDay()) / 7) + 1; };
+  const l = todas.filter(m => completa(m.asignacion)).sort((a, b) => a.asignacion.localeCompare(b.asignacion));
+  const filas = l.map(m => { const [f, sl, pu] = String(m.puerto || '').split('/'), ps = (m.pausas || []).filter(p => p.ini), t = minEfM(m);
+    return [((m.folios || []).length > 1 ? m.folios.map(x => x.folio).join('/') : m.folio) || '', m.olt || '', f || '', sl || '', pu || '', cliM(m) - (+m.clientesEnlace || 0) - (+m.clientesTFE || 0), m.clientesEnlace || '', m.clientesTFE || '',
+      fmtLarga(m.asignacion).slice(0, 10), NOM.at(+m.asignacion.slice(5, 7) - 1), sem(m.asignacion), fmtLarga(m.asignacion), ps.length ? 'TRUE' : 'FALSE', ps.length ? fmtLarga(ps[0].ini) : '', ps.length ? fmtLarga(ps.at(-1).fin) : '',
+      fmtLarga(m.horaFinal), Math.round(t * 100) / 100, Math.round(cliM(m) * t), (m.tecnicos || []).join(' , '), m.coordDanio || m.coordPunto || '', m.causa || '', m.descripcion || '', m.condonada ? 'SI' : ''];
+  });
+  const meses = [...new Set(l.map(m => mesDe(m.asignacion)))].sort(), ctl = meses.map(ms => { const r = calcMdr(ms, todas);
+    return [NOM.at(+ms.slice(5, 7) - 1).toUpperCase(), r.cfg.base, r.cli, r.cond, (r.ind * 100).toFixed(2) + '%', r.cfg.indice.toFixed(2) + '%', (r.cumI * 100).toFixed(2) + '%', Math.round(r.min - r.minCond), r.prom.toFixed(2), r.horas.toFixed(2), r.cfg.horas, (r.cumT * 100).toFixed(2) + '%', r.restantes, r.bono]; });
+  const {o} = ventana('Excel de la meta', '<div class="mbody"></div>');
+  entregarArchivo(xlsxLibro([{hoja: `MDR ${anio} APP`, cab: ['SD', 'OLT', 'FRAME', 'SLOT', 'PORT', 'CLIENTES TP', 'CLIENTES EC', 'CLIENTES TFE', 'FECHA', 'MES', 'SEMANA', 'HORA DE INICIO', 'PAUSA', 'HORA INICIAL PAUSA', 'HORA FINAL PAUSA',
+      'HORA FINAL REPARACIÓN', 'TIEMPO EFECTIVO', 'CLIENTES POR MINUTOS', 'TECNICO QUE ATENDIO', 'CODE PLUS', 'CAUSA DE DAÑO', 'DESCRIPCION DE ACTIVIDAD', 'CONDONADA'], filas,
+      anchos: [16, 14, 7, 6, 6, 10, 10, 10, 11, 11, 8, 17, 8, 17, 17, 17, 10, 12, 22, 24, 24, 50, 10]},
+    {hoja: `CONTROL ${anio}`, cab: ['MES', 'BASE DE USUARIOS', 'CLIENTES AFECTADOS', 'CONDONADOS', 'INDICE DE FALLAS', 'META', 'CUMPLIMIENTO', 'MINUTOS AFECTADOS', 'MINUTOS PROMEDIO', 'HORAS PROMEDIO', 'META HORAS', 'CUMPLIMIENTO TIEMPO', 'CLIENTES RESTANTES', 'BONIFICACION'],
+      filas: ctl, anchos: [12, 12, 12, 11, 11, 8, 12, 14, 12, 12, 10, 14, 13, 26]}]), `MDR ${anio} NODO.xlsx`, o, {t: 'Excel listo', h: 'mismo formato que tu MDR'});
+}
+function importarMdr(anio){
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.xlsx';
+  inp.onchange = async () => { const f = inp.files[0]; if(!f) return; const h = $('#mdImpH'); h.textContent = 'Leyendo…';
+    try{
+      const filas = await leerXlsx(new Uint8Array(await f.arrayBuffer()), `MDR ${anio} APP`), cab = (filas[0] || []).map(x => sinAcento(MAY(x || '')).trim());
+      const col = re => cab.findIndex(x => re.test(x)), I = {sd: col(/^SD$/), olt: col(/^OLT$/), fr: col(/^FRAME/), sl: col(/^SLOT/), po: col(/^PORT/), tp: col(/^CLIENTES TP/), ec: col(/^CLIENTES EC/), tfe: col(/^CLIENTES TFE/),
+        ini: col(/^HORA DE INICIO/), pa: col(/^PAUSA$/), pi: col(/^HORA INICIAL PAUSA/), pf: col(/^HORA FINAL PAUSA/), fin: col(/^HORA FINAL REPARACION/), tec: col(/^TECNICO/), co: col(/^CODE PLUS|^COORD/), ca: col(/^CAUSA/), de: col(/^DESCRIPCION/)};
+      if(I.sd < 0 || I.ini < 0 || I.fin < 0) throw new Error('No reconozco las columnas de la hoja.');
+      const fecha = v => typeof v === 'number' ? new Date(Math.round((v - 25569) * 864e5)).toISOString().slice(0, 16) : (fechaDeTexto(String(v || '')) || (/^\d{4}-\d{2}-\d{2}/.test(String(v || '')) ? String(v).replace(' ', 'T').slice(0, 16) : ''));
+      const ya = new Set(masivasMdr(anio).flatMap(m => [m.folio, ...(m.folios || []).map(x => x.folio)]).filter(Boolean).map(String)), nuevas = [], ahora = new Date().toISOString();
+      filas.slice(1).forEach(r => { const sd = String(r[I.sd] == null ? '' : r[I.sd]).replace(/\.0$/, '').trim(); if(!sd || ya.has(sd)) return;
+        const ini = fecha(r[I.ini]), fin = fecha(r[I.fin]); if(!ini) return;
+        const pa = I.pa >= 0 && /^(TRUE|1|SI|VERDADERO)$/i.test(String(r[I.pa])), pi = pa ? fecha(r[I.pi]) : '', pf = pa ? fecha(r[I.pf]) : '';
+        nuevas.push({id: ('mdr-' + sd).replace(/[^\w-]+/g, '-').slice(0, 60), folio: sd, olt: String(r[I.olt] || ''), puerto: [r[I.fr], r[I.sl], r[I.po]].map(x => x == null ? '' : String(x)).join('/').replace(/^\/\/$/, ''),
+          clientesTP: String(r[I.tp] || 0), clientesEnlace: String(I.ec >= 0 ? r[I.ec] || 0 : 0), clientesTFE: String(I.tfe >= 0 ? r[I.tfe] || 0 : 0), asignacion: ini, horaFinal: fin,
+          pausas: pi ? [{id: uuid(), ini: pi, fin: pf, motivo: ''}] : [], tecnicos: String(r[I.tec] || '').split(/\s*,\s*/).filter(Boolean), coordDanio: I.co >= 0 ? String(r[I.co] || '') : '',
+          causa: I.ca >= 0 ? String(r[I.ca] || '') : '', descripcion: I.de >= 0 ? String(r[I.de] || '') : '', estado: 'CERRADA', origen: 'MDR', enviados: {1: 'mdr', 2: 'mdr', 3: 'mdr'}, actualizado: ahora}); ya.add(sd); });
+      if(!nuevas.length){ h.textContent = 'No hay masivas nuevas en el archivo: ya estaban todas.'; return; }
+      if(!(await preguntar(`Se agregan ${nuevas.length} masivas de ${anio} al historial de NODO. ¿Continuar?`, 'Importar'))){ h.textContent = ''; return; }
+      if(!demo()) for(let i = 0; i < nuevas.length; i += 100){ h.textContent = `Subiendo ${Math.min(i + 100, nuevas.length)} de ${nuevas.length}…`; await api('importarMasivas', {masivas: nuevas.slice(i, i + 100)}); }
+      MDR.anio[anio] = [...(MDR.anio[anio] || []), ...nuevas]; LS.set('mdr' + anio, MDR.anio[anio]);
+      toast(nuevas.length + ' masivas importadas'); pantallaMdr();
+    }catch(e){ h.textContent = e.message; }
+  };
+  inp.click();
+}
 /* --- Pausas de la masiva: varias por masiva; inicio y fin reales; se descuentan del tiempo de atención --- */
 const MOTIVOS_PAUSA = ['SIN ACCESO EN CASETA', 'HORARIO RESTRINGIDO DEL FRACCIONAMIENTO', 'LLUVIA', 'INSEGURIDAD EN LA ZONA', 'NO PERMITEN EL ACCESO', 'ESPERA DE PERMISO (CFE, MUNICIPIO)', 'OTRO'];
 // La masiva guarda el estado de seguimiento (ABIERTA/CERRADA) en "estado" y el estado geográfico en "edo"
@@ -1564,7 +1719,8 @@ function pantallaMasivas(sinBajar){
     : '<div class="card"><div class="hint">No hay masivas. Toca "+ Nueva" y pega el mensaje de asignación.</div></div>';
   $('#fab').innerHTML = `<button class="fab" id="bNuevaM">+ Nueva masiva</button>`;
   $('#bNuevaM').onclick = nuevaMasiva;
-  $('#app').insertAdjacentHTML('afterbegin', '<button class="btn ghost" id="bPegarC" style="margin-bottom:10px">📋 Pegar cierre de otra persona</button>');
+  $('#app').insertAdjacentHTML('afterbegin', `<div class="row" style="margin-bottom:10px"><button class="btn sec" id="bMdr">📊 Meta del mes</button><button class="btn ghost" id="bPegarC">📋 Pegar cierre</button></div>${(r => `<div class="card" style="padding:10px 14px"><div class="hint" style="margin:0">Índice ${esc(pct(r.ind))} de ${esc(pct(r.cfg.indice / 100))} · ${esc(r.horas.toFixed(2))} h promedio · <b style="color:${r.logI ? 'var(--ok,#1f8a4c)' : 'var(--err)'}">${esc(r.bono)}</b></div></div>`)(calcMdr(mesDe(hoyISO()), [...MASIVAS]))}`);
+  $('#bMdr').onclick = () => ir('#mdr');
   $('#bPegarC').onclick = pegarCierre;
   if(!sinBajar) bajarMasivas();
 }
@@ -1640,6 +1796,9 @@ function pantallaMasiva(id){
    <div class="card"><h2>Técnicos</h2><div class="chips" id="mTec">${tecs.map(t => `<button type="button" class="chip ${(m.tecnicos||[]).includes(t)?'on':''}">${esc(t)}</button>`).join('')}</div>
      <button type="button" class="btn ghost" id="mTraer">⟵ Traer datos del folio del técnico</button><div class="hint" id="mTraerH"></div></div>
    <div class="card" id="mPausas"></div>
+   <div class="card"><h2>Meta</h2><div class="hint" id="mMeta" style="margin-top:0"></div>
+     <label style="display:flex;align-items:center;gap:10px;color:var(--txt);font-size:15px;margin-top:8px"><input type="checkbox" id="mCond" style="width:22px;height:22px" ${m.condonada ? 'checked' : ''}> Condonada (no cuenta para la meta)</label>
+     <div id="mCondBox" class="${m.condonada ? '' : 'hidden'}"><label>Clientes condonados</label><input id="mCondN" type="number" inputmode="numeric" value="${esc(m.condClientes || '')}" placeholder="todos"></div></div>
    ${etapa(1, '1. Llegada', `<label>Punto de medición</label><select data-m="punto">${op(PUNTOS, m.punto)}</select>${fh('llegada','Llegada')}${coord('coordPunto','Coordenadas del punto de medición')}`)}
    ${etapa(2, '2. Daño encontrado', `<label>Causa del daño</label><button type="button" class="selbtn" id="mCausa"><span>${esc(m.causa || 'Toca para buscar')}</span><span class="ch">⌕</span></button>
      ${txt('accion','Acción correctiva','SE ACOMODA Y SE REEMPALMA')}
@@ -1695,6 +1854,10 @@ function pantallaMasiva(id){
     if(t.dataset.pscr){ const p = pausasDe(m).find(x => x.id === t.dataset.pscr); if(p) mostrarTexto('Script de pausa', scriptPausa(m, p)); return; }
     if(t.dataset.pdel && await preguntar('¿Quitar esta pausa?', 'Quitar')){ m.pausas = pausasDe(m).filter(x => x.id !== t.dataset.pdel); guardaP(); } });
   pintarPausas(); atn();
+  const pintaMeta = () => { const c = cliM(m), t = minEfM(m); $('#mMeta').innerHTML = `${c} cliente(s) · ${t ? esc(durTexto(Math.round(t))) + ' efectivos' : 'sin hora final'} · <b>${(c * t).toLocaleString('es-MX')}</b> minutos afectados${m.estado !== 'CERRADA' && !completa(m.horaFinal) ? ' (hasta ahora)' : ''}`; };
+  pintaMeta(); fo.addEventListener('input', () => setTimeout(pintaMeta, 0)); fo.addEventListener('change', () => setTimeout(pintaMeta, 0));
+  $('#mCond').onchange = e => { m.condonada = e.target.checked; $('#mCondBox').classList.toggle('hidden', !m.condonada); cambio(); };
+  $('#mCondN').oninput = e => { m.condClientes = e.target.value; cambio(); };
   document.querySelectorAll('#fm details[data-et]').forEach(d => { if(+d.dataset.et) d.querySelector('summary').insertAdjacentHTML('afterend', '<div class="hint warn hfalta" style="margin-top:0"></div>'); });
   pintaFaltan();
   fo.addEventListener('input', e => { const k = e.target.dataset.m; if(k){ m[k] = e.target.value; cambio(); } });
@@ -4870,7 +5033,7 @@ function abrirMapa(coordsTxt, alElegir, opts = {}){   // opts: titulo, hint, lin
       return `<path d="${dd}" fill="${col}" fill-opacity="${on ? '.22' : '.07'}" stroke="${col}" stroke-opacity="${on ? '1' : '.55'}" stroke-width="${on ? 3.5 : 1.5}"/>`;
     }).join('')
     + (solo ? [solo] : opts.lineas || []).map(l => `<path d="M${l.c.map(([la,lo]) => (wx(lo,z)-ox).toFixed(1)+' '+(wy(la,z)-oy).toFixed(1)).join('L')}" fill="none" stroke="${l.color || '#7a5cc4'}" stroke-width="${sel && sel.linea === l ? 7 : l.ancho || 3}" stroke-opacity=".85" stroke-linecap="round" stroke-linejoin="round"/>`).join('')
-    + pts.map(p => `<circle cx="${(wx(p.lng,z)-ox).toFixed(1)}" cy="${(wy(p.lat,z)-oy).toFixed(1)}" r="${z >= 16 ? 7 : 5}" fill="${p.color}" stroke="#fff" stroke-width="2"/>`).join('');
+    + pts.map(p => `<circle cx="${(wx(p.lng,z)-ox).toFixed(1)}" cy="${(wy(p.lat,z)-oy).toFixed(1)}" r="${p.r || (z >= 16 ? 7 : 5)}" fill="${p.color}" ${p.op ? `fill-opacity="${p.op}"` : ''} stroke="#fff" stroke-width="${p.r ? 1 : 2}"/>`).join('');
   }
   function pintar(){
     const W = mv.clientWidth, H = mv.clientHeight, x0 = cx - W/2, y0 = cy - H/2, n = 2 ** z, vistos = new Set();
@@ -4967,7 +5130,9 @@ function abrirMapa(coordsTxt, alElegir, opts = {}){   // opts: titulo, hint, lin
    Qué F/S/P de la OLT se jumpeó a qué hilo (troncal y posición en DFO), con su potencia y para qué. Uno por hilo. */
 const JUMP = {lista: LS.get('jumpeos', [])};
 const guardarJumpeos = () => LS.set('jumpeos', JUMP.lista);
-const scriptJumpeo = j => [`*F/S/P:* ${j.fsp}`, `*POSICIÓN EN DFO:* ${j.pos}`, `*TRONCAL :* ${j.troncal}`, `*POTENCIA EN DFO:* ${j.pot}${j.pot && !/dbm/i.test(j.pot) ? ' dBm' : ''}`, `*TRAZO:* ${j.trazo}`, `*OLT:* ${j.olt}`].join('\n');
+const conU = (v, u) => v ? (new RegExp(u + '$', 'i').test(String(v).trim()) ? String(v).trim() : String(v).trim() + u) : '';
+const scriptJumpeo = j => [`*F/S/P:* ${j.fsp}`, `*POSICIÓN EN DFO:* ${j.pos}`, `*TRONCAL :* ${j.troncal}`, `*POTENCIA EN DFO:* ${j.pot}${j.pot && !/dbm/i.test(j.pot) ? ' dBm' : ''}`, `*TRAZO:* ${j.trazo}`,
+  ...(j.eventos || []).filter(e => e.d || e.db).map((e, i) => `Evento ${i + 1}: ${conU(e.d, 'm')} ${conU(e.db, 'dBm')}`.trim()), `*OLT:* ${j.olt}`].join('\n');
 async function subirJumpeos(){
   if(demo() || !navigator.onLine) return;
   for(const j of JUMP.lista.filter(x => x.subido !== x.actualizado)){
@@ -5000,9 +5165,9 @@ function pantallaJumpeos(sinBajar){
     document.querySelectorAll('[data-j]').forEach(c => c.onclick = () => verJumpeo(JUMP.lista.find(x => x.id === c.dataset.j))); };
   $('#jBus').addEventListener('input', pintar); pintar();
   $('#jXls').onclick = () => { const {o} = ventana('Excel de jumpeos', '<div class="mbody"></div>');
-    entregarArchivo(xlsxLibro([{hoja: 'Jumpeos', cab: ['FECHA', 'OLT', 'F/S/P', 'TRONCAL', 'POSICION DFO', 'POTENCIA DBM', 'TRAZO', 'PARA QUE', 'ESTADO', 'REGISTRO', 'FOTO'],
-      filas: [...JUMP.lista].sort((a, b) => String(b.fecha).localeCompare(String(a.fecha))).map(j => [fmtLarga(j.fecha), j.olt, j.fsp, j.troncal, j.pos, String(j.pot || '').replace(/\s*dbm/i, ''), j.trazo, j.para, j.estado, j.registro, j.foto ? j.foto.url : '']),
-      anchos: [16, 16, 9, 9, 12, 13, 9, 26, 12, 22, 40]}]), `Jumpeos ${hoyISO()}.xlsx`, o, {t: 'Excel listo', h: 'jumpeos registrados'}); };
+    entregarArchivo(xlsxLibro([{hoja: 'Jumpeos', cab: ['FECHA', 'OLT', 'F/S/P', 'TRONCAL', 'POSICION DFO', 'POTENCIA DBM', 'TRAZO', 'EVENTOS', 'PARA QUE', 'ESTADO', 'REGISTRO', 'FOTO'],
+      filas: [...JUMP.lista].sort((a, b) => String(b.fecha).localeCompare(String(a.fecha))).map(j => [fmtLarga(j.fecha), j.olt, j.fsp, j.troncal, j.pos, String(j.pot || '').replace(/\s*dbm/i, ''), j.trazo, (j.eventos || []).map((e, i) => `${i + 1}: ${conU(e.d, 'm')} ${conU(e.db, 'dBm')}`).join('; '), j.para, j.estado, j.registro, j.foto ? j.foto.url : '']),
+      anchos: [16, 16, 9, 9, 12, 13, 9, 26, 26, 12, 22, 40]}]), `Jumpeos ${hoyISO()}.xlsx`, o, {t: 'Excel listo', h: 'jumpeos registrados'}); };
   $('#fab').innerHTML = '<button class="fab" id="bNuevoJ">+ Nuevo jumpeo</button>'; $('#bNuevoJ').onclick = () => editarJumpeo(null);
   if(!sinBajar) bajarJumpeos();
 }
@@ -5028,12 +5193,20 @@ function editarJumpeo(j){
     <label style="margin-top:0">OLT</label><input id="jOlt" list="dlOltJ" value="${esc(x.olt)}" autocapitalize="characters" placeholder="VALLARTA_JAL"><datalist id="dlOltJ">${olts.map(v => `<option value="${esc(v)}">`).join('')}</datalist>
     <label>F/S/P (frame / slot / puerto)</label><div class="row"><input id="jF" inputmode="numeric" value="${esc(f || '0')}" aria-label="Frame"><input id="jS" inputmode="numeric" value="${esc(sl || '')}" aria-label="Slot" placeholder="slot"><input id="jP" inputmode="numeric" value="${esc(pu || '')}" aria-label="Puerto" placeholder="puerto"></div>
     <div class="row"><div><label>Troncal</label><input id="jT" inputmode="numeric" value="${esc(x.troncal)}"></div><div><label>Posición en DFO</label><input id="jPos" inputmode="numeric" value="${esc(x.pos)}"></div></div>
-    <div class="row"><div><label>Potencia en DFO (dBm)</label><input id="jPot" inputmode="decimal" value="${esc(String(x.pot || '').replace(/\s*dbm/i, ''))}" placeholder="7.87"></div><div><label>Trazo</label><input id="jTr" value="${esc(x.trazo)}" placeholder="5km"></div></div>
+    <div class="row"><div><label>Potencia en DFO (dBm)</label><input id="jPot" inputmode="decimal" value="${esc(String(x.pot || '').replace(/\s*dbm/i, ''))}" placeholder="7.87"></div><div><label>Trazo</label><input id="jTr" value="${esc(x.trazo)}" placeholder="3130m"></div></div>
+    <label>Eventos en el trazo (atenuaciones considerables)</label><div id="jEvs"></div><button type="button" class="btn ghost sm" id="jEvA">＋ Agregar evento</button>
     <label>¿Para qué se jumpeó? (solo se guarda en NODO)</label><input id="jPara" value="${esc(x.para)}" autocapitalize="characters" placeholder="Ej. NVA-2-90N, predio RANCHITO o folio">
     <div class="hint" id="jSug"></div>
     ${nuevo ? '<button type="button" class="btn sec" id="jFoto">📷 Foto del medidor</button><div class="hint" id="jFotoH"></div>' : ''}
     <div class="hint err" id="jErr"></div></div>`, `<button class="btn" id="jOk">${nuevo ? 'Guardar y armar mensaje' : 'Guardar'}</button>`);
   const q = k => o.querySelector(k), num = k => q(k).value.replace(/\D/g, '');
+  let evs = (x.eventos || []).map(e => ({...e}));
+  const pintaEv = () => { q('#jEvs').innerHTML = evs.map((e, i) => `<div class="row" style="align-items:center;margin-bottom:6px"><b style="flex:0 0 auto;width:auto">${i + 1}.</b>
+      <input data-evd="${i}" inputmode="decimal" value="${esc(e.d || '')}" placeholder="2272 m"><input data-evb="${i}" inputmode="decimal" value="${esc(e.db || '')}" placeholder="0.98 dBm">
+      <button type="button" class="btn ghost sm" data-evx="${i}" style="flex:0 0 auto;width:auto;color:var(--err)">✕</button></div>`).join(''); };
+  pintaEv(); q('#jEvA').onclick = () => { evs.push({d: '', db: ''}); pintaEv(); const i = q(`[data-evd="${evs.length - 1}"]`); if(i) i.focus(); };
+  q('#jEvs').addEventListener('input', e => { const t = e.target; if(t.dataset.evd) evs[+t.dataset.evd].d = t.value.trim(); if(t.dataset.evb) evs[+t.dataset.evb].db = t.value.trim().replace(',', '.'); });
+  q('#jEvs').addEventListener('click', e => { const t = e.target.closest('[data-evx]'); if(t){ evs.splice(+t.dataset.evx, 1); pintaEv(); } });
   const sug = () => { const t = num('#jT'), p = num('#jPos'), cl = q('#jOlt').value.trim();
     const otro = JUMP.lista.find(y => y.id !== x.id && y.estado === 'ACTIVO' && MAY(y.olt) === MAY(cl) && ((y.troncal === t && y.pos === p && t && p) || y.fsp === `${num('#jF')}/${num('#jS')}/${num('#jP')}`));
     q('#jSug').innerHTML = otro ? `<span style="color:var(--err)">Ya hay un jumpeo activo en ${esc(otro.olt)}: F/S/P ${esc(otro.fsp)} → troncal ${esc(otro.troncal)}, posición ${esc(otro.pos)}${otro.para ? ' (' + esc(otro.para) + ')' : ''}. Si guardas, ese queda como REEMPLAZADO.</span>` : '';
@@ -5051,7 +5224,7 @@ function editarJumpeo(j){
     const otro = sug();
     if(otro && !(await preguntar(`Ese hilo o F/S/P ya está jumpeado${otro.para ? ' para ' + otro.para : ''}. ¿Guardar este y marcar el anterior como REEMPLAZADO?`, 'Sí, reemplazar'))) return;
     const ahora = new Date().toISOString();
-    Object.assign(x, {olt: MAY(q('#jOlt').value.trim()), fsp, troncal: num('#jT'), pos: num('#jPos'), pot: q('#jPot').value.trim().replace(',', '.'), trazo: q('#jTr').value.trim(), para: MAY(q('#jPara').value.trim()), actualizado: ahora});
+    Object.assign(x, {olt: MAY(q('#jOlt').value.trim()), fsp, troncal: num('#jT'), pos: num('#jPos'), pot: q('#jPot').value.trim().replace(',', '.'), trazo: q('#jTr').value.trim(), para: MAY(q('#jPara').value.trim()), eventos: evs.filter(e => e.d || e.db), actualizado: ahora});
     if(nuevo){ Object.assign(x, {id: uuid(), fecha: ahoraLocal(), estado: 'ACTIVO', registro: USER.nombre, registroId: USER.id}); if(foto) x._foto = await blobAb64(foto); JUMP.lista.push(x); }
     else Object.assign(j, x);
     if(otro){ otro.estado = 'REEMPLAZADO'; otro.nota = `Reemplazado el ${fmtLarga(ahoraLocal())}`; otro.actualizado = ahora; }
@@ -5289,7 +5462,7 @@ function fallaGtb(inc){                  // código de falla de GTB para cada in
 }
 const fechaD = v => { if(!v) return ''; const d = new Date(v); return isNaN(d) ? '' : d; };
 const diaD = v => { const d = fechaD(v); return d ? new Date(d.getFullYear(), d.getMonth(), d.getDate()) : ''; };
-async function leerXlsx(buf){             // primera hoja de un Excel → filas de valores
+async function leerXlsx(buf, nombreHoja){  // primera hoja (o la del nombre) de un Excel → filas de valores
   const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength); let e = buf.length - 22;
   while(e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
   if(e < 0) throw new Error('El archivo no es un Excel (.xlsx) válido.');
@@ -5301,7 +5474,12 @@ async function leerXlsx(buf){             // primera hoja de un Excel → filas 
     const b = x.met === 8 ? new Uint8Array(await new Response(new Blob([x.datos]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer()) : x.datos; return new TextDecoder().decode(b); };
   const dom = s => new DOMParser().parseFromString(s, 'application/xml'), tag = (n, t) => [...n.getElementsByTagNameNS('*', t)];
   const ss = tag(dom(await texto('xl/sharedStrings.xml') || '<sst/>'), 'si').map(si => tag(si, 't').map(t => t.textContent).join(''));
-  const hoja = Object.keys(ents).filter(k => /^xl\/worksheets\/sheet\d+\.xml$/.test(k)).sort((a, b) => parseInt(a.match(/\d+/)) - parseInt(b.match(/\d+/)))[0];
+  let hoja = Object.keys(ents).filter(k => /^xl\/worksheets\/sheet\d+\.xml$/.test(k)).sort((a, b) => parseInt(a.match(/\d+/)) - parseInt(b.match(/\d+/)))[0];
+  if(nombreHoja){ const wb = dom(await texto('xl/workbook.xml')), rel = dom(await texto('xl/_rels/workbook.xml.rels'));
+    const sh = tag(wb, 'sheet').find(x => sinAcento(MAY(x.getAttribute('name'))).trim() === sinAcento(MAY(nombreHoja))); if(!sh) throw new Error(`El Excel no trae la hoja "${nombreHoja}".`);
+    const rid = sh.getAttribute('r:id') || [...sh.attributes].find(a => /(^|:)id$/.test(a.name) && a.name !== 'sheetId').value;
+    const t = (tag(rel, 'Relationship').find(r => r.getAttribute('Id') === rid) || {getAttribute: () => ''}).getAttribute('Target');
+    hoja = 'xl/' + t.replace(/^\//, '').replace(/^xl\//, ''); }
   if(!hoja) throw new Error('El Excel no trae hojas.');
   const filas = [];
   tag(dom(await texto(hoja)), 'row').forEach(r => { const f = []; tag(r, 'c').forEach(c => { const ref = c.getAttribute('r') || '', letras = (ref.match(/^[A-Z]+/) || [''])[0];
